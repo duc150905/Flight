@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { loginSchema, registerSchema, otpSchema, createAuthService, authErrorMessage } from '../src/features/auth/model.ts';
+import { loginSchema, registerSchema, otpSchema, newPasswordSchema, changePasswordSchema, profileSchema, createAuthService, authErrorMessage } from '../src/features/auth/model.ts';
 
 const credentials = { email: '  Person@Example.com ', password: '  password123  ' };
 test('login normalizes email without modifying a password', () => {
@@ -59,4 +59,48 @@ test('resend requests a signup email and signout is device-local', async () => {
 test('error messages do not expose unexpected server data', () => {
   assert.equal(authErrorMessage({ message: 'sensitive server internals' }).includes('sensitive'), false);
   assert.notEqual(authErrorMessage({ code: 'email_not_confirmed' }), authErrorMessage({ code: 'invalid_credentials' }));
+});
+test('recovery requests normalize email without exposing whether an account exists', async () => {
+  let requested;
+  const actions = createAuthService({ resetPasswordForEmail: async email => {
+    requested = email; return { error: null };
+  } });
+  assert.equal(await actions.requestPasswordReset(credentials.email), undefined);
+  assert.equal(requested, 'person@example.com');
+});
+test('recovery code must create a session before changing the password', async () => {
+  const actions = createAuthService({ verifyOtp: async input => {
+    assert.deepEqual(input, { email: 'person@example.com', token: '123456', type: 'recovery' });
+    return { data: { session: null }, error: null };
+  } });
+  await assert.rejects(() => actions.verifyRecovery(credentials.email, '123456'));
+});
+test('new passwords are validated before reaching Supabase', async () => {
+  let calls = 0;
+  const actions = createAuthService({ updateUser: async () => { calls++; return { error: null }; } });
+  for (const input of [
+    { password: 'short', confirmPassword: 'short' },
+    { password: 'longenough', confirmPassword: 'different' },
+  ]) await assert.rejects(() => actions.setRecoveredPassword(input));
+  assert.equal(calls, 0);
+  assert.equal(newPasswordSchema.safeParse({ password: 'longenough', confirmPassword: 'longenough' }).success, true);
+});
+test('signed-in password change requires the current password', async () => {
+  let payload;
+  const actions = createAuthService({ updateUser: async input => {
+    payload = input; return { error: null };
+  } });
+  assert.equal(changePasswordSchema.safeParse({ currentPassword: '', password: 'newpassword', confirmPassword: 'newpassword' }).success, false);
+  await actions.changePassword({ currentPassword: 'oldpassword', password: 'newpassword', confirmPassword: 'newpassword' });
+  assert.deepEqual(payload, { password: 'newpassword', current_password: 'oldpassword' });
+});
+test('profile saves contact data as metadata without changing the Auth phone identifier', async () => {
+  let payload;
+  const actions = createAuthService({ updateUser: async input => {
+    payload = input; return { data: { user: { id: 'user' } }, error: null };
+  } });
+  assert.equal(profileSchema.safeParse({ fullName: 'A', contactPhone: 'invalid' }).success, false);
+  const user = await actions.updateProfile({ fullName: '  Mai Nguyen  ', contactPhone: '  +84 912 345 678  ' });
+  assert.equal(user.id, 'user');
+  assert.deepEqual(payload, { data: { full_name: 'Mai Nguyen', contact_phone: '+84 912 345 678' } });
 });

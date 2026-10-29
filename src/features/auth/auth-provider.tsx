@@ -18,7 +18,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     if (!client) return;
     const dispose = watchSession(client.auth,
       session => setState({ session, status: 'ready' }),
-      () => setState({ session: null, status: 'error', error: 'Could not restore your session. Check your connection and try again.' }));
+      () => setState({ session: null, status: 'error', error: 'Không thể khôi phục phiên đăng nhập. Hãy kiểm tra kết nối và thử lại.' }));
     if (Platform.OS === 'web') return dispose;
     const syncRefresh = (next: string | null | undefined) => {
       if (next === 'active') client.auth.startAutoRefresh();
@@ -29,7 +29,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return () => { dispose(); listener.remove(); client.auth.stopAutoRefresh(); };
   }, [attempt]);
   const value = !supabase
-    ? { session: null, status: 'error' as const, error: 'Supabase is not configured. Check .env.local and restart the app.' }
+    ? { session: null, status: 'error' as const, error: 'Chưa cấu hình Supabase. Hãy kiểm tra .env.local rồi khởi động lại ứng dụng.' }
     : state;
   return <AuthContext.Provider value={{ ...value, actions, retry: () => {
     setState({ session: null, status: 'loading' }); setAttempt(value => value + 1);

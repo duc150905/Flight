@@ -17,8 +17,8 @@ Expo Router · Supabase/PostgreSQL · TanStack Query · Zustand · React Hook Fo
 
 ## Trạng thái
 
-Có giao diện tiếng Anh cho đăng ký, xác nhận mã email, đăng nhập, khôi phục phiên
-và đăng xuất qua Supabase Auth. Xem [thiết lập Auth](docs/AUTH.md) để cấu hình mẫu
+Có giao diện tiếng Việt cho đăng ký, xác nhận mã email, đăng nhập, khôi phục phiên,
+đặt lại/đổi mật khẩu, chỉnh sửa hồ sơ và đăng xuất qua Supabase Auth. Xem [thiết lập Auth](docs/AUTH.md) để cấu hình mẫu
 email và kiểm thử trên điện thoại. Chưa có đặt vé, database nghiệp vụ, thanh toán
 mô phỏng hoặc quản trị. Chưa build APK hay liên kết EAS cloud.
 
@@ -31,4 +31,4 @@ npm.cmd run build:web
 npm.cmd run build:android
 ```
 
-Dữ liệu chuyến bay mẫu, thanh toán mô phỏng, ưu tiên Android; giao diện tiếng Anh.
+Dữ liệu chuyến bay mẫu, thanh toán mô phỏng, ưu tiên Android; giao diện tiếng Việt.
