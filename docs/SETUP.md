@@ -24,7 +24,7 @@ npm.cmd run build:android
 ```
 
 Hai lệnh export chỉ kiểm tra bundle, không tạo APK hoặc chứng minh app chạy trên thiết bị.
-Màn hình hiện tại là luồng tài khoản tiếng Anh. Xem `docs/AUTH.md` để thiết lập email.
+Màn hình hiện tại là luồng tài khoản tiếng Việt. Xem `docs/AUTH.md` để thiết lập email.
 
 ## Chứng chỉ mạng trên máy hiện tại
 

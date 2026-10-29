@@ -18,9 +18,9 @@ export function AuthShell({ children }: PropsWithChildren) {
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.content}>
           <Text style={styles.brand}>FLIGHT<Text style={styles.brandDot}>.</Text></Text>
-          <Text style={styles.tagline}>Your next journey starts here.</Text>
+          <Text style={styles.tagline}>Hành trình tiếp theo bắt đầu từ đây.</Text>
           <View style={styles.card}>{children}</View>
-          <Text style={styles.footer}>A little planning. A world of possibilities.</Text>
+          <Text style={styles.footer}>Lên kế hoạch gọn gàng cho mỗi chuyến đi.</Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -39,8 +39,8 @@ export function FormField<T extends FieldValues>({ control, name, label, passwor
           onBlur={field.onBlur} accessibilityLabel={label} accessibilityLabelledBy={`${name}-label`}
           secureTextEntry={password && !visible} placeholderTextColor={colors.muted} style={styles.input} />
         {password && <Pressable onPress={() => setVisible(value => !value)} accessibilityRole="button"
-          accessibilityLabel={`${visible ? 'Hide' : 'Show'} ${label.toLowerCase()}`} style={styles.reveal}>
-          <Text style={styles.link}>{visible ? 'Hide' : 'Show'}</Text>
+          accessibilityLabel={`${visible ? 'Ẩn' : 'Hiện'} ${label.toLowerCase()}`} style={styles.reveal}>
+          <Text style={styles.link}>{visible ? 'Ẩn' : 'Hiện'}</Text>
         </Pressable>}
       </View>
       {fieldState.error && <Text accessibilityLiveRegion="polite" style={styles.errorText}>{fieldState.error.message}</Text>}
@@ -53,7 +53,7 @@ export function ActionButton({ title, onPress, busy = false, disabled = false, s
   return <Pressable onPress={onPress} disabled={disabled || busy} accessibilityRole="button"
     accessibilityState={{ disabled: disabled || busy, busy }}
     style={({ pressed }) => [styles.button, secondary && styles.secondary, (disabled || busy) && styles.disabled, pressed && styles.pressed]}>
-    {busy ? <ActivityIndicator color={secondary ? colors.primary : colors.surface} accessibilityLabel="Please wait" />
+    {busy ? <ActivityIndicator color={secondary ? colors.primary : colors.surface} accessibilityLabel="Vui lòng chờ" />
       : <Text style={[styles.buttonText, secondary && styles.secondaryText]}>{title}</Text>}
   </Pressable>;
 }

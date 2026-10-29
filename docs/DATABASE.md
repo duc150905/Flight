@@ -76,7 +76,8 @@ Không gửi email, không để lại tài khoản thử. Kiểm tra số bản
 ghế bị giữ trùng, thanh toán pending/succeeded trùng và refund sai booking.
 Phần RLS chuyển `SET LOCAL ROLE` thực sự sang `anon` và `authenticated`, gắn
 `auth.uid()` tương ứng để kiểm tra khách, hai khách hàng riêng và admin.
-`npm run check` (typecheck/lint) pass; 17 bài test Auth hiện có cũng pass.
+Sau khi tích hợp phần Auth mới của TV1, `npm run check` (typecheck/lint),
+22 bài test Auth và `npm run build:web` đều pass.
 
 Advisor không còn cảnh báo mức WARN/ERROR sau migration thứ hai. Các INFO được
 giữ có chủ đích:
