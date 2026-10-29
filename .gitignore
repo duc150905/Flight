@@ -35,6 +35,10 @@ yarn-error.*
 .env*.local
 coverage/
 
+# Supabase CLI machine state (may contain connection details)
+supabase/.temp/
+supabase/.branches/
+
 # typescript
 *.tsbuildinfo
 
