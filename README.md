@@ -17,15 +17,18 @@ Expo Router · Supabase/PostgreSQL · TanStack Query · Zustand · React Hook Fo
 
 ## Trạng thái
 
-Đã scaffold môi trường. App hiện hiển thị template Expo. Chưa triển khai màn hình đặt vé,
-đăng nhập, database, thanh toán mô phỏng hoặc quản trị. Chưa liên kết Supabase/EAS cloud.
+Có giao diện tiếng Việt cho đăng ký, xác nhận mã email, đăng nhập, khôi phục phiên,
+đặt lại/đổi mật khẩu, chỉnh sửa hồ sơ và đăng xuất qua Supabase Auth. Xem [thiết lập Auth](docs/AUTH.md) để cấu hình mẫu
+email và kiểm thử trên điện thoại. Chưa có đặt vé, database nghiệp vụ, thanh toán
+mô phỏng hoặc quản trị. Chưa build APK hay liên kết EAS cloud.
 
 ## Kiểm tra
 
 ```powershell
 npm.cmd run check
+npm.cmd test
 npm.cmd run build:web
 npm.cmd run build:android
 ```
 
-Dữ liệu chuyến bay mẫu, thanh toán mô phỏng, ưu tiên Android; giao diện sản phẩm sẽ dùng tiếng Việt.
+Dữ liệu chuyến bay mẫu, thanh toán mô phỏng, ưu tiên Android; giao diện tiếng Việt.

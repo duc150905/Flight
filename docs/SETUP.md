@@ -24,7 +24,7 @@ npm.cmd run build:android
 ```
 
 Hai lệnh export chỉ kiểm tra bundle, không tạo APK hoặc chứng minh app chạy trên thiết bị.
-Màn hình hiện tại là template chính thức Expo; màn hình tiếng Việt theo thiết kế sẽ làm sau.
+Màn hình hiện tại là luồng tài khoản tiếng Việt. Xem `docs/AUTH.md` để thiết lập email.
 
 ## Chứng chỉ mạng trên máy hiện tại
 
@@ -39,9 +39,9 @@ Không tắt kiểm tra SSL. Biến này chỉ áp dụng cho terminal hiện t�
 
 ## Supabase
 
-Xem `supabase/README.md`. Chưa cần biến môi trường để mở template hiện tại.
+Xem `supabase/README.md`. Cần URL và publishable key trong `.env.local` để dùng Auth.
 Không commit file `.env.local`. Các thư viện Query, Zustand, form và Supabase
-được cài để dùng ở bước xây dựng tính năng; chưa có nghiệp vụ đặt vé hoặc kết nối cloud.
+được cài để dùng ở bước xây dựng tính năng; đã có kết nối Auth, chưa có nghiệp vụ đặt vé.
 
 ## Build Android bằng EAS
 

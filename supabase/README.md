@@ -1,6 +1,6 @@
 # Backend Flight
 
-Chưa tạo hoặc liên kết Supabase cloud project.
+App đã có Supabase client và Auth provider. Mỗi máy cấu hình project qua biến môi trường.
 
 1. Tạo development project trên Supabase, lưu mật khẩu database trong password manager.
 2. Sao chép `.env.example` thành `.env.local` ở root.
@@ -8,7 +8,7 @@ Chưa tạo hoặc liên kết Supabase cloud project.
 4. Khởi động lại Metro sau khi đổi biến môi trường.
 
 Không đưa database password, secret key hoặc service_role key vào app hay Git.
-Client và provider đăng nhập sẽ được triển khai ở giai đoạn kết nối backend.
+Xem `docs/AUTH.md` để áp dụng mẫu email và kiểm thử Auth.
 Schema, RLS, migrations và seed được thiết kế cùng nghiệp vụ ở giai đoạn tiếp theo.
 Không dùng key giả để coi như đã kết nối thành công.
 
