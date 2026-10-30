@@ -66,6 +66,9 @@ lại giá ở bước tạo đơn, không tin số tiền do giao diện gửi 
 
 ### F04 — Hành khách và liên hệ đặt vé | TV2
 
+Tiến độ 30/10/2026: đã có module kiểm tra/chuẩn hóa dữ liệu liên hệ và 10 test;
+xem [BOOKING-CONTACT.md](BOOKING-CONTACT.md). Chưa có form hoặc lưu bản nháp.
+
 - [ ] Bản nháp checkout lưu lựa chọn giữa các bước bằng Zustand.
 - [ ] Nhập thông tin từng hành khách: tên, ngày sinh, loại hành khách và các trường
   giấy tờ/quốc tịch chỉ khi hành trình yêu cầu; xác định nội địa/quốc tế từ dữ liệu.
