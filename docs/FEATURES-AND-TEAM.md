@@ -68,7 +68,9 @@ lại giá ở bước tạo đơn, không tin số tiền do giao diện gửi 
 
 Tiến độ 30/10/2026: đã có module kiểm tra/chuẩn hóa dữ liệu liên hệ (10 test)
 và họ tên/ngày sinh hành khách (12 test). Xem [BOOKING-CONTACT.md](BOOKING-CONTACT.md)
-và [BOOKING-PASSENGER.md](BOOKING-PASSENGER.md). Chưa có form hoặc lưu bản nháp.
+và [BOOKING-PASSENGER.md](BOOKING-PASSENGER.md). Đã có store bản nháp liên hệ/hành khách
+trong bộ nhớ (13 test), xem [CHECKOUT-DRAFT.md](CHECKOUT-DRAFT.md). Chưa có form checkout
+hoặc bản nháp hành trình/hạng vé.
 
 - [ ] Bản nháp checkout lưu lựa chọn giữa các bước bằng Zustand.
 - [ ] Nhập thông tin từng hành khách: tên, ngày sinh, loại hành khách và các trường

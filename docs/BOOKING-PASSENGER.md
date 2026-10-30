@@ -41,6 +41,7 @@ phân loại tuổi theo từng ngày bay, tuổi tối thiểu được bay và
 em bé sẽ là các bước riêng. Sinh đúng ngày đặt vé chỉ qua bước kiểm tra ngày,
 không có nghĩa hành khách đủ điều kiện bay.
 
-Chưa có giao diện, lưu bản nháp hay thao tác ghi database. Chạy 12 test mới bằng
+Đã có store bản nháp tại [CHECKOUT-DRAFT.md](CHECKOUT-DRAFT.md), chưa có giao diện
+hoặc thao tác ghi database. Chạy 12 test mới bằng
 `node --test tests/booking-passenger.test.mjs`, hoặc chạy toàn bộ bằng `npm test`.
 Phần ngày dùng [ISO date của Zod](https://zod.dev/api#iso-dates).
