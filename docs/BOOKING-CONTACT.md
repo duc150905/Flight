@@ -39,7 +39,8 @@ gắn lỗi vào trường tương ứng. Module không sửa object form gốc.
 sau chuẩn hóa. Kết quả chỉ gồm ba trường liên hệ, bỏ trường lạ như giá,
 trạng thái đơn, user ID hoặc danh sách hành khách.
 
-Đã có module và 10 test. Chưa gắn vào màn hình, lưu bản nháp hay ghi Supabase.
+Đã có module và 10 test; bản nháp dùng chung ở [CHECKOUT-DRAFT.md](CHECKOUT-DRAFT.md).
+Chưa gắn vào màn hình hoặc ghi Supabase.
 Khi có RPC tạo đơn, server vẫn phải kiểm tra lại dữ liệu và tự xác định quyền,
 giá, trạng thái đơn; kiểm tra client không thay thế bảo vệ phía server.
 
