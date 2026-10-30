@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { Text } from 'react-native';
 
 import { useAuth } from './auth-provider';
+import { useAdmin } from './use-admin';
 import {
   authErrorMessage, changePasswordSchema, profileSchema,
   type ChangePasswordInput, type ProfileInput,
@@ -14,6 +15,7 @@ type Mode = 'overview' | 'profile' | 'password';
 
 export function AccountScreen() {
   const { session, actions } = useAuth();
+  const { isAdmin, loading: adminLoading } = useAdmin();
   const [mode, setMode] = useState<Mode>('overview');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -34,9 +36,13 @@ export function AccountScreen() {
     {mode === 'password' && <ChangePasswordForm onSaved={() => saved('Đã đổi mật khẩu.')}
       onBack={() => setMode('overview')} />}
     {mode === 'overview' && <>
-      <Text style={[styles.label, { color: colors.success }]}>ĐÃ ĐĂNG NHẬP</Text>
+      <Text style={[styles.label, { color: colors.success }]}>
+        ĐÃ ĐĂNG NHẬP{isAdmin ? ' • QUẢN TRỊ VIÊN' : ''}
+      </Text>
       <Text accessibilityRole="header" style={styles.title}>Xin chào, {fullName || 'bạn'}</Text>
       <Text style={styles.description}>Cập nhật thông tin liên hệ để nhận tin về các đơn vé sau này.</Text>
+      <Text style={styles.label}>Vai trò</Text>
+      <Text style={styles.description}>{adminLoading ? 'Đang kiểm tra…' : (isAdmin ? 'Quản trị viên (Admin)' : 'Khách hàng')}</Text>
       <Text style={styles.label}>Email</Text>
       <Text selectable style={styles.description}>{session?.user.email}</Text>
       <Text style={styles.label}>Họ và tên</Text>
