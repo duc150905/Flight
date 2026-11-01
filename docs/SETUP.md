@@ -82,7 +82,9 @@ npm.cmd run build:web
 npm.cmd run build:android
 ```
 
-*(Hai lệnh `build:web` và `build:android` chỉ kiểm tra xuất bundle, không tạo file APK).*
+Hai lệnh export chỉ kiểm tra bundle, không tạo APK hoặc chứng minh app chạy trên thiết bị.
+Màn hình đầu là trang chủ/tìm chuyến một chiều; tài khoản nằm ở nút **Đăng nhập**.
+Xem `docs/AUTH.md` để thiết lập email và `docs/DISCOVERY.md` để biết phạm vi tìm chuyến.
 
 ---
 
@@ -105,6 +107,10 @@ npm.cmd run build:android
 - **Bắt buộc** dùng `npx expo install <package>` để Expo tự động giải quyết phiên bản tương thích chính xác với SDK 58.
 - Không tự ý nâng/hạ phiên bản React Native tách rời với Expo SDK.
 
+Xem `supabase/README.md`. Cần URL và publishable key trong `.env.local` để dùng Auth
+và đọc danh mục/chuyến bay từ database.
+Không commit file `.env.local`. Các thư viện Query, Zustand, form và Supabase
+được cài để dùng ở bước xây dựng tính năng; đã có kết nối Auth, chưa có nghiệp vụ đặt vé.
 ### 3. Tiêu chuẩn mở Pull Request (Pre-PR Checklist)
 - [ ] Đã chạy `npm.cmd run check` và không còn lỗi đỏ nào.
 - [ ] Đã chạy `npm.cmd test` và toàn bộ bài test đều PASS.

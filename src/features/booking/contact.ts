@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const phoneMessage = 'Số điện thoại cần từ 7 đến 15 chữ số, có thể bắt đầu bằng + và mã quốc gia.';
+const phoneMessage = 'Enter 7–15 digits, optionally starting with + and a country code.';
 
 const contactPhoneSchema = z.string().trim()
   .regex(/^\+?[0-9 ().-]+$/, phoneMessage)
@@ -11,9 +11,9 @@ const contactPhoneSchema = z.string().trim()
 /** Contact for this booking, independent of the account holder and passengers. */
 export const bookingContactSchema = z.object({
   contactName: z.string().trim()
-    .min(2, 'Họ tên liên hệ cần ít nhất 2 ký tự.')
-    .max(100, 'Họ tên liên hệ không quá 100 ký tự.'),
-  contactEmail: z.string().trim().toLowerCase().pipe(z.email('Email liên hệ không hợp lệ.')),
+    .min(2, 'Enter a contact name with at least 2 characters.')
+    .max(100, 'Contact name must be 100 characters or fewer.'),
+  contactEmail: z.string().trim().toLowerCase().pipe(z.email('Enter a valid contact email address.')),
   contactPhone: contactPhoneSchema,
 });
 

@@ -33,17 +33,10 @@ export const changePasswordSchema = passwordFields.extend({
     code: 'custom', message: 'Hãy chọn mật khẩu khác mật khẩu hiện tại.', path: ['password'],
   });
 });
-export const profileSchema = z.object({
-  fullName: z.string().trim().min(2, 'Họ tên cần ít nhất 2 ký tự.').max(100, 'Họ tên không quá 100 ký tự.'),
-  contactPhone: z.string().trim().max(30, 'Số điện thoại không quá 30 ký tự.').refine(value =>
-    value === '' || (/^\+?[0-9][0-9 .()-]*$/.test(value) && value.replace(/\D/g, '').length >= 7),
-    'Số điện thoại liên hệ không hợp lệ.'),
-});
 export type LoginInput = z.input<typeof loginSchema>;
 export type RegisterInput = z.input<typeof registerSchema>;
 export type NewPasswordInput = z.input<typeof newPasswordSchema>;
 export type ChangePasswordInput = z.input<typeof changePasswordSchema>;
-export type ProfileInput = z.input<typeof profileSchema>;
 type AuthGateway = Pick<SupabaseClient['auth'], 'signUp' | 'signInWithPassword' | 'verifyOtp' | 'resend' | 'signOut' | 'resetPasswordForEmail' | 'updateUser'>;
 
 export function createAuthService(auth: AuthGateway) {
@@ -90,12 +83,6 @@ export function createAuthService(auth: AuthGateway) {
       const { currentPassword, password } = changePasswordSchema.parse(input);
       const { error } = await auth.updateUser({ password, current_password: currentPassword });
       if (error) throw error;
-    },
-    async updateProfile(input: ProfileInput) {
-      const { fullName, contactPhone } = profileSchema.parse(input);
-      const { data, error } = await auth.updateUser({ data: { full_name: fullName, contact_phone: contactPhone } });
-      if (error) throw error;
-      return data.user;
     },
     async logout() {
       const { error } = await auth.signOut({ scope: 'local' });
