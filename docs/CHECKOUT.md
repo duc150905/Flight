@@ -50,5 +50,10 @@ copied as raw text to the shared draft. Validation produces a normalized copy
 without changing what is displayed. Forms are keyed by selection to avoid stale
 local form state after a new itinerary.
 
+Traveller forms use fixed stable slots from the selected counts, separate names
+and birth dates, the same blur/change/submit feedback as contact, and individual
+draft updates by ID. Names can be identical without sharing data. Opening the
+traveller route without valid contact redirects to the contact step.
+
 Only contact/passenger information and review. Booking, seat, add-on and payment
 RPCs remain separate work. No database migration or shared schema change.
