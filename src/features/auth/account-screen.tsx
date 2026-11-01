@@ -75,6 +75,7 @@ export function AccountScreen() {
       <Notice text={message} success />
       <Notice text={error} />
       <ActionButton title="Sửa hồ sơ" disabled={busy || current.status !== 'ready'} onPress={() => { setMessage(''); setMode('profile'); }} />
+      <ActionButton title="Vé của tôi" secondary disabled={busy} onPress={() => router.push('/tickets')} />
       <ActionButton title="Đổi mật khẩu" secondary disabled={busy} onPress={() => { setMessage(''); setMode('password'); }} />
       <ActionButton title="Đăng xuất" busy={busy} secondary onPress={() => void logout()} />
       <ActionButton title="Về trang chủ" secondary disabled={busy} onPress={() => router.push('/')} />
