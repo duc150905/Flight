@@ -23,7 +23,8 @@ Xem [thiết lập Auth](docs/AUTH.md) để cấu hình mẫu
 email và kiểm thử trên điện thoại. Database nghiệp vụ đã có 22 bảng với RLS,
 index và RPC đọc sơ đồ ghế trên Supabase `flight-dev`; xem
 [trạng thái database](docs/DATABASE.md) và [thiết kế đã duyệt](docs/DATABASE-PROPOSAL.md).
-Chưa có luồng đặt vé, thanh toán mô phỏng hoặc quản trị trong app.
+Màn hình Vé của tôi đọc đơn và chi tiết qua Supabase; xem [phạm vi hiện tại](docs/TICKETS.md).
+Chưa có luồng đặt vé, hủy vé, thanh toán mô phỏng hoặc quản trị trong app.
 Chưa build APK hay liên kết EAS cloud.
 
 ## Kiểm tra
