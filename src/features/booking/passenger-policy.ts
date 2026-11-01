@@ -13,6 +13,11 @@ export function classifyPassenger(birthDate: string, travelDate: string): 'adult
   const age = ageOnDate(birthDate, travelDate);
   return age < 2 ? 'infant' : age < 12 ? 'child' : 'adult';
 }
+export function isEligibleCompanion(rawBirthDate: string, legs: Pick<CheckoutItinerary['legs'][number], 'departureDate'>[]): boolean {
+  const birthDate = rawBirthDate.trim();
+  return legs.length > 0 && calendarDateSchema.safeParse(birthDate).success
+    && legs.every(leg => birthDate <= leg.departureDate && ageOnDate(birthDate, leg.departureDate) >= 18);
+}
 export function passengerDetailsSchema(bookingDate: string) {
   return createBookingPassengerSchema(bookingDate).extend({
     nationalityCode: z.string().trim().toUpperCase().optional(),

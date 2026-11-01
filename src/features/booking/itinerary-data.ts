@@ -9,7 +9,7 @@ type Fare = Pick<Tables['flight_fares']['Row'], 'id' | 'flight_id' | 'name' | 'i
 export type SelectedFlightRecord = { flight: Flight; fare: Fare; origin: Airport; destination: Airport };
 export type ItineraryLeg = SelectedItinerary['segments'][number] & {
   origin: Airport; destination: Airport; flightNumber: string; fareName: string;
-  departureAt: string; arrivalAt: string; departureDate: string; arrivalDate: string;
+  departureAt: string; arrivalAt: string; salesCloseAt: string; departureDate: string; arrivalDate: string;
 };
 export type CheckoutItinerary = { selection: SelectedItinerary; legs: ItineraryLeg[]; international: boolean };
 
@@ -32,7 +32,7 @@ export function hydrateItinerary(input: SelectedItinerary, records: SelectedFlig
       || !(Date.parse(flight.sales_close_at) > now.getTime()) || !(Date.parse(flight.departure_at) > now.getTime())
       || !(Date.parse(flight.arrival_at) > Date.parse(flight.departure_at))) throw unavailable();
     return { ...segment, origin, destination, flightNumber: flight.flight_number, fareName: fare.name,
-      departureAt: flight.departure_at, arrivalAt: flight.arrival_at,
+      departureAt: flight.departure_at, arrivalAt: flight.arrival_at, salesCloseAt: flight.sales_close_at,
       departureDate: localCalendarDay(flight.departure_at, origin.timezone),
       arrivalDate: localCalendarDay(flight.arrival_at, destination.timezone) };
   });

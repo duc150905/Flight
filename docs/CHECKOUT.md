@@ -30,8 +30,6 @@ Dates use airport timezones. This is not a price quote or seat guarantee.
 TV1 discovery remains in its separate open PR; this branch does not merge it.
 Its detail-screen Continue button must call the helper above when integrating.
 
-## Scope
-
 ## Draft lifetime
 
 The checkout layout creates one store per authenticated user. Navigating between
@@ -73,6 +71,48 @@ traveller route without valid contact redirects to the contact step.
   country-specific passport validity period is claimed by this demo.
 - All of these are client feedback. Future server booking RPCs must enforce
   the same rules using trusted flight data and booking time.
+
+## Review and editing
+
+`checkoutReview` always validates the current raw draft again, including exact
+traveller slots and policies. Invalid contact/travellers point to the correct edit
+step; sales-closed/departed flights require a new selection. Review displays the
+hydrated itinerary, normalized contact and every traveller/document/companion.
+Returning to edit retains raw values. Confirm traveller details is an in-memory
+acknowledgment only, invalidated by edits; it does not clear the draft, create an
+order, hold a seat or charge money. Those operations belong to later TV2 work.
+
+Back/Edit uses Router `dismissTo` to return to the existing step instead of
+creating duplicate step screens. On focus both forms restore the latest shared
+draft, so native Back cannot expose stale cached default values. Companion
+eligibility trims DOB exactly like the validator; corrections revalidate already
+touched/invalid companion fields without showing untouched errors early.
+
+## Six tasks and commits
+
+1. Selected itinerary schema, TV1 adapter and read-only hydration.
+2. Authenticated checkout routes, draft ownership/lifetime and cancel handling.
+3. Contact form with blur-first/change/submit validation.
+4. Stable per-traveller forms and draft synchronization.
+5. Approved age/count/companion/document demo policy.
+6. Validated review, editing and informational details acknowledgment.
+
+Run `npm test`, `npm run check`, `npm run build:web`, `npm run build:android`.
+
+## Verification on 2026-11-01
+
+- `npm test`: 84 passed, 0 failed.
+- `npm run check`: TypeScript and lint passed.
+- Web export and Android Hermes export passed (custom ignored output directories
+  under `supabase/.temp/checkout-work/`; Windows sandbox output restrictions
+  required running the final exports outside the sandbox).
+- Independent review's four findings fixed and targeted regressions passed.
+- Read-only public Supabase catalogue queries succeeded, returning no available
+  rows. No real-flight end-to-end test or Android device acceptance yet.
+- Browser visual inspection could not be completed: embedded webview did not
+  attach and Windows Computer Use stopped because it could not establish the URL.
+  Temporary fixture route was removed and is not part of the deliverable.
+- Vietnamese task/file walkthrough: [CHECKOUT-WALKTHROUGH.md](CHECKOUT-WALKTHROUGH.md).
 
 Only contact/passenger information and review. Booking, seat, add-on and payment
 RPCs remain separate work. No database migration or shared schema change.

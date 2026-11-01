@@ -31,56 +31,56 @@ Files: selection.ts, itinerary-data.ts, tests/checkout-selection.test.mjs,
 tests/checkout-itinerary.test.mjs, docs/CHECKOUT.md and this spec/plan.
 Produces SelectedItinerary, buildCheckoutHref, selectionFromDiscovery,
 parseSelectionParameter, hydrateItinerary, localCalendarDay.
-- [ ] Write failing tests for counts, multi-leg continuity, untrusted extra fields,
+- [x] Write failing tests for counts, multi-leg continuity, untrusted extra fields,
   malformed URLs, fare mismatch, unavailable flights, timezones and ordering.
-- [ ] Implement pure validation and read-only Supabase loader; no price trust.
-- [ ] Run tests and npm run check; commit `feat(tv2): accept selected itineraries`.
+- [x] Implement pure validation and read-only Supabase loader; no price trust.
+- [x] Run tests and npm run check; commit `feat(tv2): accept selected itineraries`.
 
 ## Task 2: Draft lifecycle and routing
 
 Files: draft.ts, checkout-provider.tsx, ui.tsx, app/checkout routes,
 tests/checkout-lifecycle.test.mjs.
 Consumes SelectedItinerary; produces beginCheckout/setStep/finish and reset behavior.
-- [ ] Write failing tests for initialize/retain/reset, stable passenger slots,
+- [x] Write failing tests for initialize/retain/reset, stable passenger slots,
   navigation guards, cancel/complete and owner isolation.
-- [ ] Implement session-keyed provider, safe entry loading/retry, step shell.
-- [ ] Run tests and npm run check; commit `feat(tv2): connect checkout draft lifecycle`.
+- [x] Implement session-keyed provider, safe entry loading/retry, step shell.
+- [x] Run tests and npm run check; commit `feat(tv2): connect checkout draft lifecycle`.
 
 ## Task 3: Contact form
 
 Files: contact.ts English messages, form-state.ts, contact-screen.tsx,
 tests/checkout-form.test.mjs, app/checkout/contact.tsx.
 Consumes store contact, produces validated contact and passenger navigation.
-- [ ] Write failing tests for blur/change/submit feedback and field-level errors.
-- [ ] Implement labelled keyboard-friendly form with raw draft synchronization.
-- [ ] Run tests and npm run check; commit `feat(tv2): add checkout contact form`.
+- [x] Write failing tests for blur/change/submit feedback and field-level errors.
+- [x] Implement labelled keyboard-friendly form with raw draft synchronization.
+- [x] Run tests and npm run check; commit `feat(tv2): add checkout contact form`.
 
 ## Task 4: Passenger form
 
 Files: passenger.ts English messages, passenger-screen.tsx,
 tests/checkout-passenger-form.test.mjs, app/checkout/passengers.tsx.
 Consumes stable slots, produces basic per-person data with no overwrites.
-- [ ] Write failing tests for independent updates and missing passenger data.
-- [ ] Implement all required passenger cards and consistent inline validation.
-- [ ] Run tests and npm run check; commit `feat(tv2): add passenger details form`.
+- [x] Write failing tests for independent updates and missing passenger data.
+- [x] Implement all required passenger cards and consistent inline validation.
+- [x] Run tests and npm run check; commit `feat(tv2): add passenger details form`.
 
 ## Task 5: Passenger policies
 
 Files: passenger-policy.ts, draft.ts, passenger-screen.tsx,
 tests/checkout-passenger-policy.test.mjs, docs/CHECKOUT.md.
 Consumes hydrated departure/arrival dates and slots; produces policy issues.
-- [ ] Write failing tests for exact ages on every leg, counts, companion uniqueness,
+- [x] Write failing tests for exact ages on every leg, counts, companion uniqueness,
   invalid countries, required passport and expiry across itinerary.
-- [ ] Implement documented demo policy and conditional document/companion fields.
-- [ ] Run tests and npm run check; commit `feat(tv2): enforce demo passenger rules`.
+- [x] Implement documented demo policy and conditional document/companion fields.
+- [x] Run tests and npm run check; commit `feat(tv2): enforce demo passenger rules`.
 
 ## Task 6: Review and edit
 
 Files: review.ts, review-screen.tsx, app/checkout/review.tsx,
 tests/checkout-review.test.mjs, docs/FEATURES-AND-TEAM.md, docs/CHECKOUT.md.
 Consumes current store and full policy validation; produces review summary only.
-- [ ] Write failing tests for normalized summaries, invalid/missing/stale data
+- [x] Write failing tests for normalized summaries, invalid/missing/stale data
   rejection and raw input preservation when returning to edit.
-- [ ] Implement itinerary/contact/passenger review and edit links; no fake booking.
-- [ ] Run all tests, npm run check, web/Android bundles; whole-branch code review.
-- [ ] Commit `feat(tv2): add checkout review and editing`.
+- [x] Implement itinerary/contact/passenger review and edit links; no fake booking.
+- [x] Run all tests, npm run check, web/Android bundles; whole-branch code review.
+- [x] Commit `feat(tv2): add checkout review and editing`.

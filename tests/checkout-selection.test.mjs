@@ -23,6 +23,8 @@ test('selection rejects malformed IDs, repeated flights, missing or noncontiguou
     { ...input, segments: [{ ...input.segments[0], flightId: 'bad' }] },
     { ...input, segments: [{ ...input.segments[0], legIndex: 2 }] },
     { ...input, tripType: 'round_trip' },
+    { ...input, tripType: 'round_trip', segments: [{ ...input.segments[0], journeyIndex: 2 }] },
+    { ...input, tripType: 'multi_city', segments: [{ ...input.segments[0], journeyIndex: 2 }] },
   ]) assert.throws(() => selection.buildCheckoutHref(bad));
   for (const raw of [undefined, ['{}'], '{', '{}']) assert.throws(() => selection.parseSelectionParameter(raw));
 });

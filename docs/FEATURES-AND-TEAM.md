@@ -72,6 +72,12 @@ và [BOOKING-PASSENGER.md](BOOKING-PASSENGER.md). Đã có store bản nháp li�
 trong bộ nhớ (13 test), xem [CHECKOUT-DRAFT.md](CHECKOUT-DRAFT.md). Chưa có form checkout
 hoặc bản nháp hành trình/hạng vé.
 
+Cập nhật 01/11/2026: nhánh `codex/tv2-checkout-flow` triển khai bàn giao ID chuyến/
+hạng vé và số người, bản nháp theo tài khoản/hành trình, form liên hệ/hành khách,
+chính sách tuổi/đi kèm/hộ chiếu demo và màn review/sửa. Xem [CHECKOUT.md](CHECKOUT.md).
+TV1 discovery chưa merge; cần nối nút chọn chuyến bằng helper bàn giao. Nghiệp vụ
+tạo đơn/giữ ghế/thanh toán và validation server vẫn là công việc tiếp theo.
+
 - [ ] Bản nháp checkout lưu lựa chọn giữa các bước bằng Zustand.
 - [ ] Nhập thông tin từng hành khách: tên, ngày sinh, loại hành khách và các trường
   giấy tờ/quốc tịch chỉ khi hành trình yêu cầu; xác định nội địa/quốc tế từ dữ liệu.

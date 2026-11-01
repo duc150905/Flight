@@ -16,7 +16,7 @@ export const selectedItinerarySchema = z.object({
 }).superRefine((value, ctx) => {
   let journey = 1; let leg = 0;
   for (const segment of value.segments) {
-    if (segment.journeyIndex === journey + 1 && segment.legIndex === 1) { journey++; leg = 0; }
+    if (leg > 0 && segment.journeyIndex === journey + 1 && segment.legIndex === 1) { journey++; leg = 0; }
     if (segment.journeyIndex !== journey || segment.legIndex !== leg + 1) {
       ctx.addIssue({ code: 'custom', path: ['segments'], message: 'Segments must be in consecutive journey and leg order.' });
     }

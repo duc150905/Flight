@@ -9,7 +9,7 @@ export function CheckoutField<T extends FieldValues>({ control, name, label, onR
   return <Controller control={control} name={name} render={({ field, fieldState }) => <View style={styles.field}>
     <Text nativeID={`${name}-label`} style={[styles.label, { color: c.text }]}>{label}</Text>
     <TextInput {...props} ref={field.ref} value={field.value ?? ''}
-      onChangeText={value => { onRawChange(value); field.onChange(value); }} onBlur={field.onBlur}
+      onChangeText={value => { field.onChange(value); onRawChange(value); }} onBlur={field.onBlur}
       accessibilityLabel={label} accessibilityLabelledBy={`${name}-label`}
       accessibilityHint={fieldState.error?.message ?? props.accessibilityHint}
       placeholderTextColor={c.muted}

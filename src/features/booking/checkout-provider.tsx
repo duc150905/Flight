@@ -8,8 +8,9 @@ export function CheckoutProvider({ children }: PropsWithChildren) {
   const [store] = useState(createCheckoutDraftStore);
   return <CheckoutContext.Provider value={store}>{children}</CheckoutContext.Provider>;
 }
-export function useCheckout() {
+export function useCheckoutStore() {
   const store = useContext(CheckoutContext);
   if (!store) throw new Error('CheckoutProvider missing');
-  return useStore(store);
+  return store;
 }
+export function useCheckout() { return useStore(useCheckoutStore()); }

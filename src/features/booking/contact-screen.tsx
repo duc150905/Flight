@@ -1,7 +1,8 @@
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 import { useForm } from 'react-hook-form';
-import { useCheckout } from './checkout-provider';
-import { contactFormOptions } from './form-state';
+import { useCheckout, useCheckoutStore } from './checkout-provider';
+import { contactFormOptions, restoreContactForm } from './form-state';
 import { CheckoutField } from './form-field';
 import { CheckoutButton, CheckoutCard, CheckoutShell, CheckoutText, MissingCheckout } from './ui';
 
@@ -12,6 +13,8 @@ export function ContactScreen() {
 function ContactForm() {
   const draft = useCheckout();
   const form = useForm(contactFormOptions(draft.contact));
+  const store = useCheckoutStore(); const reset = form.reset;
+  useFocusEffect(useCallback(() => restoreContactForm({ reset }, store.getState().contact), [reset, store]));
   return <CheckoutShell title="Contact details" step={0}>
     <CheckoutText muted>Who should we contact about this booking? This person does not have to be a traveller.</CheckoutText>
     <CheckoutCard>

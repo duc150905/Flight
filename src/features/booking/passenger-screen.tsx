@@ -1,13 +1,13 @@
-import { Redirect, router } from 'expo-router';
+import { Redirect, router, useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Pressable, Text, View } from 'react-native';
 import { bookingContactSchema } from './contact';
-import { useCheckout } from './checkout-provider';
-import { passengerFormOptions } from './form-state';
+import { useCheckout, useCheckoutStore } from './checkout-provider';
+import { passengerFormOptions, restorePassengerForm, revalidateCompanionFields } from './form-state';
 import { CheckoutField } from './form-field';
 import { localCalendarDay } from './itinerary-data';
-import { calendarDateSchema } from './passenger';
-import { ageOnDate } from './passenger-policy';
+import { isEligibleCompanion } from './passenger-policy';
 import { CheckoutButton, CheckoutCard, CheckoutError, CheckoutShell, CheckoutText, MissingCheckout, useCheckoutColors } from './ui';
 
 export function PassengerScreen() {
@@ -20,8 +20,10 @@ function PassengerForm() {
   const draft = useCheckout();
   const bookingDate = localCalendarDay(new Date(), draft.itinerary!.legs[0].origin.timezone);
   const form = useForm(passengerFormOptions(draft.passengers, bookingDate, draft.itinerary!));
+  const store = useCheckoutStore(); const reset = form.reset;
+  useFocusEffect(useCallback(() => restorePassengerForm({ reset }, store.getState().passengers), [reset, store]));
   const c = useCheckoutColors();
-  return <CheckoutShell title="Traveller information" step={1} back={() => router.replace('/checkout/contact')}>
+  return <CheckoutShell title="Traveller information" step={1} back={() => router.dismissTo('/checkout/contact')}>
     <CheckoutText muted>Enter each traveller’s name as shown on their travel document.</CheckoutText>
     <CheckoutText muted>Demo age rules: infant under 2, child 2–11, adult 12+. Age is checked on every flight date.</CheckoutText>
     {draft.passengers.map((passenger, index) => <CheckoutCard key={passenger.id}>
@@ -33,7 +35,7 @@ function PassengerForm() {
         onSubmitEditing={() => form.setFocus(`passengers.${index}.values.dateOfBirth`)}
         onRawChange={value => draft.updatePassenger(passenger.id, { familyName: value })} />
       <CheckoutField control={form.control} name={`passengers.${index}.values.dateOfBirth`} label="Date of birth" placeholder="YYYY-MM-DD" autoCapitalize="none" autoCorrect={false}
-        onRawChange={value => draft.updatePassenger(passenger.id, { dateOfBirth: value })} />
+        onRawChange={value => { draft.updatePassenger(passenger.id, { dateOfBirth: value }); void revalidateCompanionFields(form); }} />
       <CheckoutText muted>Use YYYY-MM-DD, for example 2000-02-29.</CheckoutText>
       {draft.itinerary!.international && <>
         <CheckoutText title>Passport details</CheckoutText>
@@ -52,11 +54,15 @@ function PassengerForm() {
         <CheckoutText muted>This infant has no separate seat. Choose a different adult aged 18+ for each infant. Fill in the adult’s birth date first.</CheckoutText>
         <Controller control={form.control} name={`passengers.${index}.values.accompanyingAdultId`} render={({ field, fieldState }) => <View style={{ gap: 8 }}>
           {draft.passengers.filter(p => p.id.startsWith('adult-')).map(adult => {
-            const eligible = calendarDateSchema.safeParse(adult.values.dateOfBirth).success && draft.itinerary!.legs.every(leg => adult.values.dateOfBirth <= leg.departureDate && ageOnDate(adult.values.dateOfBirth, leg.departureDate) >= 18);
+            const eligible = isEligibleCompanion(adult.values.dateOfBirth, draft.itinerary!.legs);
             const selected = field.value === adult.id;
             const label = `${adult.id}: ${[adult.values.givenNames, adult.values.familyName].filter(Boolean).join(' ') || 'Enter traveller details'}`;
             return <Pressable key={adult.id} accessibilityRole="radio" accessibilityLabel={label} accessibilityState={{ checked: selected, disabled: !eligible }} disabled={!eligible}
-              onPress={() => { draft.updatePassenger(passenger.id, { accompanyingAdultId: adult.id }); field.onChange(adult.id); field.onBlur(); }}
+              onPress={() => {
+                draft.updatePassenger(passenger.id, { accompanyingAdultId: adult.id });
+                field.onChange(adult.id); field.onBlur();
+                void revalidateCompanionFields(form);
+              }}
               style={({ pressed }) => ({ minHeight: 52, padding: 14, borderWidth: selected ? 2 : 1, borderRadius: 10, borderColor: selected ? c.primary : c.border, backgroundColor: selected ? c.tint : c.surface, opacity: !eligible ? 0.5 : pressed ? 0.75 : 1 })}>
               <Text style={{ color: c.text, fontSize: 16 }}>{selected ? 'Selected: ' : ''}{label}</Text>
             </Pressable>;

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ageOnDate, classifyPassenger, passengerPolicySchema } from '../src/features/booking/passenger-policy.ts';
+import * as policy from '../src/features/booking/passenger-policy.ts';
+const { ageOnDate, classifyPassenger, passengerPolicySchema } = policy;
 import { createCheckoutDraftStore } from '../src/features/booking/draft.ts';
 
 const values = { givenNames: 'An', familyName: 'Nguyễn', dateOfBirth: '1990-01-01' };
@@ -71,4 +72,10 @@ test('document and companion edits remain in the draft when a name is changed', 
   assert.equal(store.getState().passengers[0].values.accompanyingAdultId, 'adult-1');
   store.getState().updatePassenger('infant-1', { passportNumber: '' });
   assert.equal(store.getState().passengers[0].values.passportNumber, '');
+});
+test('companion eligibility uses the same normalized DOB as the policy', () => {
+  assert.equal(typeof policy.isEligibleCompanion, 'function');
+  assert.equal(policy.isEligibleCompanion(' 1990-01-01 ', itinerary().legs), true);
+  assert.equal(policy.isEligibleCompanion('2020-01-01', itinerary().legs), false);
+  assert.equal(policy.isEligibleCompanion('not a date', itinerary().legs), false);
 });

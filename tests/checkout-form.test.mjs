@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createFormControl } from 'react-hook-form';
-import { contactFormOptions } from '../src/features/booking/form-state.ts';
+import * as forms from '../src/features/booking/form-state.ts';
+const { contactFormOptions } = forms;
 
 test('first typing defers errors until blur; fixing a touched field clears the error', async () => {
   const form = createFormControl(contactFormOptions({ contactName: '', contactEmail: '', contactPhone: '' }));
@@ -25,4 +26,13 @@ test('Continue checks untouched required fields and returns normalized data with
   await blank.handleSubmit(() => { advanced = true; })();
   assert.equal(advanced, false);
   for (const name of ['contactName', 'contactEmail', 'contactPhone']) assert.ok(blank.getFieldState(name).error);
+});
+test('a retained contact form displays the latest shared draft on focus', async () => {
+  assert.equal(typeof forms.restoreContactForm, 'function');
+  const form = createFormControl(contactFormOptions({ contactName: 'Old', contactEmail: 'old@example.com', contactPhone: '0901234567' }));
+  forms.restoreContactForm(form, { contactName: 'New', contactEmail: 'new@example.com', contactPhone: '0901234567' });
+  let result;
+  await form.handleSubmit(data => { result = data; })();
+  assert.equal(result.contactEmail, 'new@example.com');
+  assert.equal(form.getValues('contactEmail'), 'new@example.com');
 });
