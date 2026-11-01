@@ -18,7 +18,8 @@ Expo Router · Supabase/PostgreSQL · TanStack Query · Zustand · React Hook Fo
 ## Trạng thái
 
 Có giao diện tiếng Việt cho đăng ký, xác nhận mã email, đăng nhập, khôi phục phiên,
-đặt lại/đổi mật khẩu, chỉnh sửa hồ sơ và đăng xuất qua Supabase Auth.
+đặt lại/đổi mật khẩu và đăng xuất qua Supabase Auth; hồ sơ đọc/sửa trong
+`public.profiles` với RLS.
 Xem [thiết lập Auth](docs/AUTH.md) để cấu hình mẫu
 email và kiểm thử trên điện thoại. Database nghiệp vụ đã có 22 bảng với RLS,
 index và RPC đọc sơ đồ ghế trên Supabase `flight-dev`; xem

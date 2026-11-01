@@ -34,10 +34,17 @@ the user sets a new password through `updateUser`. A 60-second resend cooldown
 applies in the UI. Signed-in users can change their password by providing the
 current password and a new one. The app never stores either password itself.
 
-The account screen lets the user update their full name and contact phone. Both
-are stored in Auth user metadata for this MVP. `contact_phone` is a booking
-contact field, not an Auth phone login identifier. It must never authorize admin
-actions. TV3 can move these fields to `profiles` when that table and RLS are ready.
+The account screen reads and updates `public.profiles` for the signed-in user.
+The database trigger creates a profile at signup using the Auth full-name
+metadata; subsequent profile edits use only the profile table. RLS and column
+grants allow a customer to read their own row and update only `full_name`,
+`contact_phone`, and `avatar_path`. The app updates only the first two columns.
+The phone is optional and stored as E.164 (`+84912345678`), or `null` when blank.
+It is a booking contact field, not an Auth phone login identifier, and must
+never authorize admin actions. A missing profile is shown as an error; the app
+does not insert one from the client. Existing contact phones saved only in Auth
+metadata before this change are not automatically copied into `profiles`; users
+must re-enter them until a coordinated database backfill is performed.
 
 ## Required Dashboard setup (owner action)
 
@@ -70,10 +77,16 @@ update both templates before testing registration and recovery.
 - Check form scroll/keyboard and password visibility on Android.
 - Request a reset for a real and an unknown email; both show the same next step.
 - Enter an invalid reset code, then a valid one; set a new password and sign in again.
-- Edit full name and contact phone; close/reopen to confirm they persist.
+- Edit full name and contact phone; close/reopen to confirm they persist in
+  `public.profiles`. Check a blank phone stores `null` and a formatted or local
+  phone is rejected before reaching the database.
+- Sign in as two different users and confirm neither can read or update the
+  other's profile through the public API.
 - Change password with a wrong and then correct current password.
 
 Automated tests cover validation, API boundary payloads and session startup races.
+Profile tests cover the filtered read/update request and missing-row handling;
+live RLS behavior still requires two authenticated test users.
 They do not send real email, create real users, or prove on-device delivery.
 
 ## References
