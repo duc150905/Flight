@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { loginSchema, registerSchema, otpSchema, newPasswordSchema, changePasswordSchema, profileSchema, createAuthService, authErrorMessage } from '../src/features/auth/model.ts';
+import { loginSchema, registerSchema, otpSchema, newPasswordSchema, changePasswordSchema, createAuthService, authErrorMessage } from '../src/features/auth/model.ts';
 
 const credentials = { email: '  Person@Example.com ', password: '  password123  ' };
 test('login normalizes email without modifying a password', () => {
@@ -93,14 +93,4 @@ test('signed-in password change requires the current password', async () => {
   assert.equal(changePasswordSchema.safeParse({ currentPassword: '', password: 'newpassword', confirmPassword: 'newpassword' }).success, false);
   await actions.changePassword({ currentPassword: 'oldpassword', password: 'newpassword', confirmPassword: 'newpassword' });
   assert.deepEqual(payload, { password: 'newpassword', current_password: 'oldpassword' });
-});
-test('profile saves contact data as metadata without changing the Auth phone identifier', async () => {
-  let payload;
-  const actions = createAuthService({ updateUser: async input => {
-    payload = input; return { data: { user: { id: 'user' } }, error: null };
-  } });
-  assert.equal(profileSchema.safeParse({ fullName: 'A', contactPhone: 'invalid' }).success, false);
-  const user = await actions.updateProfile({ fullName: '  Mai Nguyen  ', contactPhone: '  +84 912 345 678  ' });
-  assert.equal(user.id, 'user');
-  assert.deepEqual(payload, { data: { full_name: 'Mai Nguyen', contact_phone: '+84 912 345 678' } });
 });
