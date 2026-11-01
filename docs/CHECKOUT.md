@@ -43,5 +43,12 @@ provided for a future successful booking operation, not invoked by review.
 Leaving/unmounting checkout or reloading loses the in-memory draft by design.
 Async entry loading ignores responses after a new selection or route unmount.
 
+Contact uses React Hook Form `onTouched`: untouched typing stays quiet, first
+blur validates, editing a touched field updates errors immediately. Continue
+checks all fields and focuses the first invalid input. Each edit is immediately
+copied as raw text to the shared draft. Validation produces a normalized copy
+without changing what is displayed. Forms are keyed by selection to avoid stale
+local form state after a new itinerary.
+
 Only contact/passenger information and review. Booking, seat, add-on and payment
 RPCs remain separate work. No database migration or shared schema change.
