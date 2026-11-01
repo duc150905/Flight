@@ -24,7 +24,8 @@ npm.cmd run build:android
 ```
 
 Hai lệnh export chỉ kiểm tra bundle, không tạo APK hoặc chứng minh app chạy trên thiết bị.
-Màn hình hiện tại là luồng tài khoản tiếng Việt. Xem `docs/AUTH.md` để thiết lập email.
+Màn hình đầu là trang chủ/tìm chuyến một chiều; tài khoản nằm ở nút **Đăng nhập**.
+Xem `docs/AUTH.md` để thiết lập email và `docs/DISCOVERY.md` để biết phạm vi tìm chuyến.
 
 ## Chứng chỉ mạng trên máy hiện tại
 
@@ -39,7 +40,8 @@ Không tắt kiểm tra SSL. Biến này chỉ áp dụng cho terminal hiện t�
 
 ## Supabase
 
-Xem `supabase/README.md`. Cần URL và publishable key trong `.env.local` để dùng Auth.
+Xem `supabase/README.md`. Cần URL và publishable key trong `.env.local` để dùng Auth
+và đọc danh mục/chuyến bay từ database.
 Không commit file `.env.local`. Các thư viện Query, Zustand, form và Supabase
 được cài để dùng ở bước xây dựng tính năng; đã có kết nối Auth, chưa có nghiệp vụ đặt vé.
 

@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Text } from 'react-native';
@@ -48,6 +49,7 @@ export function AccountScreen() {
       <ActionButton title="Sửa hồ sơ" disabled={busy} onPress={() => { setMessage(''); setMode('profile'); }} />
       <ActionButton title="Đổi mật khẩu" secondary disabled={busy} onPress={() => { setMessage(''); setMode('password'); }} />
       <ActionButton title="Đăng xuất" busy={busy} secondary onPress={() => void logout()} />
+      <ActionButton title="Về trang chủ" secondary disabled={busy} onPress={() => router.push('/')} />
     </>}
   </AuthShell>;
 }
