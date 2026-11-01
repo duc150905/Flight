@@ -26,7 +26,7 @@ export function hydrateItinerary(input: SelectedItinerary, records: SelectedFlig
     const record = records.find(r => r.flight.id === segment.flightId && r.fare.id === segment.fareId);
     if (!record) throw unavailable();
     const { flight, fare, origin, destination } = record;
-    if (!flight.published_at || flight.status !== 'scheduled' || !fare.is_active || fare.flight_id !== flight.id
+    if (!flight.published_at || !['scheduled', 'delayed'].includes(flight.status) || !fare.is_active || fare.flight_id !== flight.id
       || origin.id !== flight.departure_airport_id || destination.id !== flight.arrival_airport_id
       || origin.id === destination.id || !origin.is_active || !destination.is_active
       || !(Date.parse(flight.sales_close_at) > now.getTime()) || !(Date.parse(flight.departure_at) > now.getTime())

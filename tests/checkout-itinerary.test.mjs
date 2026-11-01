@@ -18,6 +18,9 @@ test('hydration derives calendar days at the airports rather than the device tim
   assert.equal(result.international, false);
   assert.equal(localCalendarDay('2026-12-01T18:00:00Z', 'America/Los_Angeles'), '2026-12-01');
 });
+test('a published delayed flight remains selectable before its sales cutoff', () => {
+  assert.equal(hydrateItinerary(selection, [{ ...row, flight: { ...flight, status: 'delayed' } }], now).legs.length, 1);
+});
 test('hydration rejects wrong fares, unpublished/cancelled/closed flights, missing airports and impossible chronology', () => {
   for (const bad of [
     { ...row, fare: { ...fare, flight_id: 'another' } },

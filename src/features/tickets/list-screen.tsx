@@ -60,7 +60,7 @@ export function TicketsListScreen() {
   if (status === 'error') return <TicketState title="Vé của tôi" description={authError ?? 'Không thể khôi phục phiên.'}
     action="Thử lại" onAction={retryAuth} />;
   if (!session) return <TicketState title="Vé của tôi" description="Đăng nhập để xem các đơn vé của bạn."
-    action="Về đăng nhập" onAction={() => router.replace('/')} />;
+    action="Về đăng nhập" onAction={() => router.replace('/account')} />;
   if (!service) return <TicketState title="Vé của tôi" description="Chưa cấu hình kết nối Supabase."
     action="Về trang chủ" onAction={() => router.replace('/')} />;
   if (current.status === 'loading') return <TicketState title="Vé của tôi" description="Đang tải danh sách đơn vé…" loading />;

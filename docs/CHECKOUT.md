@@ -24,11 +24,13 @@ prices/names/PII are accepted in the handoff. The URL only transports IDs/counts
 
 Flight data is read again from Supabase, not trusted from route parameters.
 `loadCheckoutItinerary` rejects missing/inactive/mismatched fares, closed or
-unpublished/non-scheduled flights, invalid connections and reversed times.
+unpublished flights outside scheduled/delayed status, invalid connections and reversed times.
 Dates use airport timezones. This is not a price quote or seat guarantee.
 
-TV1 discovery remains in its separate open PR; this branch does not merge it.
-Its detail-screen Continue button must call the helper above when integrating.
+TV1 discovery is integrated. Its detail screen uses `checkoutHrefForOffer()` to
+check the fare/flight relationship and open checkout with the selected passenger
+counts. Public search is available without signing in; checkout requires
+authentication and retains the IDs-only entry URL during sign-in.
 
 ## Draft lifetime
 

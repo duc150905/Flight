@@ -7,6 +7,7 @@ import { ActivityIndicator, Text } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { createProfileService, profileErrorMessage, profileSchema, type Profile, type ProfileInput } from '@/features/profile/model';
 import { useAuth } from './auth-provider';
+import { useAdmin } from './use-admin';
 import {
   authErrorMessage, changePasswordSchema, type ChangePasswordInput,
 } from './model';
@@ -19,6 +20,7 @@ const profileService = supabase ? createProfileService(supabase) : null;
 export function AccountScreen() {
   const { session, actions } = useAuth();
   const userId = session?.user.id ?? '';
+  const { isAdmin, loading: adminLoading } = useAdmin();
   const [mode, setMode] = useState<Mode>('overview');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -57,9 +59,13 @@ export function AccountScreen() {
     {mode === 'password' && <ChangePasswordForm onSaved={() => saved('Đã đổi mật khẩu.')}
       onBack={() => setMode('overview')} />}
     {(mode === 'overview' || (mode === 'profile' && !profile)) && <>
-      <Text style={[styles.label, { color: colors.success }]}>ĐÃ ĐĂNG NHẬP</Text>
+      <Text style={[styles.label, { color: colors.success }]}>
+        ĐÃ ĐĂNG NHẬP{isAdmin ? ' • QUẢN TRỊ VIÊN' : ''}
+      </Text>
       <Text accessibilityRole="header" style={styles.title}>Xin chào, {fullName || 'bạn'}</Text>
       <Text style={styles.description}>Cập nhật thông tin liên hệ để nhận tin về các đơn vé sau này.</Text>
+      <Text style={styles.label}>Vai trò</Text>
+      <Text style={styles.description}>{adminLoading ? 'Đang kiểm tra…' : (isAdmin ? 'Quản trị viên (Admin)' : 'Khách hàng')}</Text>
       <Text style={styles.label}>Email</Text>
       <Text selectable style={styles.description}>{session?.user.email}</Text>
       {current.status === 'loading' && <ActivityIndicator color={colors.primary} accessibilityLabel="Đang tải hồ sơ" />}

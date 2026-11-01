@@ -17,10 +17,10 @@ sẽ đọc dữ liệu đó mà không cần sửa giao diện. Hiện chưa c�
 truy vấn client phân trang là giải pháp cho giai đoạn đầu. Khi dữ liệu lớn, nên
 chuyển lọc ngày/múi giờ và fare sang RPC để tránh tải rộng 3 ngày về thiết bị.
 
-Chưa có khứ hồi, nhiều chặng, lọc khoảng giá/giờ, kiểm tra sức chứa, chọn vé
-sang checkout hoặc hủy đơn. Các phần này phụ thuộc seed và API/RPC của TV2/TV3.
-`profiles` mới tạo cũng chưa được kết nối với màn hồ sơ Auth cũ; cần làm ở PR
-tiếp theo để đồng bộ số điện thoại/tên trong bảng có RLS.
+Nút Tiếp tục đặt vé trên chi tiết chuyến đã nối sang checkout qua helper kiểm tra
+ID chuyến/hạng vé và số hành khách. Hồ sơ đã đọc/sửa trong `public.profiles`.
+Chưa có tìm khứ hồi/nhiều chặng, lọc khoảng giá/giờ, kiểm tra sức chứa, tạo/hủy
+đơn. Các phần này phụ thuộc seed và API/RPC tiếp theo của TV2/TV3.
 
 ## Kiểm thử
 

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { ActionButton, Notice, colors } from '@/features/auth/ui';
 import { loadFlightOffer } from './data';
-import { cabinLabels, formatMoney, searchSchema, type FlightOffer } from './model';
+import { cabinLabels, checkoutHrefForOffer, formatMoney, searchSchema, type FlightOffer } from './model';
 import { Page, styles } from './ui';
 
 function baggageText(value: unknown) {
@@ -62,7 +62,8 @@ export function DetailScreen({ input }: { input: Record<string, string | string[
         <View style={styles.divider} />
         <Text style={styles.label}>Tổng ước tính cho {criteria.adults + criteria.children + criteria.infants} hành khách</Text>
         <Text style={[styles.title, { color: colors.primary }]}>{formatMoney(offer.total, offer.fare.currency)}</Text>
-        <Text style={styles.muted}>Giá và khả năng giữ chỗ sẽ được server kiểm tra lại khi tạo đơn. Chức năng đặt vé do TV2 triển khai.</Text>
+        <Text style={styles.muted}>Giá và khả năng giữ chỗ sẽ được kiểm tra lại khi tạo đơn.</Text>
+        <ActionButton title="Tiếp tục đặt vé" onPress={() => router.push(checkoutHrefForOffer(offer, criteria))} />
       </View>
     </>}
   </Page>;

@@ -21,8 +21,9 @@ Commit: `a32e7c6` — `feat(tv2): accept selected itineraries`.
 - Kiểm tra thứ tự ngày giờ, nối chuyến đúng sân bay và khứ hồi đúng chiều.
 - Ngày bay được lấy theo múi giờ sân bay đi. Ngày đến theo múi giờ sân bay đến.
 
-TV1 discovery vẫn ở PR riêng. TV1 dùng helper theo docs/CHECKOUT.md để nối nút
-Continue; nhánh này không tự merge hoặc sao chép phần việc đó.
+Sau bước tích hợp các nhánh, nút Tiếp tục đặt vé trên chi tiết chuyến của TV1 đã
+gọi helper chung. Khách chọn chuyến có thể đi sang checkout; nếu chưa đăng nhập
+thì đăng nhập trước rồi tiếp tục với lựa chọn đó.
 
 ## 2. Hoàn thiện bản nháp và nối màn hình
 

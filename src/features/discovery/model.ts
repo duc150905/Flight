@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { Database } from '@/types/database.generated';
+import { buildCheckoutHref, selectionFromDiscovery } from '../booking/selection.ts';
 
 export type Airport = Database['public']['Tables']['airports']['Row'];
 export type Airline = Database['public']['Tables']['airlines']['Row'];
@@ -77,6 +78,17 @@ export type FlightOffer = {
   destination: Airport;
   total: number;
 };
+
+export function checkoutHrefForOffer(
+  offer: { flight: Pick<Flight, 'id'>; fare: Pick<Fare, 'id' | 'flight_id'> },
+  criteria: Pick<SearchCriteria, 'adults' | 'children' | 'infants'>,
+) {
+  if (offer.fare.flight_id !== offer.flight.id) throw new Error('The selected fare does not belong to this flight.');
+  return buildCheckoutHref(selectionFromDiscovery({
+    id: offer.flight.id, fareId: offer.fare.id,
+    adults: criteria.adults, children: criteria.children, infants: criteria.infants,
+  }));
+}
 
 export const cabinLabels: Record<CabinClass, string> = {
   economy: 'Phổ thông', premium_economy: 'Phổ thông đặc biệt',

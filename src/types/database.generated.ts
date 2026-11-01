@@ -1177,6 +1177,10 @@ export type Database = {
           selection_fee_amount: number
         }[]
       }
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
       addon_category: "baggage" | "meal" | "insurance_demo"

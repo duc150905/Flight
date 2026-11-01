@@ -42,7 +42,7 @@ export function TicketDetailScreen() {
   if (status === 'error') return <TicketState title="Chi tiết đơn vé" description={authError ?? 'Không thể khôi phục phiên.'}
     action="Thử lại" onAction={retryAuth} />;
   if (!session) return <TicketState title="Chi tiết đơn vé" description="Đăng nhập để xem đơn vé của bạn."
-    action="Về đăng nhập" onAction={() => router.replace('/')} />;
+    action="Về đăng nhập" onAction={() => router.replace('/account')} />;
   if (!service || !bookingId) return <TicketState title="Chi tiết đơn vé" description="Đường dẫn đơn vé không hợp lệ."
     action="Về danh sách" onAction={() => router.replace('/tickets')} />;
   if (current.status === 'loading') return <TicketState title="Chi tiết đơn vé" description="Đang tải đơn vé…" loading />;
