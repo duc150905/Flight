@@ -21,3 +21,5 @@ export function createBookingPassengerSchema(bookingDate: string) {
 
 export type BookingPassengerInput = z.input<ReturnType<typeof createBookingPassengerSchema>>;
 export type BookingPassenger = z.output<ReturnType<typeof createBookingPassengerSchema>>;
+export type PassengerDetailsInput = BookingPassengerInput & Partial<Record<
+  'nationalityCode' | 'passportNumber' | 'passportExpiryDate' | 'passportIssuerCountry' | 'accompanyingAdultId', string>>;

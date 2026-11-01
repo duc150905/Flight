@@ -55,5 +55,24 @@ and birth dates, the same blur/change/submit feedback as contact, and individual
 draft updates by ID. Names can be identical without sharing data. Opening the
 traveller route without valid contact redirects to the contact step.
 
+## Approved demo passenger policy
+
+- Infant: age <2, no separate seat; child: 2–11; adult: >=12.
+- Compute completed years on every departure's local date. A Feb 29 birthday
+  advances on March 1 in non-leap years in this demo. Crossing a type boundary
+  between outbound/return is rejected with a request to reselect/split the trip.
+- Exact stable slots must match selected counts, with no duplicate/missing IDs.
+- Each infant selects a distinct accompanying traveller aged >=18 on every leg.
+  A 12–17-year-old can be an adult fare traveller, but cannot accompany an infant.
+- Any international segment requires nationality, passport number, issuing
+  country and expiry for all travellers. Codes are ISO alpha-2; issuing country
+  is an additional builder choice to keep passport data unambiguous.
+- Passport must be valid through every departure and arrival local calendar day;
+  same-day expiry passes the demo rule. Domestic documents are optional, but if
+  supplied their format and expiry are checked. No minimum flying age, visa or
+  country-specific passport validity period is claimed by this demo.
+- All of these are client feedback. Future server booking RPCs must enforce
+  the same rules using trusted flight data and booking time.
+
 Only contact/passenger information and review. Booking, seat, add-on and payment
 RPCs remain separate work. No database migration or shared schema change.

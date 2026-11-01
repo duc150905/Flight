@@ -2,13 +2,13 @@ import { createStore } from 'zustand/vanilla';
 import { z } from 'zod';
 
 import { bookingContactSchema, type BookingContactInput } from './contact.ts';
-import { createBookingPassengerSchema, type BookingPassengerInput } from './passenger.ts';
+import { createBookingPassengerSchema, type PassengerDetailsInput } from './passenger.ts';
 import type { CheckoutItinerary } from './itinerary-data.ts';
 import { selectedItinerarySchema } from './selection.ts';
 
 export type CheckoutDraft = {
   contact: BookingContactInput;
-  passengers: { id: string; values: BookingPassengerInput }[];
+  passengers: { id: string; values: PassengerDetailsInput }[];
 };
 
 export type CheckoutDraftState = CheckoutDraft & {
@@ -16,7 +16,7 @@ export type CheckoutDraftState = CheckoutDraft & {
   beginCheckout: (itinerary: CheckoutItinerary) => void;
   finish: () => void;
   updateContact: (patch: Partial<BookingContactInput>) => void;
-  updatePassenger: (id: string, patch: Partial<BookingPassengerInput>) => void;
+  updatePassenger: (id: string, patch: Partial<PassengerDetailsInput>) => void;
   removePassenger: (id: string) => void;
   reset: () => void;
 };
@@ -54,11 +54,15 @@ export function createCheckoutDraftStore() {
       if (!id.trim()) throw new Error('Mã hành khách trong bản nháp không được trống.');
       set(({ passengers }) => {
         const existing = passengers.find(passenger => passenger.id === id);
-        const updated = { id, values: {
+        const updated: CheckoutDraft['passengers'][number] = { id, values: {
           givenNames: patch.givenNames ?? existing?.values.givenNames ?? '',
           familyName: patch.familyName ?? existing?.values.familyName ?? '',
           dateOfBirth: patch.dateOfBirth ?? existing?.values.dateOfBirth ?? '',
         } };
+        for (const key of ['nationalityCode', 'passportNumber', 'passportExpiryDate', 'passportIssuerCountry', 'accompanyingAdultId'] as const) {
+          const value = patch[key] ?? existing?.values[key];
+          if (value !== undefined) updated.values[key] = value;
+        }
         return { passengers: existing
           ? passengers.map(passenger => passenger.id === id ? updated : passenger)
           : [...passengers, updated] };
