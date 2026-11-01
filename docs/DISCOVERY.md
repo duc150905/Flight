@@ -12,8 +12,9 @@ phân trang 200 chuyến/lần. Màn hình cho sắp xếp giá/giờ/thời lư
 xem chi tiết giờ địa phương, hành lý và điều kiện hủy. Giá trên client chỉ là
 ước tính theo các cột base/tax/fee của fare; TV2 phải báo giá lại trên server.
 
-Database hiện **chưa có seed chuyến bay**. Khi TV3 thêm dữ liệu mẫu, trang kết quả
-sẽ đọc dữ liệu đó mà không cần sửa giao diện. Hiện chưa có RPC `search_flights`;
+Dữ liệu mẫu cho danh mục và chuyến bay đã được định nghĩa trong `supabase/seed.sql`
+(bật trong `supabase/config.toml`). Trang kết quả đọc trực tiếp dữ liệu đó mà không cần
+sửa giao diện. Hiện chưa có RPC `search_flights`;
 truy vấn client phân trang là giải pháp cho giai đoạn đầu. Khi dữ liệu lớn, nên
 chuyển lọc ngày/múi giờ và fare sang RPC để tránh tải rộng 3 ngày về thiết bị.
 
