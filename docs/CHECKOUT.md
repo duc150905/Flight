@@ -32,5 +32,16 @@ Its detail-screen Continue button must call the helper above when integrating.
 
 ## Scope
 
+## Draft lifetime
+
+The checkout layout creates one store per authenticated user. Navigating between
+its child screens keeps the same store; logging out/changing user replaces it.
+`beginCheckout` initializes stable `adult-1`, `child-1`, `infant-1` slots. Loading
+the same selection refreshes flight data without losing text; changed IDs/counts
+clear all previous personal data. Cancel asks before discarding. `finish()` is
+provided for a future successful booking operation, not invoked by review.
+Leaving/unmounting checkout or reloading loses the in-memory draft by design.
+Async entry loading ignores responses after a new selection or route unmount.
+
 Only contact/passenger information and review. Booking, seat, add-on and payment
 RPCs remain separate work. No database migration or shared schema change.
