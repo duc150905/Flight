@@ -49,7 +49,11 @@ chuyến đã công bố/quyền admin. RLS bật trên bảng inventory gốc.
 - `src/types/database.generated.ts`: sinh từ schema public thật trên cloud.
   `src/lib/supabase.ts` đã dùng `createClient<Database>` để kiểm tra kiểu truy vấn.
 - `supabase/config.toml`: cấu hình môi trường Supabase local, PostgreSQL 17,
-  chỉ expose `public`/`graphql_public`; chưa bật seed vì chưa có bộ dữ liệu mẫu.
+  chỉ expose `public`/`graphql_public`; đã bật `db.seed` trỏ tới `./seed.sql`.
+- `supabase/seed.sql`: bộ dữ liệu mẫu idempotent cho sân bay (nội địa & quốc tế),
+  hãng bay, 8 điểm đến nổi bật, máy bay, sơ đồ ghế mẫu 4 hạng ghế, dịch vụ bổ sung
+  (hành lý, suất ăn, bảo hiểm demo), lịch bay 15 ngày tới, 5 gói giá/chuyến, kho ghế
+  `flight_seats`, `flight_addon_offers` và cấp quyền `admin` khởi tạo.
 
 Hai migration đã được áp dụng theo thứ tự bằng `db query`. Vì đường này không tự
 ghi lịch sử migration, đã dùng `migration repair --status applied` cho đúng hai
