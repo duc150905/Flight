@@ -31,10 +31,13 @@ chuyển lọc ngày/múi giờ và fare sang RPC để tránh tải rộng 3 ng
 Nút Tiếp tục đặt vé trên chi tiết chuyến đã nối sang checkout qua helper kiểm tra
 ID chuyến/hạng vé và số hành khách. Hồ sơ đã đọc/sửa trong `public.profiles`.
 Chưa có lọc khoảng giá/giờ, kiểm tra sức chứa hoặc báo giá chốt ở server.
-Số người lớn/trẻ em/em bé hiện áp dụng chung cả hành trình; yêu cầu đổi nhóm
-tuổi theo ngày bay ở từng chặng cần TV1/TV2 thống nhất contract và sửa policy
-checkout trước khi nghiệm thu trường hợp sinh nhật giữa hai chiều. Chưa có
-giao diện song ngữ và chưa đối chiếu đủ từng màn với `flight.pdf`.
+Số người lớn/trẻ em/em bé chọn theo chặng đầu; policy checkout của TV2 (PR #12)
+đã phân loại lại theo ngày bay từng chặng sau khi nhập ngày sinh. Giá tìm kiếm
+ở các chặng sau vẫn là ước tính theo số lượng ban đầu, cần server báo giá cuối
+cùng cho trường hợp đổi nhóm tuổi. Màn tìm chuyến, Auth và Vé của tôi dùng nền
+tảng Việt–Anh chung của PR #12. Bố cục tìm kiếm đã có tab
+hành trình, vùng hành khách/hạng ghế thu gọn và màu nhấn theo `flight.pdf`,
+nhưng chưa nghiệm thu hình ảnh trên thiết bị thật.
 
 ## Kiểm thử
 

@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Text } from 'react-native';
+import { useLanguage } from '@/features/i18n/provider';
 import { useAuth } from './auth-provider';
 import {
   authErrorMessage, loginSchema, newPasswordSchema, registerSchema, verificationSchema,
@@ -30,6 +31,7 @@ export function AuthScreen({ onRecoveryChange }: { onRecoveryChange: (active: bo
 }
 
 function LoginForm({ change }: Navigation) {
+  const { t } = useLanguage();
   const { actions } = useAuth();
   const [error, setError] = useState('');
   const { control, handleSubmit, getValues, formState: { isSubmitting } } = useForm<LoginInput>({
@@ -40,8 +42,8 @@ function LoginForm({ change }: Navigation) {
     try { await actions!.login(values); } catch (error) { setError(authErrorMessage(error)); }
   });
   return <>
-    <Text accessibilityRole="header" style={styles.title}>Chào mừng trở lại</Text>
-    <Text style={styles.description}>Đăng nhập để quản lý các chuyến đi của bạn.</Text>
+    <Text accessibilityRole="header" style={styles.title}>{t('Chào mừng trở lại')}</Text>
+    <Text style={styles.description}>{t('Đăng nhập để quản lý các chuyến đi của bạn.')}</Text>
     <FormField control={control} name="email" label="Email" autoCapitalize="none" autoCorrect={false}
       keyboardType="email-address" autoComplete="email" editable={!isSubmitting} placeholder="you@example.com" />
     <FormField control={control} name="password" label="Mật khẩu" password autoCapitalize="none" autoCorrect={false}
@@ -55,6 +57,7 @@ function LoginForm({ change }: Navigation) {
 }
 
 function RegisterForm({ change }: Navigation) {
+  const { t } = useLanguage();
   const { actions } = useAuth();
   const [error, setError] = useState('');
   const { control, handleSubmit, formState: { isSubmitting } } = useForm<RegisterInput>({
@@ -68,8 +71,8 @@ function RegisterForm({ change }: Navigation) {
     } catch (error) { setError(authErrorMessage(error)); }
   });
   return <>
-    <Text accessibilityRole="header" style={styles.title}>Bắt đầu hành trình</Text>
-    <Text style={styles.description}>Tạo tài khoản Flight. Bạn có thể thêm thông tin hành khách khi đặt vé.</Text>
+    <Text accessibilityRole="header" style={styles.title}>{t('Bắt đầu hành trình')}</Text>
+    <Text style={styles.description}>{t('Tạo tài khoản Flight. Bạn có thể thêm thông tin hành khách khi đặt vé.')}</Text>
     <FormField control={control} name="name" label="Họ và tên" autoComplete="name" autoCapitalize="words" editable={!isSubmitting} />
     <FormField control={control} name="email" label="Email" autoComplete="email" keyboardType="email-address"
       autoCapitalize="none" autoCorrect={false} editable={!isSubmitting} placeholder="you@example.com" />
@@ -84,6 +87,7 @@ function RegisterForm({ change }: Navigation) {
 }
 
 function VerifyForm({ initialEmail, change }: Navigation & { initialEmail: string }) {
+  const { t } = useLanguage();
   const { actions } = useAuth();
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -113,8 +117,8 @@ function VerifyForm({ initialEmail, change }: Navigation & { initialEmail: strin
   };
   const busy = isSubmitting || resending;
   return <>
-    <Text accessibilityRole="header" style={styles.title}>Kiểm tra email</Text>
-    <Text style={styles.description}>Nhập mã trong email xác nhận. Bạn có thể quay lại bước này sau.</Text>
+    <Text accessibilityRole="header" style={styles.title}>{t('Kiểm tra email')}</Text>
+    <Text style={styles.description}>{t('Nhập mã trong email xác nhận. Bạn có thể quay lại bước này sau.')}</Text>
     <FormField control={control} name="email" label="Email" keyboardType="email-address" autoComplete="email"
       autoCapitalize="none" autoCorrect={false} editable={!busy} />
     <FormField control={control} name="token" label="Mã xác nhận" keyboardType="number-pad"
@@ -128,6 +132,7 @@ function VerifyForm({ initialEmail, change }: Navigation & { initialEmail: strin
 }
 
 function ForgotPasswordForm({ initialEmail, change }: Navigation & { initialEmail: string }) {
+  const { t } = useLanguage();
   const { actions } = useAuth();
   const [error, setError] = useState('');
   const { control, handleSubmit, formState: { isSubmitting } } = useForm<{ email: string }>({
@@ -141,8 +146,8 @@ function ForgotPasswordForm({ initialEmail, change }: Navigation & { initialEmai
     } catch (error) { setError(authErrorMessage(error)); }
   });
   return <>
-    <Text accessibilityRole="header" style={styles.title}>Đặt lại mật khẩu</Text>
-    <Text style={styles.description}>Nhập email tài khoản để nhận mã đặt lại mật khẩu.</Text>
+    <Text accessibilityRole="header" style={styles.title}>{t('Đặt lại mật khẩu')}</Text>
+    <Text style={styles.description}>{t('Nhập email tài khoản để nhận mã đặt lại mật khẩu.')}</Text>
     <FormField control={control} name="email" label="Email" keyboardType="email-address"
       autoCapitalize="none" autoCorrect={false} autoComplete="email" editable={!isSubmitting} />
     <Notice text={error} />
@@ -154,6 +159,7 @@ function ForgotPasswordForm({ initialEmail, change }: Navigation & { initialEmai
 function ResetPasswordForm({ initialEmail, initialNextSend, change, onRecoveryChange }: Navigation & {
   initialEmail: string; initialNextSend: number; onRecoveryChange: (active: boolean) => void;
 }) {
+  const { t } = useLanguage();
   const { actions } = useAuth();
   const [verified, setVerified] = useState(false);
   const [error, setError] = useState('');
@@ -188,8 +194,8 @@ function ResetPasswordForm({ initialEmail, initialNextSend, change, onRecoveryCh
   };
   if (verified) return <SetRecoveredPasswordForm onComplete={() => onRecoveryChange(false)} />;
   return <>
-    <Text accessibilityRole="header" style={styles.title}>Kiểm tra email</Text>
-    <Text style={styles.description}>Nếu email có tài khoản, mã đặt lại đã được gửi. Nhập mã để chọn mật khẩu mới.</Text>
+    <Text accessibilityRole="header" style={styles.title}>{t('Kiểm tra email')}</Text>
+    <Text style={styles.description}>{t('Nếu email có tài khoản, mã đặt lại đã được gửi. Nhập mã để chọn mật khẩu mới.')}</Text>
     <FormField control={control} name="email" label="Email" keyboardType="email-address"
       autoCapitalize="none" autoCorrect={false} autoComplete="email" editable={!isSubmitting && !resending} />
     <FormField control={control} name="token" label="Mã đặt lại" keyboardType="number-pad"
@@ -203,6 +209,7 @@ function ResetPasswordForm({ initialEmail, initialNextSend, change, onRecoveryCh
 }
 
 function SetRecoveredPasswordForm({ onComplete }: { onComplete: () => void }) {
+  const { t } = useLanguage();
   const { actions } = useAuth();
   const [error, setError] = useState('');
   const { control, handleSubmit, formState: { isSubmitting } } = useForm<NewPasswordInput>({
@@ -214,8 +221,8 @@ function SetRecoveredPasswordForm({ onComplete }: { onComplete: () => void }) {
     catch (error) { setError(authErrorMessage(error)); }
   });
   return <>
-    <Text accessibilityRole="header" style={styles.title}>Chọn mật khẩu mới</Text>
-    <Text style={styles.description}>Mã đã được xác nhận. Hãy đặt mật khẩu mới để hoàn tất.</Text>
+    <Text accessibilityRole="header" style={styles.title}>{t('Chọn mật khẩu mới')}</Text>
+    <Text style={styles.description}>{t('Mã đã được xác nhận. Hãy đặt mật khẩu mới để hoàn tất.')}</Text>
     <FormField control={control} name="password" label="Mật khẩu mới" password autoComplete="new-password"
       autoCapitalize="none" autoCorrect={false} editable={!isSubmitting} />
     <FormField control={control} name="confirmPassword" label="Nhập lại mật khẩu mới" password autoComplete="new-password"

@@ -43,5 +43,5 @@ npm.cmd run build:web
 npm.cmd run build:android
 ```
 
-Dữ liệu chuyến bay mẫu, thanh toán mô phỏng, ưu tiên Android. Giao diện hiện chủ
-yếu tiếng Việt; cơ chế chuyển Việt–Anh chung của nhóm chưa được triển khai.
+Dữ liệu chuyến bay mẫu, thanh toán mô phỏng, ưu tiên Android. Nền tảng chuyển
+Việt–Anh đã dùng ở Auth, tìm chuyến, Vé của tôi và checkout.

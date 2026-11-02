@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { ActivityIndicator, Text } from 'react-native';
+import { useLanguage } from '@/features/i18n/provider';
 
 import { supabase } from '@/lib/supabase';
 import { createProfileService, profileErrorMessage, profileSchema, type Profile, type ProfileInput } from '@/features/profile/model';
@@ -18,6 +19,7 @@ type ProfileState = { ownerId: string; status: 'loading' | 'ready' | 'error'; pr
 const profileService = supabase ? createProfileService(supabase) : null;
 
 export function AccountScreen() {
+  const { t } = useLanguage();
   const { session, actions } = useAuth();
   const userId = session?.user.id ?? '';
   const { isAdmin, loading: adminLoading } = useAdmin();
@@ -60,24 +62,24 @@ export function AccountScreen() {
       onBack={() => setMode('overview')} />}
     {(mode === 'overview' || (mode === 'profile' && !profile)) && <>
       <Text style={[styles.label, { color: colors.success }]}>
-        ĐÃ ĐĂNG NHẬP{isAdmin ? ' • QUẢN TRỊ VIÊN' : ''}
+        {t('ĐÃ ĐĂNG NHẬP')}{isAdmin ? ` • ${t('QUẢN TRỊ VIÊN')}` : ''}
       </Text>
-      <Text accessibilityRole="header" style={styles.title}>Xin chào, {fullName || 'bạn'}</Text>
-      <Text style={styles.description}>Cập nhật thông tin liên hệ để nhận tin về các đơn vé sau này.</Text>
-      <Text style={styles.label}>Vai trò</Text>
-      <Text style={styles.description}>{adminLoading ? 'Đang kiểm tra…' : (isAdmin ? 'Quản trị viên (Admin)' : 'Khách hàng')}</Text>
+      <Text accessibilityRole="header" style={styles.title}>{t('Xin chào, {name}', { name: fullName || t('bạn') })}</Text>
+      <Text style={styles.description}>{t('Cập nhật thông tin liên hệ để nhận tin về các đơn vé sau này.')}</Text>
+      <Text style={styles.label}>{t('Vai trò')}</Text>
+      <Text style={styles.description}>{t(adminLoading ? 'Đang kiểm tra…' : (isAdmin ? 'Quản trị viên (Admin)' : 'Khách hàng'))}</Text>
       <Text style={styles.label}>Email</Text>
       <Text selectable style={styles.description}>{session?.user.email}</Text>
-      {current.status === 'loading' && <ActivityIndicator color={colors.primary} accessibilityLabel="Đang tải hồ sơ" />}
+      {current.status === 'loading' && <ActivityIndicator color={colors.primary} accessibilityLabel={t('Đang tải hồ sơ')} />}
       {current.status === 'error' && <><Notice text={current.error} />
         <ActionButton title="Thử tải lại hồ sơ" secondary onPress={() => {
           setProfileState({ ownerId: userId, status: 'loading', profile: null, error: '' });
           setReload(value => value + 1);
         }} /></>}
-      <Text style={styles.label}>Họ và tên</Text>
-      <Text style={styles.description}>{fullName || (current.status === 'ready' ? 'Chưa cập nhật' : '—')}</Text>
-      <Text style={styles.label}>Số điện thoại liên hệ</Text>
-      <Text style={styles.description}>{contactPhone || (current.status === 'ready' ? 'Chưa cập nhật' : '—')}</Text>
+      <Text style={styles.label}>{t('Họ và tên')}</Text>
+      <Text style={styles.description}>{fullName || (current.status === 'ready' ? t('Chưa cập nhật') : '—')}</Text>
+      <Text style={styles.label}>{t('Số điện thoại liên hệ')}</Text>
+      <Text style={styles.description}>{contactPhone || (current.status === 'ready' ? t('Chưa cập nhật') : '—')}</Text>
       <Notice text={message} success />
       <Notice text={error} />
       <ActionButton title="Sửa hồ sơ" disabled={busy || current.status !== 'ready'} onPress={() => { setMessage(''); setMode('profile'); }} />
@@ -92,6 +94,7 @@ export function AccountScreen() {
 function ProfileForm({ userId, profile, onSaved, onBack }: {
   userId: string; profile: Profile; onSaved: (profile: Profile) => void; onBack: () => void;
 }) {
+  const { t } = useLanguage();
   const [error, setError] = useState('');
   const { control, handleSubmit, formState: { isSubmitting } } = useForm<ProfileInput>({
     resolver: zodResolver(profileSchema),
@@ -103,8 +106,8 @@ function ProfileForm({ userId, profile, onSaved, onBack }: {
     catch (error) { setError(profileErrorMessage(error)); }
   });
   return <>
-    <Text accessibilityRole="header" style={styles.title}>Hồ sơ của bạn</Text>
-    <Text style={styles.description}>Số điện thoại liên hệ cần mã quốc gia, ví dụ +84912345678. Thông tin này không thay đổi cách đăng nhập.</Text>
+    <Text accessibilityRole="header" style={styles.title}>{t('Hồ sơ của bạn')}</Text>
+    <Text style={styles.description}>{t('Số điện thoại liên hệ cần mã quốc gia, ví dụ +84912345678. Thông tin này không thay đổi cách đăng nhập.')}</Text>
     <FormField control={control} name="fullName" label="Họ và tên" autoComplete="name" autoCapitalize="words"
       editable={!isSubmitting} />
     <FormField control={control} name="contactPhone" label="Số điện thoại liên hệ" keyboardType="phone-pad"
@@ -116,6 +119,7 @@ function ProfileForm({ userId, profile, onSaved, onBack }: {
 }
 
 function ChangePasswordForm({ onSaved, onBack }: { onSaved: () => void; onBack: () => void }) {
+  const { t } = useLanguage();
   const { actions } = useAuth();
   const [error, setError] = useState('');
   const { control, handleSubmit, formState: { isSubmitting } } = useForm<ChangePasswordInput>({
@@ -128,8 +132,8 @@ function ChangePasswordForm({ onSaved, onBack }: { onSaved: () => void; onBack: 
     catch (error) { setError(authErrorMessage(error)); }
   });
   return <>
-    <Text accessibilityRole="header" style={styles.title}>Đổi mật khẩu</Text>
-    <Text style={styles.description}>Nhập mật khẩu hiện tại rồi chọn mật khẩu mới.</Text>
+    <Text accessibilityRole="header" style={styles.title}>{t('Đổi mật khẩu')}</Text>
+    <Text style={styles.description}>{t('Nhập mật khẩu hiện tại rồi chọn mật khẩu mới.')}</Text>
     <FormField control={control} name="currentPassword" label="Mật khẩu hiện tại" password
       autoComplete="current-password" autoCapitalize="none" autoCorrect={false} editable={!isSubmitting} />
     <FormField control={control} name="password" label="Mật khẩu mới" password
