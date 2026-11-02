@@ -1,5 +1,10 @@
 # Checkout information (TV2)
 
+Current update (2026-11-02): per-leg birthdays, vi/en and the combined reference
+screen are implemented. See `CHECKOUT-NEXT-WALKTHROUGH.md` for the six new tasks
+and `CHECKOUT-DEMO.md` for shared fixtures and device test scenarios. The older
+verification section below records the previous delivery's state.
+
 The six F04 tasks use the original `Flight_Booking_Handoff.zip` screens as visual
 reference: white surfaces, turquoise accent, progress indicator, traveller cards
 and clear bottom actions. Personal data stays in RAM, never URL/storage/logs.
@@ -23,6 +28,8 @@ legs. At most 12 legs, 9 seated passengers, one infant per selected adult. No
 prices/names/PII are accepted in the handoff. The URL only transports IDs/counts.
 
 Flight data is read again from Supabase, not trusted from route parameters.
+Database ID validation accepts canonical PostgreSQL UUIDs, including the
+deterministic hashes from TV3's seed, and normalizes case before duplicate checks.
 `loadCheckoutItinerary` rejects missing/inactive/mismatched fares, closed or
 unpublished flights outside scheduled/delayed status, invalid connections and reversed times.
 Dates use airport timezones. This is not a price quote or seat guarantee.
@@ -53,16 +60,32 @@ local form state after a new itinerary.
 Traveller forms use fixed stable slots from the selected counts, separate names
 and birth dates, the same blur/change/submit feedback as contact, and individual
 draft updates by ID. Names can be identical without sharing data. Opening the
-traveller route without valid contact redirects to the contact step.
+traveller route now displays contact and travellers together, in the order from
+`flight.pdf` page 12. The legacy `/checkout/contact` route redirects here. One
+Next validates both sections; revisiting restores both from the same draft.
+Gender is optional (`male`, `female`, `unspecified`); omitted maps to SQL NULL.
+`booking_passengers.gender` is nullable and constrained, with existing RLS intact.
+The phone calling-code selector stores one raw phone string and supports a full
+number mode for other countries; it never assumes a domestic number is international.
+
+The shared language picker persists only the language preference, never personal
+details. Switching language translates labels and existing errors without
+remounting the form. See `LOCALIZATION.md` for TV1/TV3 integration.
+
+The fixed footer shows a display estimate from the selected DB fares, with
+base+tax+fee for each passenger’s type on each leg. Invalid/missing DOB temporarily
+uses the selected initial type; missing prices display unavailable. Final server
+pricing, inventory and seat holds remain future work.
 
 ## Approved demo passenger policy
 
 - Infant: age <2, no separate seat; child: 2–11; adult: >=12.
 - Compute completed years on every departure's local date. A Feb 29 birthday
-  advances on March 1 in non-leap years in this demo. Crossing a type boundary
-  between outbound/return is rejected with a request to reselect/split the trip.
+  advances on March 1 in non-leap years in this demo. Search counts describe the
+  first departure. Later birthdays change the per-leg type/seat requirement,
+  keeping one itinerary and stable passenger IDs; never request a split booking.
 - Exact stable slots must match selected counts, with no duplicate/missing IDs.
-- Each infant selects a distinct accompanying traveller aged >=18 on every leg.
+- Each infant selects a distinct accompanying traveller aged >=18 on infant legs.
   A 12–17-year-old can be an adult fare traveller, but cannot accompany an infant.
 - Any international segment requires nationality, passport number, issuing
   country and expiry for all travellers. Codes are ISO alpha-2; issuing country

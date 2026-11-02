@@ -5,6 +5,7 @@ import {
   StyleSheet, Text, TextInput, View, type TextInputProps,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LanguagePicker } from '../i18n/provider';
 
 export const colors = {
   background: '#F3F7FC', surface: '#FFFFFF', text: '#102A43', muted: '#526579',
@@ -17,6 +18,7 @@ export function AuthShell({ children }: PropsWithChildren) {
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.content}>
+          <LanguagePicker />
           <Text style={styles.brand}>FLIGHT<Text style={styles.brandDot}>.</Text></Text>
           <Text style={styles.tagline}>Hành trình tiếp theo bắt đầu từ đây.</Text>
           <View style={styles.card}>{children}</View>

@@ -59,7 +59,7 @@ export function createCheckoutDraftStore() {
           familyName: patch.familyName ?? existing?.values.familyName ?? '',
           dateOfBirth: patch.dateOfBirth ?? existing?.values.dateOfBirth ?? '',
         } };
-        for (const key of ['nationalityCode', 'passportNumber', 'passportExpiryDate', 'passportIssuerCountry', 'accompanyingAdultId'] as const) {
+        for (const key of ['nationalityCode', 'passportNumber', 'passportExpiryDate', 'passportIssuerCountry', 'accompanyingAdultId', 'gender'] as const) {
           const value = patch[key] ?? existing?.values[key];
           if (value !== undefined) updated.values[key] = value;
         }
