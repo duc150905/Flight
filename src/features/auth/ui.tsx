@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LanguagePicker } from '../i18n/provider';
-import { FlightBrand } from '@/components/flight-brand';
+import { AppBrand } from '@/components/app-brand';
 
 export const colors = {
   background: '#F3F7FC', surface: '#FFFFFF', text: '#102A43', muted: '#526579',
@@ -20,7 +20,7 @@ export function AuthShell({ children }: PropsWithChildren) {
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.content}>
           <LanguagePicker />
-          <FlightBrand />
+          <AppBrand />
           <Text style={styles.tagline}>Hành trình tiếp theo bắt đầu từ đây.</Text>
           <View style={styles.card}>{children}</View>
           <Text style={styles.footer}>Lên kế hoạch gọn gàng cho mỗi chuyến đi.</Text>

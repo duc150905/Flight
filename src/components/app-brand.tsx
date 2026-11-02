@@ -2,11 +2,11 @@ import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 
 /** One shared identity for public discovery and account screens. */
-export function FlightBrand() {
-  return <View accessible accessibilityRole="image" accessibilityLabel="Flight" style={styles.row}>
+export function AppBrand() {
+  return <View accessible accessibilityRole="image" accessibilityLabel="Flyora" style={styles.row}>
     <Image source={require('../../assets/branding/logo.png')} accessible={false} alt=""
       contentFit="contain" style={styles.logo} />
-    <Text style={styles.name}>FLIGHT<Text style={styles.dot}>.</Text></Text>
+    <Text style={styles.name}>FLYORA<Text style={styles.dot}>.</Text></Text>
   </View>;
 }
 const styles = StyleSheet.create({

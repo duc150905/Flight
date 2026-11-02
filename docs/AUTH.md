@@ -53,7 +53,7 @@ has been made by this code.
 
 1. In Supabase Authentication, keep email sign-in and Confirm email enabled.
 2. Open email templates, select **Confirm signup**.
-3. Set a subject such as `Your Flight verification code`.
+3. Set a subject such as `Your Flyora verification code`.
 4. Paste `supabase/templates/confirmation.html` into the email body and save.
    The `{{ .Token }}` expression must remain intact.
 5. Use an email address allowed by your project's mail setup. Supabase's default

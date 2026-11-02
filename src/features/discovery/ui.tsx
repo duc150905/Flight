@@ -2,7 +2,7 @@ import type { PropsWithChildren } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/features/auth/ui';
-import { FlightBrand } from '@/components/flight-brand';
+import { AppBrand } from '@/components/app-brand';
 
 export function Page({ children }: PropsWithChildren) {
   return <SafeAreaView style={styles.safe}>
@@ -15,7 +15,7 @@ export function Page({ children }: PropsWithChildren) {
 }
 
 export function Brand() {
-  return <FlightBrand />;
+  return <AppBrand />;
 }
 
 export const styles = StyleSheet.create({

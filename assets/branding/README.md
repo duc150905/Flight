@@ -1,12 +1,15 @@
-# Flight identity — approved option C
+# Flyora identity — approved option C
 
 Selected by the user on 2026-11-02: white upward-right airplane on turquoise.
+The user chose the app name Flyora on the same date. Visible wordmark is FLYORA.
+Existing repository name, Expo slug and URI scheme retain their technical IDs
+so existing checkouts, Expo project identity and auth links remain compatible.
 
 - `source-c.png`: full-bleed production edit of the selected concept, generated
   with the built-in image_gen tool. Outside presentation margins were removed;
   the chosen airplane silhouette was retained.
 - `app-icon.png`: opaque 1024×1024 PNG for Expo app icon and splash.
-- `logo.png`: 128×128 PNG used by `FlightBrand` on discovery/account screens.
+- `logo.png`: 128×128 PNG used by `AppBrand` on discovery/account screens.
 - `favicon.png`: 64×64 PNG for web.
 
 The three sized assets are mechanical resamples of `source-c.png` using the
@@ -20,8 +23,11 @@ the Expo starter icon cannot take precedence. The original starter assets remain
 unreferenced. No native ios/android folders were created or edited.
 
 App icons and splash are build-time native settings: validate them with an EAS
-preview/production build. Expo Go can show the in-app FlightBrand, but does not
+preview/production build. Expo Go can show the in-app AppBrand, but does not
 prove the installed app icon or production splash appearance.
+
+Local Supabase email templates use Flyora; uploading those templates and setting
+the email sender display name in the hosted project is a separate SMTP setup step.
 
 ## Production prompt
 
