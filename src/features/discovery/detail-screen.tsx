@@ -1,10 +1,10 @@
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
-import { ActionButton, Notice, colors } from '@/features/auth/ui';
+import { Notice } from '@/features/auth/ui';
 import { loadFlightOffer } from './data';
 import { cabinLabels, checkoutHrefForOffer, formatMoney, searchSchema, type FlightOffer } from './model';
-import { Page, styles } from './ui';
+import { FlightButton, flightColors, Page, styles } from './ui';
 
 function baggageText(value: unknown) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return 'Xem điều kiện tại bước đặt vé.';
@@ -32,14 +32,14 @@ export function DetailScreen({ input }: { input: Record<string, string | string[
 
   if (!criteria || !id || !fareId) return <Page>
     <Text style={styles.title}>Thông tin chuyến bay không hợp lệ</Text>
-    <ActionButton title="Về trang chủ" onPress={() => router.replace('/')} />
+    <FlightButton title="Về trang chủ" onPress={() => router.replace('/')} />
   </Page>;
   return <Page>
     <Pressable accessibilityRole="button" onPress={() => router.back()}><Text style={styles.link}>← Kết quả tìm kiếm</Text></Pressable>
     <Text accessibilityRole="header" style={styles.title}>Chi tiết chuyến bay</Text>
-    {loading && <ActivityIndicator color={colors.primary} accessibilityLabel="Đang tải chi tiết chuyến bay" />}
+    {loading && <ActivityIndicator color={flightColors.primary} accessibilityLabel="Đang tải chi tiết chuyến bay" />}
     <Notice text={error} />
-    {!!error && <ActionButton title="Thử lại" secondary onPress={() => void detailQuery.refetch()} />}
+    {!!error && <FlightButton title="Thử lại" secondary onPress={() => void detailQuery.refetch()} />}
     {offer && !loading && !error && <>
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>{offer.airline.name} · {offer.flight.flight_number}</Text>
@@ -61,9 +61,9 @@ export function DetailScreen({ input }: { input: Record<string, string | string[
           : 'Không cho phép yêu cầu hủy theo điều kiện vé này.'}</Text>
         <View style={styles.divider} />
         <Text style={styles.label}>Tổng ước tính cho {criteria.adults + criteria.children + criteria.infants} hành khách</Text>
-        <Text style={[styles.title, { color: colors.primary }]}>{formatMoney(offer.total, offer.fare.currency)}</Text>
+        <Text style={[styles.title, { color: flightColors.primary }]}>{formatMoney(offer.total, offer.fare.currency)}</Text>
         <Text style={styles.muted}>Giá và khả năng giữ chỗ sẽ được kiểm tra lại khi tạo đơn.</Text>
-        <ActionButton title="Tiếp tục đặt vé" onPress={() => router.push(checkoutHrefForOffer(offer, criteria))} />
+        <FlightButton title="Tiếp tục đặt vé" onPress={() => router.push(checkoutHrefForOffer(offer, criteria))} />
       </View>
     </>}
   </Page>;

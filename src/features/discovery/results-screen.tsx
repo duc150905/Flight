@@ -2,10 +2,10 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
-import { ActionButton, Notice, colors } from '@/features/auth/ui';
+import { Notice } from '@/features/auth/ui';
 import { searchOneWay } from './data';
 import { cabinLabels, formatMoney, searchSchema, type FlightOffer, type SearchCriteria } from './model';
-import { Page, styles } from './ui';
+import { FlightButton, flightColors, Page, styles } from './ui';
 
 type Sort = 'price' | 'departure' | 'duration';
 const emptyOffers: FlightOffer[] = [];
@@ -43,7 +43,7 @@ export function ResultsScreen({ input }: { input: Record<string, string | string
 
   if (!criteria) return <Page>
     <Text style={styles.title}>Thông tin tìm kiếm không hợp lệ</Text>
-    <ActionButton title="Về trang chủ" onPress={() => router.replace('/')} />
+    <FlightButton title="Về trang chủ" onPress={() => router.replace('/')} />
   </Page>;
   return <Page>
     <Pressable accessibilityRole="button" onPress={() => router.back()}><Text style={styles.link}>← Sửa tìm kiếm</Text></Pressable>
@@ -52,9 +52,9 @@ export function ResultsScreen({ input }: { input: Record<string, string | string
       <Text style={styles.subtitle}>{criteria.departureDate} · {cabinLabels[criteria.cabinClass]} ·
         {' '}{criteria.adults + criteria.children + criteria.infants} hành khách</Text>
     </View>
-    {loading && <View style={styles.card}><ActivityIndicator color={colors.primary} accessibilityLabel="Đang tìm chuyến bay" /></View>}
+    {loading && <View style={styles.card}><ActivityIndicator color={flightColors.primary} accessibilityLabel="Đang tìm chuyến bay" /></View>}
     <Notice text={error} />
-    {!!error && <ActionButton title="Thử lại" secondary onPress={() => void searchQuery.refetch()} />}
+    {!!error && <FlightButton title="Thử lại" secondary onPress={() => void searchQuery.refetch()} />}
     {!loading && !error && offers.length === 0 && <View style={styles.card}>
       <Text style={styles.sectionTitle}>Chưa có chuyến bay phù hợp</Text>
       <Text style={styles.muted}>Hãy thử ngày khác, hạng ghế khác hoặc tuyến khác.</Text>
@@ -107,7 +107,7 @@ function FlightCard({ offer, criteria }: { offer: FlightOffer; criteria: SearchC
     <View style={styles.divider} />
     <View style={styles.row}>
       <Text style={styles.muted}>{offer.fare.name}</Text>
-      <Text style={[styles.sectionTitle, { color: colors.primary }]}>{formatMoney(offer.total, offer.fare.currency)}</Text>
+      <Text style={[styles.sectionTitle, { color: flightColors.primary }]}>{formatMoney(offer.total, offer.fare.currency)}</Text>
     </View>
     <Text style={styles.link}>Xem chi tiết và điều kiện vé →</Text>
   </Pressable>;
