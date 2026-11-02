@@ -8,7 +8,7 @@ import { passengerFormOptions, restorePassengerForm, revalidateCompanionFields }
 import { CheckoutField } from './form-field';
 import { localCalendarDay } from './itinerary-data';
 import { infantLegsForPassenger, isEligibleCompanion } from './passenger-policy';
-import { CheckoutButton, CheckoutCard, CheckoutError, CheckoutShell, CheckoutText, MissingCheckout, useCheckoutColors } from './ui';
+import { CheckoutCard, CheckoutError, CheckoutShell, CheckoutText, MissingCheckout, useCheckoutColors } from './ui';
 import { useLanguage } from '../i18n/provider';
 
 export function PassengerScreen() {
@@ -25,7 +25,8 @@ function PassengerForm() {
   const store = useCheckoutStore(); const reset = form.reset;
   useFocusEffect(useCallback(() => restorePassengerForm({ reset }, store.getState().passengers), [reset, store]));
   const c = useCheckoutColors();
-  return <CheckoutShell title="Traveller information" step={1} back={() => router.dismissTo('/checkout/contact')}>
+  return <CheckoutShell title="Traveller information" step={1} back={() => router.dismissTo('/checkout/contact')}
+    footer={{ title: 'Review details', onPress: () => void form.handleSubmit(() => router.push('/checkout/review'))() }}>
     <CheckoutText muted>Enter each traveller’s name as shown on their travel document.</CheckoutText>
     <CheckoutText muted>Demo age rules: infant under 2, child 2–11, adult 12+. Age is checked on every flight date.</CheckoutText>
     {draft.passengers.map((passenger, index) => <CheckoutCard key={passenger.id}>
@@ -74,6 +75,6 @@ function PassengerForm() {
       </>}
     </CheckoutCard>)}
     <CheckoutError message={form.formState.errors.passengers?.message} />
-    <CheckoutButton title="Review details" onPress={() => void form.handleSubmit(() => router.push('/checkout/review'))()} />
   </CheckoutShell>;
 }
+

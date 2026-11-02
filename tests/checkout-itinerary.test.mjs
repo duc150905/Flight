@@ -21,6 +21,13 @@ test('hydration derives calendar days at the airports rather than the device tim
 test('a published delayed flight remains selectable before its sales cutoff', () => {
   assert.equal(hydrateItinerary(selection, [{ ...row, flight: { ...flight, status: 'delayed' } }], now).legs.length, 1);
 });
+test('hydration keeps complete DB fare totals and treats incomplete pricing as unavailable', () => {
+  const priced = { ...fare, currency: 'VND', adult_base_amount: 100, adult_tax_amount: 20, adult_fee_amount: 5,
+    child_base_amount: 70, child_tax_amount: 10, child_fee_amount: 5, infant_base_amount: 10, infant_tax_amount: 0, infant_fee_amount: 0 };
+  assert.deepEqual(hydrateItinerary(selection, [{ ...row, fare: priced }], now).legs[0].prices,
+    { adult: 125, child: 85, infant: 10, currency: 'VND' });
+  assert.equal(hydrateItinerary(selection, [row], now).legs[0].prices, null);
+});
 test('hydration rejects wrong fares, unpublished/cancelled/closed flights, missing airports and impossible chronology', () => {
   for (const bad of [
     { ...row, fare: { ...fare, flight_id: 'another' } },

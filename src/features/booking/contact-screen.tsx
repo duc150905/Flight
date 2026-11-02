@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { useCheckout, useCheckoutStore } from './checkout-provider';
 import { contactFormOptions, restoreContactForm } from './form-state';
 import { CheckoutField } from './form-field';
-import { CheckoutButton, CheckoutCard, CheckoutShell, CheckoutText, MissingCheckout } from './ui';
+import { CheckoutCard, CheckoutShell, CheckoutText, MissingCheckout } from './ui';
 
 export function ContactScreen() {
   const { itinerary } = useCheckout();
@@ -15,7 +15,7 @@ function ContactForm() {
   const form = useForm(contactFormOptions(draft.contact));
   const store = useCheckoutStore(); const reset = form.reset;
   useFocusEffect(useCallback(() => restoreContactForm({ reset }, store.getState().contact), [reset, store]));
-  return <CheckoutShell title="Contact details" step={0}>
+  return <CheckoutShell title="Contact details" step={0} footer={{ title: 'Continue to travellers', onPress: () => void form.handleSubmit(() => router.push('/checkout/passengers'))() }}>
     <CheckoutText muted>Who should we contact about this booking? This person does not have to be a traveller.</CheckoutText>
     <CheckoutCard>
       <CheckoutField control={form.control} name="contactName" label="Full name" autoComplete="name" autoCapitalize="words" returnKeyType="next"
@@ -26,6 +26,6 @@ function ContactForm() {
         onRawChange={value => draft.updateContact({ contactPhone: value })} />
     </CheckoutCard>
     <CheckoutText muted>Your details stay in this checkout while you move between steps.</CheckoutText>
-    <CheckoutButton title="Continue to travellers" onPress={() => void form.handleSubmit(() => router.push('/checkout/passengers'))()} />
   </CheckoutShell>;
 }
+
