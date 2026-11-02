@@ -2,6 +2,15 @@ import { checkoutMessages } from './checkout-messages.ts';
 const checkoutEnglish = Object.fromEntries(Object.keys(checkoutMessages).map(key => [key, key])) as { [K in keyof typeof checkoutMessages]: K };
 export const en = {
   ...checkoutEnglish,
+  'seats.available': 'Available', 'seats.selected': 'Selected', 'seats.selectedOther': 'Selected for another traveller',
+  'seats.held': 'Held', 'seats.booked': 'Booked', 'seats.blocked': 'Blocked',
+  'seats.infant': 'This infant has no separate seat on this flight.',
+  'seats.exitRule': 'Exit rows: age 18+ and not accompanying an infant on this flight.',
+  'seats.exit': 'Not eligible for an exit-row seat.', 'seats.unavailable': 'This seat or cabin is unavailable.',
+  'seats.duplicate': 'Another traveller has selected this seat.',
+  'seats.changed': 'Seat availability or fees changed. Please reselect or clear your seat.',
+  'seats.loadError': 'Could not load the seat map. Please retry.',
+  'seats.unsupported': 'This aircraft layout is unsupported or invalid.',
   'quote.base': 'Base fare', 'quote.tax': 'Taxes', 'quote.fee': 'Fare fees', 'quote.baggage': 'Extra baggage', 'quote.seat': 'Seat selection',
   'quote.validUntil': 'Quote valid until {time}', 'quote.expired': 'This quote expired. Please refresh it.',
   'quote.changed': 'The current price differs from your estimate. Please review and acknowledge the new price.',

@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useState, type PropsWithChildren } from 'react';
+import { useState, type PropsWithChildren, type ReactNode } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LanguagePicker, useLanguage } from '../i18n/provider';
@@ -46,7 +46,7 @@ export function CheckoutProgress({ step = 1 }: { step?: number }) {
   </View>;
 }
 type FooterAction = { title: string; onPress(): void; disabled?: boolean };
-export function CheckoutShell({ title, step, children, back, footer }: PropsWithChildren<{ title: string; step?: number; back?: () => void; footer?: FooterAction }>) {
+export function CheckoutShell({ title, step, children, back, footer, footerDetail }: PropsWithChildren<{ title: string; step?: number; back?: () => void; footer?: FooterAction; footerDetail?: ReactNode }>) {
   const draft = useCheckout(); const [discard, setDiscard] = useState(false); const { t } = useLanguage();
   const estimate = checkoutEstimate(draft);
   return <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -67,6 +67,7 @@ export function CheckoutShell({ title, step, children, back, footer }: PropsWith
         <View style={checkoutStyles.content}>{children}<LanguagePicker /><CurrencyControls /></View>
       </ScrollView>
       {footer && <View style={checkoutStyles.footer}>
+        {footerDetail}
         <View style={checkoutStyles.footerContent}>
           <View style={{ flex: 1, minWidth: 130, gap: 3 }}>
             <Text style={checkoutStyles.caption}>{t('Estimated total')}</Text>

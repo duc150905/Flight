@@ -68,16 +68,16 @@ và script kiểm tra tích hợp.
 **File dự kiến:** `seats.ts`, `seats-screen.tsx`, màn/giao diện sơ đồ và các route
 checkout; cập nhật bản dịch, bản nháp, tổng tạm tính, yêu cầu báo giá và test.
 
-- [ ] Viết test trước cho điều kiện em bé/trẻ em từng chặng, lọc khoang, hàng thoát
+- [x] Viết test trước cho điều kiện em bé/trẻ em từng chặng, lọc khoang, hàng thoát
   hiểm, ghế trùng và lựa chọn ghế đã thay đổi/không còn khả dụng.
-- [ ] Đọc trạng thái qua RPC an toàn; làm thẻ chặng, khung máy bay, hàng/lối đi,
+- [x] Đọc trạng thái qua RPC an toàn; làm thẻ chặng, khung máy bay, hàng/lối đi,
   thẻ hành khách, chọn ghế tùy chọn, bỏ chọn và chú giải trạng thái.
-- [ ] Tải lại sơ đồ khi quay lại app và trước báo giá; chuyển sang tổng hợp sau
+- [x] Tải lại sơ đồ khi quay lại app và trước báo giá; chuyển sang tổng hợp sau
   khi kiểm tra. Quay lại vẫn giữ lựa chọn; luôn ghi rõ chưa giữ ghế.
-- [ ] Thử trình duyệt ở kích thước điện thoại với dữ liệu giả: hành lý theo người/
+- [x] Thử trình duyệt ở kích thước điện thoại với dữ liệu giả: hành lý theo người/
   chặng, ghế đang chọn/bị chặn, quay lại/sửa, Việt–Anh và VND/USD.
   Xóa route chỉ phục vụ kiểm thử nếu có.
-- [ ] Chạy toàn bộ test, check, xuất bundle Web/Android và review độc lập cuối.
+- [x] Chạy toàn bộ test, check, xuất bundle Web/Android và review độc lập cuối.
   Sửa các lỗi quan trọng, ghi rõ giới hạn và commit task 3. Chưa push/merge.
 
 ## Các phần phụ thuộc nhau và điểm cần review kỹ
@@ -91,4 +91,6 @@ checkout; cập nhật bản dịch, bản nháp, tổng tạm tính, yêu cầu
 - Giữ tương thích với auth, tìm chuyến, vé và danh mục/quản trị hiện có.
   Không lộ dữ liệu khách hoặc danh tính người đang giữ ghế.
 
+## Kết quả cuối — 02/11/2026
 
+Đã hoàn tất ba task và một lượt review độc lập. Sửa cả ba phát hiện quan trọng bằng test hồi quy: bỏ qua ghế không phụ thuộc sơ đồ hỗ trợ, hủy chuyển màn từ request cũ khi blur/unmount và làm mới quote theo revision khi cùng ID nhưng snapshot giá đổi. Bộ cuối: 151/151 tests, typecheck/lint và export Web/Android đều qua. SQL rollback trên RPC đã deploy và public API smoke đều qua. Giới hạn nghiệm thu UI/Android thật được ghi trong CHECKOUT-EXTRAS.md. Giữ nhánh local, không push/merge.

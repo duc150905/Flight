@@ -1,6 +1,6 @@
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { MoneyText } from '../currency/ui';
@@ -10,11 +10,14 @@ import { useCheckout, useCheckoutStore } from './checkout-provider';
 import { loadBaggage } from './extras-data';
 import { Option, Tabs } from './options-ui';
 import { checkoutReview } from './review';
+import { createStepRequestGuard } from './step-request';
 import { CheckoutButton, CheckoutCard, CheckoutError, CheckoutShell, CheckoutText, MissingCheckout } from './ui';
 
 export function BaggageScreen() {
   const draft = useCheckout(); const store = useCheckoutStore(); const { t } = useLanguage();
   const [flight, setFlight] = useState(''); const [person, setPerson] = useState(''); const [error, setError] = useState('');
+  const [guard] = useState(createStepRequestGuard);
+  useFocusEffect(useCallback(() => guard.cancel, [guard]));
   const itinerary = draft.itinerary;
   const query = useQuery({ queryKey: ['checkout-baggage', itinerary?.selection], enabled: !!itinerary,
     queryFn: () => { if (!supabase || !itinerary) throw new Error('extras.loadError'); return loadBaggage(supabase, itinerary); }, staleTime: 0 });
@@ -28,8 +31,9 @@ export function BaggageScreen() {
   const stale = draft.baggage.some(b => !query.data || !isBaggageCurrent(b, query.data.offers));
   const allowance = query.data?.allowances[leg.flightId];
   async function next() {
-    setError(''); const revision = store.getState().revision;
+    setError(''); const revision = store.getState().revision; const token = guard.begin();
     const fresh = await query.refetch();
+    if (!guard.isCurrent(token)) return;
     if (fresh.error || !fresh.data) { setError('extras.loadError'); return; }
     if (revision !== store.getState().revision || store.getState().baggage.some(b => !isBaggageCurrent(b, fresh.data.offers))) {
       setError('extras.changed'); return;
@@ -41,7 +45,7 @@ export function BaggageScreen() {
     <Tabs label="Your flights" selected={leg.flightId} onSelect={setFlight} values={itinerary.legs.map(l => ({ id: l.flightId, text: `${l.origin.iata_code} → ${l.destination.iata_code}` }))} />
     <Tabs label="Travellers" selected={passenger.id} onSelect={setPerson} values={draft.passengers.map((p, i) => ({ id: p.id, text: `${i + 1}. ${p.values.givenNames} ${p.values.familyName}` }))} />
     {query.isFetching && <ActivityIndicator accessibilityLabel={t('Loading')} />}
-    {(query.isError || error) && <><CheckoutError message={error || 'extras.loadError'} /><CheckoutButton title="Retry" secondary onPress={() => { void query.refetch(); }} /></>}
+    {Boolean(query.isError || error) && <><CheckoutError message={error || 'extras.loadError'} /><CheckoutButton title="Retry" secondary onPress={() => { void query.refetch(); }} /></>}
     {stale && query.data && <CheckoutError message="extras.changed" />}
     <CheckoutCard><CheckoutText title message="Cabin bags" />
       <CheckoutText>{allowance ? t('bags.allowance', { pieces: allowance.cabinPieces, kg: allowance.cabinKg }) : t('bags.allowanceUnavailable')}</CheckoutText>

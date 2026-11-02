@@ -11,7 +11,7 @@ export function quoteRequest(draft: Pick<CheckoutDraftState, 'itinerary' | 'pass
     baggage: draft.baggage.map(b => ({ passengerId: b.passengerId, flightId: b.flightId, offerId: b.offerId })),
     seats: draft.seats.map(s => ({ passengerId: s.passengerId, flightId: s.flightId, seatId: s.seatId })) };
 }
-export function requestKey(request: ReturnType<typeof quoteRequest>) { return JSON.stringify(request); }
+export function requestKey(request: ReturnType<typeof quoteRequest>, revision = 0) { return JSON.stringify({ revision, request }); }
 const money = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const amounts = { base: money, tax: money, fee: money, baggage: money, seat: money };
 const lineSchema = z.object({ passengerId: z.string().min(1).max(30), flightId: databaseIdSchema(),

@@ -13,7 +13,7 @@ trang 13–15 của flight.pdf; riêng màn chọn ghế được làm đẹp h�
 Giữ hỗ trợ Việt–Anh, lựa chọn VND/USD độc lập với ngôn ngữ và một đơn đặt vé
 ngay cả khi hành khách đổi nhóm tuổi giữa các chặng.
 
-**Trạng thái:** đã được bạn duyệt ngày 02/11/2026; đang triển khai.
+**Trạng thái:** đã được bạn duyệt và triển khai ngày 02/11/2026; xem kết quả và giới hạn nghiệm thu trong CHECKOUT-EXTRAS.md.
 
 ## Luồng sử dụng
 
@@ -172,4 +172,3 @@ kích thước điện thoại: bố cục, quay lại/sửa, Việt–Anh, VND/
 Kết quả thử trên Android thật được báo riêng.
 
 **Mỗi task là một commit riêng. Chưa push/merge trong yêu cầu này.**
-

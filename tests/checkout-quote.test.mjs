@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import * as quote from '../src/features/booking/quote.ts';
+import { createCheckoutDraftStore } from '../src/features/booking/draft.ts';
 const id='11111111-1111-4111-8111-111111111111';
 const draft={itinerary:{selection:{tripType:'one_way',passengers:{adults:1,children:0,infants:0},segments:[{flightId:id,fareId:id,journeyIndex:1,legIndex:1}]}},
  passengers:[{id:'adult-1',values:{dateOfBirth:'1990-01-01',givenNames:'PRIVATE',passportNumber:'DO-NOT-SEND'}}],contact:{contactEmail:'private@example.com'},baggage:[],seats:[]};
@@ -18,4 +19,11 @@ test('quote parser verifies sum, safe integers, line totals and short expiry',()
  assert.equal(quote.parseQuote(result,now).total,1550000);
  for(const bad of [{...result,total:1},{...result,total:Number.MAX_SAFE_INTEGER+1},{...result,lines:[]},{...result,expiresAt:new Date(now-1).toISOString()},
  {...result,lines:[{...result.lines[0],seat:-1}]},{...result,currency:'USD'}]) assert.throws(()=>quote.parseQuote(bad,now));
+});
+test('same-ID fare refresh invalidates quote identity and price acknowledgement',()=>{
+ const store=createCheckoutDraftStore(); const itinerary={...draft.itinerary,legs:[{flightId:id,prices:{adult:100,child:70,infant:10,currency:'VND'}}]};
+ store.getState().beginCheckout(itinerary);store.getState().updatePassenger('adult-1',{dateOfBirth:'1990-01-01'});
+ const before=quote.requestKey(quote.quoteRequest(store.getState()),store.getState().revision);
+ store.getState().beginCheckout({...itinerary,legs:[{...itinerary.legs[0],prices:{...itinerary.legs[0].prices,adult:200}}]});
+ const after=quote.requestKey(quote.quoteRequest(store.getState()),store.getState().revision);assert.notEqual(before,after);
 });

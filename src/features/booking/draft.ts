@@ -6,6 +6,7 @@ import { createBookingPassengerSchema, type PassengerDetailsInput } from './pass
 import type { CheckoutItinerary } from './itinerary-data.ts';
 import { selectedItinerarySchema } from './selection.ts';
 import type { BaggageChoice, BaggageOffer, SeatChoice } from './baggage.ts';
+import { seatEligibility, type MapSeat } from './seats.ts';
 
 export type CheckoutDraft = {
   contact: BookingContactInput;
@@ -17,6 +18,7 @@ export type CheckoutDraftState = CheckoutDraft & {
   seats: SeatChoice[];
   revision: number;
   setBaggage: (passengerId: string, flightId: string, offer: BaggageOffer | null) => void;
+  setSeat: (passengerId: string, flightId: string, seat: MapSeat | null) => void;
   itinerary: CheckoutItinerary | null;
   beginCheckout: (itinerary: CheckoutItinerary) => void;
   finish: () => void;
@@ -35,6 +37,15 @@ export function createCheckoutDraftStore() {
     contact: emptyContact(),
     passengers: [],
     baggage: [], seats: [], revision: 0,
+    setSeat: (passengerId, flightId, seat) => {
+      const state = get(); const passenger = state.passengers.find(p => p.id === passengerId);
+      const leg = state.itinerary?.legs.find(l => l.flightId === flightId);
+      if (!passenger || !leg) throw new Error('extras.invalid');
+      if (seat) { const error = seatEligibility(seat, passenger, leg, state.passengers, state.seats); if (error) throw new Error(error); }
+      const remaining = state.seats.filter(s => s.passengerId !== passengerId || s.flightId !== flightId);
+      set({ seats: seat ? [...remaining, { passengerId, flightId, seatId: seat.flight_seat_id, seatCode: seat.seat_code,
+        amount: seat.selection_fee_amount, currency: seat.currency }] : remaining, revision: state.revision + 1 });
+    },
     setBaggage: (passengerId, flightId, offer) => {
       const state = get();
       if (!state.passengers.some(p => p.id === passengerId) || !state.itinerary?.legs.some(l => l.flightId === flightId)

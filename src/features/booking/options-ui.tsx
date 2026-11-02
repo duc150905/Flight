@@ -4,7 +4,7 @@ import { useLanguage } from '../i18n/provider';
 import { CheckoutText, useCheckoutColors } from './ui';
 export function Option({ title, selected, disabled = false, onPress, children }: PropsWithChildren<{ title: string; selected: boolean; disabled?: boolean; onPress(): void }>) {
   const c = useCheckoutColors();
-  return <Pressable accessibilityRole="radio" accessibilityLabel={title} accessibilityState={{ checked: selected, disabled }} disabled={disabled}
+  return <Pressable accessibilityRole="radio" accessibilityLabel={title} accessibilityState={{ checked: selected, disabled }} aria-checked={selected} aria-disabled={disabled} disabled={disabled}
     onPress={onPress} style={({ pressed }) => [optionStyles.option, { borderColor: selected ? c.primary : c.border,
       backgroundColor: selected ? c.tint : c.surface, opacity: disabled ? 0.45 : pressed ? 0.75 : 1 }]}>
     <View style={{ flex: 1, gap: 6 }}><CheckoutText>{title}</CheckoutText>{children}</View>
@@ -14,7 +14,7 @@ export function Option({ title, selected, disabled = false, onPress, children }:
 export function Tabs({ label, values, selected, onSelect }: { label: string; values: { id: string; text: string }[]; selected: string; onSelect(id: string): void }) {
   const c = useCheckoutColors(); const { t } = useLanguage();
   return <View accessibilityLabel={t(label)} style={optionStyles.tabs}>{values.map(v => <Pressable key={v.id} accessibilityRole="button"
-    accessibilityState={{ selected: v.id === selected }} onPress={() => onSelect(v.id)}
+    accessibilityState={{ selected: v.id === selected }} aria-pressed={v.id === selected} onPress={() => onSelect(v.id)}
     style={({ pressed }) => [optionStyles.tab, { backgroundColor: v.id === selected ? c.tint : c.surface, borderColor: v.id === selected ? c.primary : c.border, opacity: pressed ? 0.7 : 1 }]}>
     <CheckoutText>{v.text}</CheckoutText></Pressable>)}</View>;
 }

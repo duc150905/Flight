@@ -17,7 +17,7 @@ export function QuoteScreen() {
   const [now, setNow] = useState(Date.now); const [acknowledged, acknowledge] = useState('');
   const valid = checkoutReview(draft).success;
   const request = draft.itinerary ? quoteRequest(draft) : null;
-  const key = request ? requestKey(request) : '';
+  const key = request ? requestKey(request, draft.revision) : '';
   const query = useQuery({ queryKey: ['checkout-quote', session?.user.id, key], enabled: valid && !!request,
     queryFn: async () => { if (!supabase || !request) throw new Error('quote.loadError'); const data = await loadQuote(supabase, request); setNow(Date.now()); return data; },
     retry: false, staleTime: 0, gcTime: 0 });

@@ -14,7 +14,7 @@ export function ReviewScreen() {
   const result = checkoutReview(draft);
   const [confirmed, setConfirmed] = useState<string | null>(null);
   if (!draft.itinerary) return <MissingCheckout />;
-  if (!result.success) return <CheckoutShell title="Check your details" step={2}>
+  if (!result.success) return <CheckoutShell title="Check your details" step={1}>
     <CheckoutCard>{result.messages.map((message, index) => <CheckoutError key={index} message={message} />)}</CheckoutCard>
     <CheckoutButton title={result.target === 'selection' ? 'Choose flights again' : result.target === 'contact' ? 'Edit contact details' : 'Edit travellers'}
       onPress={() => {
@@ -26,7 +26,7 @@ export function ReviewScreen() {
   const estimate = checkoutEstimate(draft);
   const fingerprint = JSON.stringify(result.data);
   const checked = fingerprint === confirmed;
-  return <CheckoutShell title="Review your details" step={2} back={() => router.dismissTo('/checkout/passengers')}>
+  return <CheckoutShell title="Review your details" step={1} back={() => router.dismissTo('/checkout/passengers')}>
     <CheckoutText muted message={"Take a moment to check names, dates and contact details before moving on to baggage and seats."} />
     <CheckoutCard>
       <CheckoutText title message={"Your flights"} />
