@@ -21,7 +21,8 @@ Hệ thống bảo vệ phân quyền theo 3 lớp độc lập:
    - Bảng vai trò `private.user_roles` được đặt trong schema `private` (không expose ra PostgREST Data API). Người dùng hoặc client không thể tự truy vấn hay ghi đè role.
    - Mọi thao tác ghi danh mục (`airports`, `airlines`, `aircraft`, `destinations`,...), quản lý giá vé (`flight_fares`), và xem toàn bộ đơn hàng đều yêu cầu `(select private.is_admin()) = true`.
 2. **Lớp 2 - RPC Bridge**:
-   - Hàm `public.is_admin()` đóng vai trò cổng kiểm tra an toàn cho client. Hàm chạy với quyền `SECURITY DEFINER`, tra cứu `private.user_roles` dựa trên `auth.uid()` của JWT token phiên đăng nhập hiện tại và trả về `boolean`.
+   - Hàm `public.is_admin()` đóng vai trò cổng kiểm tra an toàn cho client (`SECURITY INVOKER` ủy quyền sang `private.is_admin()` chạy `SECURITY DEFINER`, tra cứu `private.user_roles` dựa trên `auth.uid()` của JWT token phiên đăng nhập hiện tại và trả về `boolean`).
+   - Các thao tác quản trị trên bảng không mở quyền ghi trực tiếp (`aircraft`, `seats`, `flight_instances`, `flight_fares`, `flight_seats`, `private.admin_audit_logs`) đi qua các wrapper `public.admin_*` (`SECURITY INVOKER`) gọi xuống `private.admin_*` (`SECURITY DEFINER`, kiểm tra `private.require_admin()` và tự động ghi nhật ký vào `private.admin_audit_logs`). Module client tương ứng nằm tại `src/features/admin/rpc.ts`.
 3. **Lớp 3 - Client UI Guard**:
    - Ứng dụng client sử dụng hook `useAdmin()` và component `<AdminGuard />` để kiểm soát giao diện và điều hướng.
 
@@ -103,12 +104,26 @@ Nếu người dùng chưa được cấp quyền admin, `<AdminGuard />` sẽ t
 
 ---
 
-## 4. Kiểm thử Tự động (Automated Tests)
+## 4. Các Tuyến Đường & Màn Hình Quản Trị (`F09` — Admin Panel)
 
-Các bài test kiểm thử logic phân quyền nằm tại `tests/admin.test.mjs`:
-- Kiểm tra xử lý an toàn khi client null/chưa đăng nhập (`isAdmin: false`).
-- Kiểm tra phản hồi RPC thành công (`true` / `false`).
-- Kiểm tra xử lý lỗi mạng hoặc lỗi phân quyền database không làm crash ứng dụng.
+Toàn bộ khu vực quản trị được bảo vệ tự động tại `src/app/admin/_layout.tsx` bằng `<AdminGuard />`:
+
+- `/admin` (`src/features/admin/screens/admin-home-screen.tsx`): Tổng quan số liệu danh mục, đội bay, lịch bay và điều hướng nhanh.
+- `/admin/catalogues` (`src/features/admin/screens/catalogues-screen.tsx`): Quản lý Sân bay (`airports`), Hãng hàng không (`airlines`) và Điểm đến trang chủ (`destinations`) với tìm kiếm, lọc trạng thái, phân trang và tắt/bật mềm (`is_active`).
+- `/admin/aircraft` (`src/features/admin/screens/aircraft-screen.tsx`): Quản lý Tàu bay (`aircraft`) và trình tạo/cập nhật Sơ đồ ghế mẫu 4 hạng khoang (`seats`) qua RPC `admin_upsert_aircraft` và `admin_upsert_aircraft_seats`.
+- `/admin/flights` (`src/features/admin/screens/flights-screen.tsx`): Quản lý Lịch bay (`flight_instances`) theo múi giờ IANA của sân bay, Đóng/Mở bán chuyến bay (`admin_set_flight_sales`), Bảng giá hạng vé (`flight_fares` qua `admin_save_flight_fare`) và Kho ghế chuyến bay (`flight_seats` qua `admin_update_flight_seat`).
+- `/admin/addons` (`src/features/admin/screens/addons-screen.tsx`): Quản lý Sản phẩm dịch vụ bổ sung (`addon_products`: hành lý, suất ăn, bảo hiểm demo) và Gói bán theo từng chuyến bay (`flight_addon_offers`).
+
+Khi đăng nhập bằng tài khoản có `isAdmin = true`, màn hình `/account` (`src/features/auth/account-screen.tsx`) sẽ hiển thị nút **"Bảng điều khiển Quản trị"** để mở `/admin`.
+
+---
+
+## 5. Kiểm thử Tự động (Automated Tests)
+
+Các bài test kiểm thử logic phân quyền và quản trị nằm tại:
+- `tests/admin.test.mjs`: Kiểm tra `checkIsAdmin`.
+- `tests/admin-rpc.test.mjs`: Kiểm tra schema và RPC wrapper cho quản trị tàu bay, lịch bay, kho ghế, giá vé, nhật ký thao tác.
+- `tests/admin-catalogue.test.mjs`: Kiểm tra schema danh mục, múi giờ IANA, phân trang/lọc, tạo sơ đồ ghế mẫu 4 hạng khoang và ánh xạ lỗi quản trị song ngữ.
 
 Chạy kiểm thử:
 ```powershell

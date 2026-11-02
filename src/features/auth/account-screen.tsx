@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { ActivityIndicator, Text } from 'react-native';
@@ -80,6 +80,7 @@ export function AccountScreen() {
       <Text style={styles.description}>{contactPhone || (current.status === 'ready' ? 'Chưa cập nhật' : '—')}</Text>
       <Notice text={message} success />
       <Notice text={error} />
+      {isAdmin && <ActionButton title="Bảng điều khiển Quản trị" disabled={busy} onPress={() => router.push('/admin' as Href)} />}
       <ActionButton title="Sửa hồ sơ" disabled={busy || current.status !== 'ready'} onPress={() => { setMessage(''); setMode('profile'); }} />
       <ActionButton title="Vé của tôi" secondary disabled={busy} onPress={() => router.push('/tickets')} />
       <ActionButton title="Đổi mật khẩu" secondary disabled={busy} onPress={() => { setMessage(''); setMode('password'); }} />
