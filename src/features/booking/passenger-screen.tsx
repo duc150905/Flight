@@ -7,7 +7,7 @@ import { useCheckout, useCheckoutStore } from './checkout-provider';
 import { passengerFormOptions, restorePassengerForm, revalidateCompanionFields } from './form-state';
 import { CheckoutField } from './form-field';
 import { localCalendarDay } from './itinerary-data';
-import { isEligibleCompanion } from './passenger-policy';
+import { infantLegsForPassenger, isEligibleCompanion } from './passenger-policy';
 import { CheckoutButton, CheckoutCard, CheckoutError, CheckoutShell, CheckoutText, MissingCheckout, useCheckoutColors } from './ui';
 
 export function PassengerScreen() {
@@ -49,12 +49,12 @@ function PassengerForm() {
         <CheckoutField control={form.control} name={`passengers.${index}.values.passportExpiryDate`} label="Passport expiry date" placeholder="YYYY-MM-DD" autoCorrect={false}
           onRawChange={value => draft.updatePassenger(passenger.id, { passportExpiryDate: value })} />
       </>}
-      {passenger.id.startsWith('infant-') && <>
+      {infantLegsForPassenger(passenger.values.dateOfBirth, draft.itinerary!.legs).length > 0 && <>
         <CheckoutText title>Accompanying adult</CheckoutText>
         <CheckoutText muted>This infant has no separate seat. Choose a different adult aged 18+ for each infant. Fill in the adult’s birth date first.</CheckoutText>
         <Controller control={form.control} name={`passengers.${index}.values.accompanyingAdultId`} render={({ field, fieldState }) => <View style={{ gap: 8 }}>
           {draft.passengers.filter(p => p.id.startsWith('adult-')).map(adult => {
-            const eligible = isEligibleCompanion(adult.values.dateOfBirth, draft.itinerary!.legs);
+            const eligible = isEligibleCompanion(adult.values.dateOfBirth, infantLegsForPassenger(passenger.values.dateOfBirth, draft.itinerary!.legs));
             const selected = field.value === adult.id;
             const label = `${adult.id}: ${[adult.values.givenNames, adult.values.familyName].filter(Boolean).join(' ') || 'Enter traveller details'}`;
             return <Pressable key={adult.id} accessibilityRole="radio" accessibilityLabel={label} accessibilityState={{ checked: selected, disabled: !eligible }} disabled={!eligible}

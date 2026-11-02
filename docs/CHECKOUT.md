@@ -59,10 +59,11 @@ traveller route without valid contact redirects to the contact step.
 
 - Infant: age <2, no separate seat; child: 2–11; adult: >=12.
 - Compute completed years on every departure's local date. A Feb 29 birthday
-  advances on March 1 in non-leap years in this demo. Crossing a type boundary
-  between outbound/return is rejected with a request to reselect/split the trip.
+  advances on March 1 in non-leap years in this demo. Search counts describe the
+  first departure. Later birthdays change the per-leg type/seat requirement,
+  keeping one itinerary and stable passenger IDs; never request a split booking.
 - Exact stable slots must match selected counts, with no duplicate/missing IDs.
-- Each infant selects a distinct accompanying traveller aged >=18 on every leg.
+- Each infant selects a distinct accompanying traveller aged >=18 on infant legs.
   A 12–17-year-old can be an adult fare traveller, but cannot accompany an infant.
 - Any international segment requires nationality, passport number, issuing
   country and expiry for all travellers. Codes are ISO alpha-2; issuing country

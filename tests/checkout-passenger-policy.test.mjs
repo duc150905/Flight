@@ -26,11 +26,31 @@ test('selected counts and unique stable slots must match actual travellers', () 
     assert.equal(schema.safeParse({ passengers }).success, false);
   }
 });
-test('a birthday changing type on the return leg is rejected at the traveller birth date', () => {
+test('a birthday changing type on the return leg keeps one itinerary with per-leg types', () => {
   const schema = passengerPolicySchema(itinerary({ adults: 1, children: 1, infants: 0 }, ['2026-11-10', '2026-11-20']), '2026-11-01');
   const result = schema.safeParse({ passengers: [passenger('adult-1'), passenger('child-1', { dateOfBirth: '2014-11-15' })] });
+  assert.equal(result.success, true);
+  assert.equal(typeof policy.derivePassengerSegments, 'function');
+  const segments = policy.derivePassengerSegments(result.data.passengers, itinerary(undefined, ['2026-11-10', '2026-11-20']).legs);
+  assert.deepEqual(segments.filter(s => s.passengerId === 'child-1').map(s => s.passengerType), ['child', 'adult']);
+});
+test('an infant becoming a child gets a return seat and needs a companion only on infant legs', () => {
+  const trip = itinerary({ adults: 1, children: 0, infants: 1 }, ['2026-11-10', '2026-11-20']);
+  const people = [passenger('adult-1'), passenger('infant-1', { dateOfBirth: '2024-11-15', accompanyingAdultId: 'adult-1' })];
+  assert.equal(passengerPolicySchema(trip, '2026-11-01').safeParse({ passengers: people }).success, true);
+  const result = policy.derivePassengerSegments(people, trip.legs).filter(s => s.passengerId === 'infant-1');
+  assert.deepEqual(result.map(s => [s.passengerType, s.requiresSeat, s.accompanyingPassengerId]), [
+    ['infant', false, 'adult-1'], ['child', true, null],
+  ]);
+});
+test('first-flight type mismatch remains invalid instead of silently changing search counts', () => {
+  const trip = itinerary({ adults: 1, children: 1, infants: 0 }, ['2026-11-20']);
+  const result = passengerPolicySchema(trip, '2026-11-01').safeParse({ passengers: [passenger('adult-1'), passenger('child-1', { dateOfBirth: '2014-11-15' })] });
   assert.equal(result.success, false);
-  assert.ok(result.error.issues.some(i => i.path.join('.') === 'passengers.1.values.dateOfBirth'));
+});
+test('a future birth date returns field errors without throwing from age derivation', () => {
+  const result = passengerPolicySchema(itinerary(), '2026-11-01').safeParse({ passengers: [passenger('adult-1', { dateOfBirth: '2030-01-01' })] });
+  assert.equal(result.success, false);
 });
 test('infants require a distinct companion who is 18 on every leg and actually travels in this booking', () => {
   const schema = passengerPolicySchema(itinerary({ adults: 2, children: 0, infants: 2 }), '2026-11-01');
