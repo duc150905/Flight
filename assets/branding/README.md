@@ -1,7 +1,8 @@
 # Flyora identity — approved option C
 
 Selected by the user on 2026-11-02: white upward-right airplane on turquoise.
-The user chose the app name Flyora on the same date. Visible wordmark is FLYORA.
+The user chose the app name Flyora on the same date. Visible wordmark is Flyora,
+with only the initial F capitalized.
 Existing repository name, Expo slug and URI scheme retain their technical IDs
 so existing checkouts, Expo project identity and auth links remain compatible.
 

@@ -6,7 +6,7 @@ export function AppBrand() {
   return <View accessible accessibilityRole="image" accessibilityLabel="Flyora" style={styles.row}>
     <Image source={require('../../assets/branding/logo.png')} accessible={false} alt=""
       contentFit="contain" style={styles.logo} />
-    <Text style={styles.name}>FLYORA<Text style={styles.dot}>.</Text></Text>
+    <Text style={styles.name}>Flyora<Text style={styles.dot}>.</Text></Text>
   </View>;
 }
 const styles = StyleSheet.create({
