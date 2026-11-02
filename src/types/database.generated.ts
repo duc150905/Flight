@@ -1165,6 +1165,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      quote_checkout: { Args: { p_request: Json }; Returns: Json }
       admin_list_audit_logs: {
         Args: {
           p_entity_id?: string | null

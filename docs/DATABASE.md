@@ -123,3 +123,9 @@ chuyển trạng thái để giải phóng unique index; seat map chỉ hiển t
 Với phần TV2, thứ tự hợp lý là dữ liệu mẫu chung → tạo đơn và giữ ghế → cập nhật
 checkout → thanh toán mô phỏng → hết hạn/hủy/hoàn tiền. Dùng cùng hợp đồng dữ liệu
 với TV1/TV3 trước khi nối màn hình.
+# Cập nhật báo giá checkout — 02/11/2026
+
+RPC authenticated `quote_checkout(p_request jsonb)` đã deploy lên flight-dev bằng
+migration `20261102090252_checkout_quote.sql`. Hàm chỉ đọc và trả báo giá VND có
+hạn 5 phút; không giữ ghế/tạo đơn/thanh toán. Xem `CHECKOUT-EXTRAS.md` để biết hợp
+đồng dữ liệu và kiểm thử. Các bảng và RLS hiện có giữ nguyên.

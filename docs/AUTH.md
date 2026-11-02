@@ -1,4 +1,4 @@
-# Email authentication
+# Authentication
 
 Implemented with the official Supabase skill (supabase/agent-skills, skill v0.1.2).
 The app interface is Vietnamese. Team documentation can remain English.
@@ -10,6 +10,42 @@ Passenger details belong to later checkout work. The account profile stores a
 contact phone number for booking communication.
 Supabase receives the password over HTTPS; our code does not persist passwords.
 The name is display metadata, never authorization or an admin role.
+
+### Google sign-in
+
+The login screen also offers **Tiếp tục với Google**. On web, Supabase redirects
+the browser to Google and restores the returned session on `/account`. On native
+Android/iOS, `expo-web-browser` opens Google's sign-in page; the app accepts the
+`flight://account` callback and gives its access and refresh tokens to Supabase.
+Closing the browser leaves the user signed out. This uses the same Supabase Auth
+session and database permissions as email/password. It does not need SMTP or an
+OTP email.
+
+The Supabase project owner must configure Google once:
+
+1. In Google Cloud's Google Auth Platform, configure the consent screen and
+   create an **OAuth client ID** of type **Web application**. Add
+   `http://localhost:8081` to Authorized JavaScript origins for web development.
+   Add `https://qisvuxiuwsqtkcrfpiwu.supabase.co/auth/v1/callback` to Authorized
+   redirect URIs (or copy the callback shown by the project's Google provider).
+   If the consent screen is in Testing mode, add each tester's Google account.
+2. In Supabase Dashboard > Authentication > Sign In / Providers > Google, enable
+   Google and enter the Client ID and Client Secret. Keep the secret only in
+   Supabase; do not put it in Git or an `EXPO_PUBLIC_*` variable.
+3. In Supabase Dashboard > Authentication > URL Configuration > Redirect URLs,
+   allow `http://localhost:8081/account` and `flight://account`. The exact web
+   URL must match the address used to run the app. For Expo Go, the `exp://` URL
+   changes with the dev server; use a development build with the existing
+   `flight` scheme for reliable mobile testing.
+4. Sign out, then test Google login on web and in an Android/iOS development
+   build. Check account/profile and sign-out. A Google account using the same
+   verified email as an existing user may be linked by Supabase; verify this
+   against a disposable test account before using real accounts.
+
+References: https://supabase.com/docs/guides/auth/social-sign-in/auth-google,
+https://supabase.com/docs/guides/auth/native-mobile-deep-linking,
+https://supabase.com/docs/guides/auth/redirect-urls, and
+https://docs.expo.dev/versions/v58.0.0/sdk/webbrowser/.
 
 If signup returns no session, enter the emailed numeric code in Verify email.
 Verification uses `auth.verifyOtp({ email, token, type: 'email' })`. Return to
@@ -48,19 +84,47 @@ must re-enter them until a coordinated database backfill is performed.
 
 ## Required Dashboard setup (owner action)
 
-The publishable key cannot manage Auth configuration. No cloud template change
-has been made by this code.
+The publishable key cannot manage Auth configuration. The client already calls
+`signUp` and `verifyOtp({ email, token, type: 'email' })`, but the deployed
+`flight-dev` project currently uses Supabase's default **link** email and has
+custom SMTP disabled. On this Free project, the dashboard disables template
+editing until custom SMTP is enabled (or the project is upgraded to Pro). Merely
+committing the template file does not change the email sent by hosted Supabase.
 
-1. In Supabase Authentication, keep email sign-in and Confirm email enabled.
-2. Open email templates, select **Confirm signup**.
-3. Set a subject such as `Your Flight verification code`.
-4. Paste `supabase/templates/confirmation.html` into the email body and save.
-   The `{{ .Token }}` expression must remain intact.
-5. Use an email address allowed by your project's mail setup. Supabase's default
-   mail service may restrict recipients and rate-limit sending; configure custom
-   SMTP for a demo involving additional recipients or production usage.
-6. In email templates, select **Reset password** and paste
-   `supabase/templates/recovery.html` into the email body. Keep `{{ .Token }}`.
+1. Configure a transactional email provider under Authentication > Emails >
+   SMTP Settings. Keep SMTP credentials in the Supabase dashboard only; do not
+   put them in the Expo app, Git, or `EXPO_PUBLIC_*` variables. Alternatively,
+   use a Send Email Auth Hook backed by an external email provider.
+2. In Authentication > Sign In / Providers > Email, keep email sign-in and
+   **Confirm email** enabled.
+3. Open Authentication > Emails > Templates > **Confirm sign up**. Set the
+   subject to `Mã xác nhận tài khoản Flyora`, paste
+   `supabase/templates/confirmation.html` into the body, and save. Keep
+   `{{ .Token }}` intact; the email must contain a numeric code instead of only
+   `{{ .ConfirmationURL }}`.
+4. For in-app password recovery, update **Reset password** with
+   `supabase/templates/recovery.html`, also keeping `{{ .Token }}`.
+5. Test with a **new** email address controlled by the tester. Re-registering a
+   confirmed account can return an obfuscated success without sending another
+   message. Check Auth Logs for delivery failures and email rate limits.
+
+### Classroom SMTP option without a custom domain
+
+A dedicated Gmail account can be used for a small classroom demo. Its address
+will appear as the sender, so do not use a personal mailbox. The account owner
+must enable Google 2-Step Verification and create a separate **App Password**
+for Supabase. Enter that password directly in the Supabase dashboard, never in
+the app or repository. If Google does not offer App Passwords for the account,
+choose a transactional SMTP provider instead.
+
+In Supabase **SMTP Settings**, use host `smtp.gmail.com`, port `465` (or `587`
+with TLS), the dedicated Gmail address as both SMTP username and sender email,
+the App Password as SMTP password, and `Flyora` as sender name. Save the SMTP
+settings before editing **Confirm sign up**. The project owner may need to do
+this if the SMTP switch is disabled for a team member's role.
+
+References: https://support.google.com/accounts/answer/185833 and
+https://supabase.com/kb/troubleshooting/using-google-smtp-with-supabase-custom-smtp-ZZzU4Y.
 
 This flow does not require configuring a deep-link redirect to Expo Go.
 The default email template sends a link instead of the code our screen expects;
@@ -93,6 +157,8 @@ They do not send real email, create real users, or prove on-device delivery.
 
 - https://supabase.com/docs/guides/auth/quickstarts/react-native
 - https://supabase.com/docs/guides/auth/auth-email-templates
+- https://supabase.com/changelog/46599-changes-to-email-template-customisation-on-free-tier
+- https://supabase.com/docs/guides/auth/auth-smtp
 - https://supabase.com/docs/reference/javascript/auth-verifyotp
 - https://supabase.com/docs/reference/javascript/auth-resetpasswordforemail
 - https://supabase.com/docs/reference/javascript/auth-updateuser

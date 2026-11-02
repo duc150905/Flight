@@ -15,7 +15,7 @@ export const supabase = url?.startsWith('https://') && key?.startsWith('sb_publi
         ...(isNative ? { storage: AsyncStorage, lock: processLock } : {}),
         autoRefreshToken: isNative || isBrowser,
         persistSession: isNative || isBrowser,
-        detectSessionInUrl: false,
+        detectSessionInUrl: isBrowser,
       },
     })
   : null;

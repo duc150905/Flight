@@ -1,4 +1,6 @@
 import type { Json } from '@/types/database.generated';
+import type { Language } from '../i18n/language.ts';
+import { localeFor, translate } from '../i18n/translate.ts';
 import type { BookingSummary, TicketSegment } from './model';
 
 const statusLabels: Record<BookingSummary['status'], string> = {
@@ -17,17 +19,17 @@ export const bookingStatusLabel = (status: BookingSummary['status']) => statusLa
 export const tripTypeLabel = (tripType: BookingSummary['trip_type']) => tripLabels[tripType];
 export const cabinClassLabel = (cabin: TicketSegment['cabin_class']) => cabinLabels[cabin];
 
-export function formatMoney(amount: number, currency: string): string {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency }).format(amount);
+export function formatMoney(amount: number, currency: string, language: Language = 'vi'): string {
+  return new Intl.NumberFormat(localeFor(language), { style: 'currency', currency }).format(amount);
 }
 
-export function formatDateTime(value: string, timeZone?: string | null): string {
+export function formatDateTime(value: string, timeZone?: string | null, language: Language = 'vi'): string {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Chưa có thời gian';
+  if (Number.isNaN(date.getTime())) return translate(language, 'Chưa có thời gian');
   try {
-    return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric',
+    return new Intl.DateTimeFormat(localeFor(language), { day: '2-digit', month: '2-digit', year: 'numeric',
       hour: '2-digit', minute: '2-digit', ...(timeZone ? { timeZone } : {}) }).format(date);
-  } catch { return 'Chưa có thời gian'; }
+  } catch { return translate(language, 'Chưa có thời gian'); }
 }
 
 function field(snapshot: Json, ...names: string[]): string | null {

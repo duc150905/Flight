@@ -5,7 +5,8 @@ import {
   StyleSheet, Text, TextInput, View, type TextInputProps,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LanguagePicker } from '../i18n/provider';
+import { LanguagePicker, useLanguage } from '@/features/i18n/provider';
+import { AppBrand } from '@/components/app-brand';
 
 export const colors = {
   background: '#F3F7FC', surface: '#FFFFFF', text: '#102A43', muted: '#526579',
@@ -14,15 +15,16 @@ export const colors = {
 };
 
 export function AuthShell({ children }: PropsWithChildren) {
+  const { t } = useLanguage();
   return <SafeAreaView style={styles.safe}>
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.content}>
+          <AppBrand />
           <LanguagePicker />
-          <Text style={styles.brand}>FLIGHT<Text style={styles.brandDot}>.</Text></Text>
-          <Text style={styles.tagline}>Hành trình tiếp theo bắt đầu từ đây.</Text>
+          <Text style={styles.tagline}>{t('Hành trình tiếp theo bắt đầu từ đây.')}</Text>
           <View style={styles.card}>{children}</View>
-          <Text style={styles.footer}>Lên kế hoạch gọn gàng cho mỗi chuyến đi.</Text>
+          <Text style={styles.footer}>{t('Lên kế hoạch gọn gàng cho mỗi chuyến đi.')}</Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -33,37 +35,43 @@ export function FormField<T extends FieldValues>({ control, name, label, passwor
   control: Control<T>; name: FieldPath<T>; label: string; password?: boolean;
 } & Omit<TextInputProps, 'value' | 'onChangeText' | 'secureTextEntry'>) {
   const [visible, setVisible] = useState(false);
+  const { t } = useLanguage();
   return <Controller control={control} name={name} render={({ field, fieldState }) =>
     <View style={styles.field}>
-      <Text nativeID={`${name}-label`} style={styles.label}>{label}</Text>
+      <Text nativeID={`${name}-label`} style={styles.label}>{t(label)}</Text>
       <View style={[styles.inputRow, fieldState.error && styles.invalid]}>
         <TextInput {...props} ref={field.ref} value={field.value ?? ''} onChangeText={field.onChange}
-          onBlur={field.onBlur} accessibilityLabel={label} accessibilityLabelledBy={`${name}-label`}
+          onBlur={field.onBlur} accessibilityLabel={t(label)} accessibilityLabelledBy={`${name}-label`}
+          placeholder={props.placeholder ? t(props.placeholder) : undefined}
           secureTextEntry={password && !visible} placeholderTextColor={colors.muted} style={styles.input} />
         {password && <Pressable onPress={() => setVisible(value => !value)} accessibilityRole="button"
-          accessibilityLabel={`${visible ? 'Ẩn' : 'Hiện'} ${label.toLowerCase()}`} style={styles.reveal}>
-          <Text style={styles.link}>{visible ? 'Ẩn' : 'Hiện'}</Text>
+          accessibilityLabel={`${t(visible ? 'Ẩn' : 'Hiện')} ${t(label).toLowerCase()}`} style={styles.reveal}>
+          <Text style={styles.link}>{t(visible ? 'Ẩn' : 'Hiện')}</Text>
         </Pressable>}
       </View>
-      {fieldState.error && <Text accessibilityLiveRegion="polite" style={styles.errorText}>{fieldState.error.message}</Text>}
+      {fieldState.error && <Text accessibilityLiveRegion="polite" style={styles.errorText}>{t(fieldState.error.message ?? '')}</Text>}
     </View>} />;
 }
 
 export function ActionButton({ title, onPress, busy = false, disabled = false, secondary = false }: {
   title: string; onPress: () => void; busy?: boolean; disabled?: boolean; secondary?: boolean;
 }) {
+  const { t } = useLanguage();
+  const countdown = /^Gửi lại sau (\d+) giây$/.exec(title);
+  const displayTitle = countdown ? t('Gửi lại sau {seconds} giây', { seconds: countdown[1] }) : t(title);
   return <Pressable onPress={onPress} disabled={disabled || busy} accessibilityRole="button"
     accessibilityState={{ disabled: disabled || busy, busy }}
     style={({ pressed }) => [styles.button, secondary && styles.secondary, (disabled || busy) && styles.disabled, pressed && styles.pressed]}>
-    {busy ? <ActivityIndicator color={secondary ? colors.primary : colors.surface} accessibilityLabel="Vui lòng chờ" />
-      : <Text style={[styles.buttonText, secondary && styles.secondaryText]}>{title}</Text>}
+    {busy ? <ActivityIndicator color={secondary ? colors.primary : colors.surface} accessibilityLabel={t('Vui lòng chờ')} />
+      : <Text style={[styles.buttonText, secondary && styles.secondaryText]}>{displayTitle}</Text>}
   </Pressable>;
 }
 
 export function Notice({ text, success = false }: { text: string; success?: boolean }) {
+  const { t } = useLanguage();
   if (!text) return null;
   return <View style={[styles.notice, success && styles.successNotice]}>
-    <Text accessibilityLiveRegion="polite" style={{ color: success ? colors.success : colors.error, lineHeight: 22 }}>{text}</Text>
+    <Text accessibilityLiveRegion="polite" style={{ color: success ? colors.success : colors.error, lineHeight: 22 }}>{t(text)}</Text>
   </View>;
 }
 

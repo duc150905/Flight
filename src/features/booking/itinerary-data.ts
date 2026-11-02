@@ -11,6 +11,7 @@ export type ItineraryLeg = SelectedItinerary['segments'][number] & {
   origin: Airport; destination: Airport; flightNumber: string; fareName: string;
   departureAt: string; arrivalAt: string; salesCloseAt: string; departureDate: string; arrivalDate: string;
   prices?: { adult: number; child: number; infant: number; currency: string } | null;
+  cabinClass?: Tables['flight_fares']['Row']['cabin_class'];
 };
 export type CheckoutItinerary = { selection: SelectedItinerary; legs: ItineraryLeg[]; international: boolean };
 
@@ -37,7 +38,7 @@ export function hydrateItinerary(input: SelectedItinerary, records: SelectedFlig
       return values.every(value => Number.isSafeInteger(value) && value! >= 0) ? values.reduce<number>((sum, value) => sum + value!, 0) : NaN;
     };
     const prices = { adult: total('adult'), child: total('child'), infant: total('infant'), currency: fare.currency ?? '' };
-    return { ...segment, origin, destination, flightNumber: flight.flight_number, fareName: fare.name,
+    return { ...segment, origin, destination, flightNumber: flight.flight_number, fareName: fare.name, cabinClass: fare.cabin_class,
       prices: prices.currency && [prices.adult, prices.child, prices.infant].every(Number.isSafeInteger) ? prices : null,
       departureAt: flight.departure_at, arrivalAt: flight.arrival_at, salesCloseAt: flight.sales_close_at,
       departureDate: localCalendarDay(flight.departure_at, origin.timezone),
@@ -64,7 +65,7 @@ export async function loadCheckoutItinerary(client: SupabaseClient<Database>, se
   const validated = selectedItinerarySchema.parse(selection);
   const [flights, fares] = await Promise.all([
     client.from('flight_instances').select('id,departure_airport_id,arrival_airport_id,departure_at,arrival_at,flight_number,sales_close_at,published_at,status').in('id', validated.segments.map(s => s.flightId)),
-    client.from('flight_fares').select('id,flight_id,name,is_active,currency,adult_base_amount,child_base_amount,infant_base_amount,adult_tax_amount,child_tax_amount,infant_tax_amount,adult_fee_amount,child_fee_amount,infant_fee_amount').in('id', validated.segments.map(s => s.fareId)),
+    client.from('flight_fares').select('id,flight_id,name,is_active,cabin_class,currency,adult_base_amount,child_base_amount,infant_base_amount,adult_tax_amount,child_tax_amount,infant_tax_amount,adult_fee_amount,child_fee_amount,infant_fee_amount').in('id', validated.segments.map(s => s.fareId)),
   ]);
   if (flights.error || fares.error) throw new Error('Could not load your selected flights. Check your connection and try again.');
   const ids = [...new Set(flights.data.flatMap(f => [f.departure_airport_id, f.arrival_airport_id]))];
