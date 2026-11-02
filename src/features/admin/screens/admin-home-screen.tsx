@@ -479,10 +479,10 @@ export function AdminHomeScreen() {
             ))}
           </View>
 
-          {/* Summary of F09 Infrastructure */}
+          {/* Summary of Flight Infrastructure */}
           <View style={dashStyles.infraSummaryBox}>
             <Text style={dashStyles.microTag}>
-              {bi('HẠ TẦNG KHAI THÁC BAY (F09)', 'FLIGHT INFRASTRUCTURE (F09)')}
+              {bi('HẠ TẦNG KHAI THÁC BAY', 'FLIGHT INFRASTRUCTURE')}
             </Text>
             <Text style={adminStyles.muted}>
               ✈ {data?.flightsPublished ?? 0}/{data?.flightsTotal ?? 0}{' '}

@@ -94,7 +94,7 @@ export function AdminPaymentsScreen() {
   return (
     <AdminShell
       activeSection="payments"
-      title={bi('Quản lý Thanh toán & Hoàn tiền (F10)', 'Payments & Refunds Management (F10)')}
+      title={bi('Quản lý Thanh toán & Hoàn tiền', 'Payments & Refunds Management')}
       subtitle={bi(
         'Theo dõi các lần thanh toán mô phỏng, mã lỗi xử lý (failure_code), khóa chống trùng (idempotency_key) và hoàn tiền để hỗ trợ kiểm thử & vận hành.',
         'Monitor simulated payment attempts, failure codes, idempotency keys, and refunds for testing and operations.',
