@@ -1,6 +1,7 @@
 # Review 6 task checkout tiếp theo — 02/11/2026
 
-Nhánh `codex/tv2-checkout-localized-ui`. Mỗi task một commit; chưa push/merge.
+Nhánh thực hiện `codex/tv2-checkout-localized-ui`. Mỗi task một commit;
+trạng thái tích hợp xem trên GitHub và lịch sử `main`.
 Mẫu giao diện: `flight.pdf`, trang 12. Đây là đợt tiếp theo của bản walkthrough
 ngày 01/11; các quy tắc cũ yêu cầu chọn lại khi đổi nhóm tuổi đã được thay thế.
 

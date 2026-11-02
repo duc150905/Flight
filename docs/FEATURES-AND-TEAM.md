@@ -4,7 +4,7 @@
 > hoạch. Auth, schema tổng, TV1 discovery và nền tảng admin/tickets đã có trong
 > code ở mốc `3da5155`. Đợt TV2 tiếp theo nằm trên
 > `codex/tv2-checkout-localized-ui`: tuổi theo chặng, Việt–Anh và màn Traveller
-> theo PDF; chưa push/merge. DB flight-dev đã thêm giới tính nullable và fixture
+> theo PDF (trạng thái tích hợp xem GitHub). DB flight-dev đã thêm giới tính nullable và fixture
 > chuyến/giá/hành lý/ghế. Hai thành viên còn lại đọc `CHECKOUT.md`,
 > `LOCALIZATION.md`, `CHECKOUT-DEMO.md`, `CHECKOUT-NEXT-WALKTHROUGH.md` trước khi
 > sửa phần giao nhau. Booking/hold/payment RPC và nghiệm thu Android thật còn
