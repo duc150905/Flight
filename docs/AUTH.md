@@ -1,4 +1,4 @@
-# Email authentication
+# Authentication
 
 Implemented with the official Supabase skill (supabase/agent-skills, skill v0.1.2).
 The app interface is Vietnamese. Team documentation can remain English.
@@ -10,6 +10,42 @@ Passenger details belong to later checkout work. The account profile stores a
 contact phone number for booking communication.
 Supabase receives the password over HTTPS; our code does not persist passwords.
 The name is display metadata, never authorization or an admin role.
+
+### Google sign-in
+
+The login screen also offers **Tiếp tục với Google**. On web, Supabase redirects
+the browser to Google and restores the returned session on `/account`. On native
+Android/iOS, `expo-web-browser` opens Google's sign-in page; the app accepts the
+`flight://account` callback and gives its access and refresh tokens to Supabase.
+Closing the browser leaves the user signed out. This uses the same Supabase Auth
+session and database permissions as email/password. It does not need SMTP or an
+OTP email.
+
+The Supabase project owner must configure Google once:
+
+1. In Google Cloud's Google Auth Platform, configure the consent screen and
+   create an **OAuth client ID** of type **Web application**. Add
+   `http://localhost:8081` to Authorized JavaScript origins for web development.
+   Add `https://qisvuxiuwsqtkcrfpiwu.supabase.co/auth/v1/callback` to Authorized
+   redirect URIs (or copy the callback shown by the project's Google provider).
+   If the consent screen is in Testing mode, add each tester's Google account.
+2. In Supabase Dashboard > Authentication > Sign In / Providers > Google, enable
+   Google and enter the Client ID and Client Secret. Keep the secret only in
+   Supabase; do not put it in Git or an `EXPO_PUBLIC_*` variable.
+3. In Supabase Dashboard > Authentication > URL Configuration > Redirect URLs,
+   allow `http://localhost:8081/account` and `flight://account`. The exact web
+   URL must match the address used to run the app. For Expo Go, the `exp://` URL
+   changes with the dev server; use a development build with the existing
+   `flight` scheme for reliable mobile testing.
+4. Sign out, then test Google login on web and in an Android/iOS development
+   build. Check account/profile and sign-out. A Google account using the same
+   verified email as an existing user may be linked by Supabase; verify this
+   against a disposable test account before using real accounts.
+
+References: https://supabase.com/docs/guides/auth/social-sign-in/auth-google,
+https://supabase.com/docs/guides/auth/native-mobile-deep-linking,
+https://supabase.com/docs/guides/auth/redirect-urls, and
+https://docs.expo.dev/versions/v58.0.0/sdk/webbrowser/.
 
 If signup returns no session, enter the emailed numeric code in Verify email.
 Verification uses `auth.verifyOtp({ email, token, type: 'email' })`. Return to

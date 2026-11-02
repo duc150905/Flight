@@ -5,6 +5,7 @@ export const authEnglish = {
   'Ẩn': 'Hide', 'Hiện': 'Show', 'Vui lòng chờ': 'Please wait',
   'Chào mừng trở lại': 'Welcome back', 'Đăng nhập để quản lý các chuyến đi của bạn.': 'Sign in to manage your trips.',
   'Mật khẩu': 'Password', 'Đăng nhập': 'Sign in', 'Tạo tài khoản': 'Create account',
+  'Tiếp tục với Google': 'Continue with Google',
   'Xác nhận email': 'Confirm email', 'Quên mật khẩu?': 'Forgot password?',
   'Bắt đầu hành trình': 'Start your journey',
   'Tạo tài khoản Flight. Bạn có thể thêm thông tin hành khách khi đặt vé.': 'Create a Flight account. You can add travellers when booking.',
@@ -61,5 +62,6 @@ export const authEnglish = {
   'Mã không hợp lệ hoặc đã hết hạn. Hãy kiểm tra hoặc yêu cầu mã mới.': 'Code is invalid or expired. Check it or request a new one.',
   'Dịch vụ email thử nghiệm chưa thể gửi tới địa chỉ này.': 'The test email service cannot send to this address.',
   'Hiện chưa thể đăng ký tài khoản mới.': 'Registration is currently unavailable.',
+  'Không thể đăng nhập với Google. Hãy thử lại hoặc liên hệ quản trị viên.': 'Could not sign in with Google. Try again or contact an administrator.',
   'Có lỗi xảy ra. Hãy kiểm tra kết nối và thử lại.': 'Something went wrong. Check your connection and try again.',
 } as const;

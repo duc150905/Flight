@@ -1,7 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Text } from 'react-native';
+import { Platform, Text } from 'react-native';
 import { useLanguage } from '@/features/i18n/provider';
 import { useAuth } from './auth-provider';
 import {
@@ -34,6 +36,7 @@ function LoginForm({ change }: Navigation) {
   const { t } = useLanguage();
   const { actions } = useAuth();
   const [error, setError] = useState('');
+  const [googleBusy, setGoogleBusy] = useState(false);
   const { control, handleSubmit, getValues, formState: { isSubmitting } } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema), defaultValues: { email: '', password: '' },
   });
@@ -41,18 +44,34 @@ function LoginForm({ change }: Navigation) {
     setError('');
     try { await actions!.login(values); } catch (error) { setError(authErrorMessage(error)); }
   });
+  const signInWithGoogle = async () => {
+    if (googleBusy || isSubmitting) return;
+    setGoogleBusy(true); setError('');
+    try {
+      const native = Platform.OS !== 'web';
+      const redirectTo = native ? Linking.createURL('account') : `${window.location.origin}/account`;
+      const url = await actions!.googleSignIn(redirectTo, native);
+      if (native) {
+        const result = await WebBrowser.openAuthSessionAsync(url, redirectTo);
+        if (result.type === 'success') await actions!.completeGoogleSignIn(result.url, redirectTo);
+      }
+    } catch (error) { setError(authErrorMessage(error)); }
+    finally { setGoogleBusy(false); }
+  };
+  const busy = isSubmitting || googleBusy;
   return <>
     <Text accessibilityRole="header" style={styles.title}>{t('Chào mừng trở lại')}</Text>
     <Text style={styles.description}>{t('Đăng nhập để quản lý các chuyến đi của bạn.')}</Text>
     <FormField control={control} name="email" label="Email" autoCapitalize="none" autoCorrect={false}
-      keyboardType="email-address" autoComplete="email" editable={!isSubmitting} placeholder="you@example.com" />
+      keyboardType="email-address" autoComplete="email" editable={!busy} placeholder="you@example.com" />
     <FormField control={control} name="password" label="Mật khẩu" password autoCapitalize="none" autoCorrect={false}
-      autoComplete="current-password" editable={!isSubmitting} returnKeyType="go" onSubmitEditing={() => void submit()} />
+      autoComplete="current-password" editable={!busy} returnKeyType="go" onSubmitEditing={() => void submit()} />
     <Notice text={error} />
-    <ActionButton title="Đăng nhập" busy={isSubmitting} onPress={() => void submit()} />
-    <ActionButton title="Tạo tài khoản" secondary disabled={isSubmitting} onPress={() => change('register')} />
-    <ActionButton title="Xác nhận email" secondary disabled={isSubmitting} onPress={() => change('verify', getValues('email'))} />
-    <ActionButton title="Quên mật khẩu?" secondary disabled={isSubmitting} onPress={() => change('forgot', getValues('email'))} />
+    <ActionButton title="Đăng nhập" busy={isSubmitting} disabled={googleBusy} onPress={() => void submit()} />
+    <ActionButton title="Tiếp tục với Google" secondary busy={googleBusy} disabled={isSubmitting} onPress={() => void signInWithGoogle()} />
+    <ActionButton title="Tạo tài khoản" secondary disabled={busy} onPress={() => change('register')} />
+    <ActionButton title="Xác nhận email" secondary disabled={busy} onPress={() => change('verify', getValues('email'))} />
+    <ActionButton title="Quên mật khẩu?" secondary disabled={busy} onPress={() => change('forgot', getValues('email'))} />
   </>;
 }
 
