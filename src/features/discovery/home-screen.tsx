@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-nativ
 import { useAuth } from '@/features/auth/auth-provider';
 import { Notice } from '@/features/auth/ui';
 import { LanguagePicker, useLanguage } from '@/features/i18n/provider';
+import { CurrencyControls } from '@/features/currency/ui';
 import { listAirports, listDestinations } from './data';
 import { cabinLabels, localDate, type Airport, type CabinClass, type Destination } from './model';
 import { validateTripSearch, type TripLeg, type TripSearch } from './trip-search';
@@ -99,6 +100,7 @@ export function HomeScreen() {
       </Pressable>
     </View>
     <LanguagePicker />
+    <CurrencyControls />
     <View>
       <Text accessibilityRole="header" style={styles.title}>{t('Bạn muốn bay tới đâu?')}</Text>
       <Text style={styles.subtitle}>{t('Tìm chuyến bay và so sánh giá vé theo từng hạng.')}</Text>

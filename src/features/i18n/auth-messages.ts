@@ -8,7 +8,7 @@ export const authEnglish = {
   'Tiếp tục với Google': 'Continue with Google',
   'Xác nhận email': 'Confirm email', 'Quên mật khẩu?': 'Forgot password?',
   'Bắt đầu hành trình': 'Start your journey',
-  'Tạo tài khoản Flight. Bạn có thể thêm thông tin hành khách khi đặt vé.': 'Create a Flight account. You can add travellers when booking.',
+  'Tạo tài khoản Flyora. Bạn có thể thêm thông tin hành khách khi đặt vé.': 'Create a Flyora account. You can add travellers when booking.',
   'Họ và tên': 'Full name', 'Tối thiểu 8 ký tự': 'At least 8 characters',
   'Nhập lại mật khẩu': 'Confirm password', 'Về đăng nhập': 'Back to sign in',
   'Kiểm tra email': 'Check your email',

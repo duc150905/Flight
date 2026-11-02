@@ -5,7 +5,10 @@ import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import { Notice } from '@/features/auth/ui';
 import { useLanguage } from '@/features/i18n/provider';
-import { formatMoney, localeFor } from '@/features/i18n/translate';
+import { localeFor } from '@/features/i18n/translate';
+import { CurrencyControls, MoneyText } from '@/features/currency/ui';
+import { useDisplayMoney } from '@/features/currency/provider';
+import { inlineMoney } from '@/features/currency/presentation';
 import { searchOneWay } from './data';
 import { type FlightOffer } from './model';
 import { checkoutHrefForTrip, criteriaForLeg, parseTripSearchParameter } from './trip-search';
@@ -33,6 +36,7 @@ function baggage(offer: FlightOffer, t: (key: string, params?: Record<string, st
 
 export function ItineraryResultsScreen({ rawSearch }: { rawSearch: unknown }) {
   const { t, language } = useLanguage();
+  const displayMoney = useDisplayMoney();
   const parsed = useMemo(() => {
     try { return parseTripSearchParameter(rawSearch); } catch { return null; }
   }, [rawSearch]);
@@ -92,6 +96,7 @@ export function ItineraryResultsScreen({ rawSearch }: { rawSearch: unknown }) {
       <Text style={styles.subtitle}>{t('{selected}/{total} chặng đã chọn', { selected: selected.length, total: parsed.legs.length })} ·
         {' '}{t('{count} hành khách', { count: parsed.adults + parsed.children + parsed.infants })}</Text>
     </View>
+    <CurrencyControls />
     {selected.length > 0 && <View style={styles.card}>
       <Text style={styles.sectionTitle}>{t('Hành trình đã chọn')}</Text>
       {selected.map((offer, index) => <Text key={offer.flight.id} style={styles.muted}>
@@ -144,7 +149,7 @@ export function ItineraryResultsScreen({ rawSearch }: { rawSearch: unknown }) {
           <Text style={styles.muted}>{t('Bay thẳng')} · {t('{hours}g {minutes}p', {
             hours: Math.floor(duration(offer) / 60), minutes: duration(offer) % 60,
           })} · {offer.fare.name}</Text>
-          <Text style={[styles.sectionTitle, { color: flightColors.primary }]}>{formatMoney(language, offer.total, offer.fare.currency)}</Text>
+          <MoneyText amount={offer.total} currency={offer.fare.currency} style={[styles.sectionTitle, { color: flightColors.primary }]} />
           <Pressable accessibilityRole="button" style={styles.picker}
             onPress={() => setExpandedId(previous => previous === offer.fare.id ? '' : offer.fare.id)}>
             <Text style={styles.link}>{t(expandedId === offer.fare.id ? 'Ẩn điều kiện vé' : 'Xem hành lý và điều kiện vé')}</Text>
@@ -154,7 +159,7 @@ export function ItineraryResultsScreen({ rawSearch }: { rawSearch: unknown }) {
             <Text style={styles.muted}>{offer.fare.cancellation_allowed
               ? t('Có thể yêu cầu hủy trước giờ bay ít nhất {minutes} phút. Phí theo điều kiện vé: {fee}.', {
                 minutes: offer.fare.cancellation_cutoff_minutes,
-                fee: formatMoney(language, offer.fare.cancellation_fee_amount, offer.fare.currency),
+                fee: inlineMoney(displayMoney(offer.fare.cancellation_fee_amount, offer.fare.currency)),
               }) : t('Không cho phép yêu cầu hủy theo điều kiện vé này.')}</Text>
           </View>}
           <FlightButton title={t('Chọn chặng {number}', { number: activeIndex + 1 })} onPress={() => choose(offer)} />
@@ -165,8 +170,8 @@ export function ItineraryResultsScreen({ rawSearch }: { rawSearch: unknown }) {
       <Text style={styles.sectionTitle}>{t('Đã chọn đủ chuyến bay')}</Text>
       <Text style={styles.muted}>{t('Kiểm tra thông tin hành khách và giá cuối cùng ở bước tiếp theo.')}</Text>
       {new Set(selected.map(offer => offer.fare.currency)).size === 1
-        && <Text style={styles.sectionTitle}>{t('Tạm tính: {amount}', { amount: formatMoney(language,
-          selected.reduce((sum, offer) => sum + offer.total, 0), selected[0].fare.currency) })}</Text>}
+        && <View style={{ gap: 4 }}><Text style={styles.sectionTitle}>{t('Estimated total')}</Text>
+          <MoneyText amount={selected.reduce((sum, offer) => sum + offer.total, 0)} currency={selected[0].fare.currency} style={styles.sectionTitle} /></View>}
       <Notice text={t(selectionError)} />
       <FlightButton title={t('Tiếp tục đặt vé')} onPress={continueCheckout} />
     </View>}

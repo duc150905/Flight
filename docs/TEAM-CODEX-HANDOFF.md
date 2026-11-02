@@ -1,3 +1,13 @@
+# Cập nhật TV2 — 02/11/2026
+
+Đọc thêm `CHECKOUT-EXTRAS.md` và `CURRENCY.md` trước khi sửa phần giao nhau.
+Checkout đã có hành lý theo người/chặng, sơ đồ ghế chọn trong RAM và báo giá
+authenticated chỉ đọc `quote_checkout(p_request jsonb)`. Migration
+`20261102090252_checkout_quote.sql` đã chạy trên flight-dev và có lịch sử khớp.
+Giá DB/settlement vẫn VND; USD là hiển thị tham khảo. Không cấp quyền ghi trực
+tiếp bảng giao dịch; chưa có hold/create booking/payment. Xem trạng thái Git
+trước khi kết luận các thay đổi local này đã được push/merge.
+
 # Bàn giao Flight cho Codex của nhóm 3 người
 
 > **Đọc cập nhật này trước (02/11/2026):** phần bên dưới là snapshot tại mốc

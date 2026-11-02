@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useState, type PropsWithChildren } from 'react';
+import { useState, type PropsWithChildren, type ReactNode } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LanguagePicker, useLanguage } from '../i18n/provider';
-import { displayText, formatMoney } from '../i18n/translate';
+import { displayText } from '../i18n/translate';
+import { CurrencyControls, MoneyText } from '../currency/ui';
 import { useCheckout } from './checkout-provider';
 import { checkoutEstimate } from './estimate';
 
@@ -34,19 +35,19 @@ const stages = [
   { label: 'Seats', name: { ios: 'chair.fill', android: 'event_seat', web: 'event_seat' } },
   { label: 'Payment', name: { ios: 'creditcard', android: 'credit_card', web: 'credit_card' } },
 ] as const;
-export function CheckoutProgress() {
+export function CheckoutProgress({ step = 1 }: { step?: number }) {
   const { t } = useLanguage();
-  return <View accessibilityLabel={t('Step {number} of {total}', { number: 1, total: 4 })} style={checkoutStyles.progress}>
+  return <View accessibilityLabel={t('Step {number} of {total}', { number: step, total: 4 })} style={checkoutStyles.progress}>
     <View style={checkoutStyles.connector} />
-    {stages.map((stage, index) => <View key={stage.label} accessible accessibilityLabel={t(stage.label)} accessibilityState={{ selected: index === 0, disabled: index > 0 }}
-      style={[checkoutStyles.circle, { backgroundColor: index === 0 ? colors.primary : '#F1F3F4' }]}>
-      <SymbolView name={stage.name} size={25} tintColor={index === 0 ? '#00414B' : colors.muted} />
+    {stages.map((stage, index) => <View key={stage.label} accessible accessibilityLabel={t(stage.label)} accessibilityState={{ selected: index === step - 1, disabled: index > step - 1 }}
+      style={[checkoutStyles.circle, { backgroundColor: index < step ? colors.primary : '#F1F3F4' }]}>
+      <SymbolView name={stage.name} size={25} tintColor={index < step ? '#00414B' : colors.muted} />
     </View>)}
   </View>;
 }
 type FooterAction = { title: string; onPress(): void; disabled?: boolean };
-export function CheckoutShell({ title, step, children, back, footer }: PropsWithChildren<{ title: string; step?: number; back?: () => void; footer?: FooterAction }>) {
-  const draft = useCheckout(); const [discard, setDiscard] = useState(false); const { t, language } = useLanguage();
+export function CheckoutShell({ title, step, children, back, footer, footerDetail }: PropsWithChildren<{ title: string; step?: number; back?: () => void; footer?: FooterAction; footerDetail?: ReactNode }>) {
+  const draft = useCheckout(); const [discard, setDiscard] = useState(false); const { t } = useLanguage();
   const estimate = checkoutEstimate(draft);
   return <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -55,7 +56,7 @@ export function CheckoutShell({ title, step, children, back, footer }: PropsWith
           <Pressable accessibilityRole="button" accessibilityLabel={t('Back')} onPress={back ?? (() => setDiscard(true))} style={checkoutStyles.iconButton}>
             <SymbolView name={{ ios: 'arrow.left', android: 'arrow_back', web: 'arrow_back' }} size={23} tintColor={colors.muted} />
           </Pressable>
-          {step !== undefined ? <CheckoutProgress /> : <View style={{ flex: 1 }} />}
+          {step !== undefined ? <CheckoutProgress step={step} /> : <View style={{ flex: 1 }} />}
           <Pressable accessibilityRole="button" accessibilityLabel={t('Cancel')} onPress={() => setDiscard(true)} style={checkoutStyles.iconButton}>
             <SymbolView name={{ ios: 'xmark', android: 'close', web: 'close' }} size={19} tintColor={colors.muted} />
           </Pressable>
@@ -63,13 +64,15 @@ export function CheckoutShell({ title, step, children, back, footer }: PropsWith
         <Text accessibilityRole="header" style={checkoutStyles.screenTitle}>{t(title)}</Text>
       </View>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={checkoutStyles.scroll}>
-        <View style={checkoutStyles.content}>{children}<LanguagePicker /></View>
+        <View style={checkoutStyles.content}>{children}<LanguagePicker /><CurrencyControls /></View>
       </ScrollView>
       {footer && <View style={checkoutStyles.footer}>
+        {footerDetail}
         <View style={checkoutStyles.footerContent}>
           <View style={{ flex: 1, minWidth: 130, gap: 3 }}>
             <Text style={checkoutStyles.caption}>{t('Estimated total')}</Text>
-            <Text style={checkoutStyles.amount}>{estimate ? formatMoney(language, estimate.amount, estimate.currency) : t('Price unavailable')}</Text>
+            {estimate ? <MoneyText amount={estimate.amount} currency={estimate.currency} style={checkoutStyles.amount} />
+              : <Text style={checkoutStyles.amount}>{t('Price unavailable')}</Text>}
             <Text style={checkoutStyles.caption}>{t(draft.passengers.length === 1 ? '{count} traveller' : '{count} travellers', { count: draft.passengers.length })}</Text>
           </View>
           <View style={{ flex: 1, minWidth: 140 }}><CheckoutButton {...footer} /></View>

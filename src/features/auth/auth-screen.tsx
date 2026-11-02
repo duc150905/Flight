@@ -91,7 +91,7 @@ function RegisterForm({ change }: Navigation) {
   });
   return <>
     <Text accessibilityRole="header" style={styles.title}>{t('Bắt đầu hành trình')}</Text>
-    <Text style={styles.description}>{t('Tạo tài khoản Flight. Bạn có thể thêm thông tin hành khách khi đặt vé.')}</Text>
+    <Text style={styles.description}>{t('Tạo tài khoản Flyora. Bạn có thể thêm thông tin hành khách khi đặt vé.')}</Text>
     <FormField control={control} name="name" label="Họ và tên" autoComplete="name" autoCapitalize="words" editable={!isSubmitting} />
     <FormField control={control} name="email" label="Email" autoComplete="email" keyboardType="email-address"
       autoCapitalize="none" autoCorrect={false} editable={!isSubmitting} placeholder="you@example.com" />

@@ -1,4 +1,4 @@
-# Flight
+# Flyora
 
 Ứng dụng đặt vé máy bay cho nhóm 3 thành viên, dùng Expo React Native và TypeScript.
 

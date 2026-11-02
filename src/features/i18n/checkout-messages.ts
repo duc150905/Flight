@@ -1,6 +1,8 @@
 // English source messages are stable identifiers, including domain validation errors.
 // Translate at display time: changing language must not reset touched fields or values.
+import { extrasMessages } from './extras-messages.ts';
 export const checkoutMessages = {
+  ...extrasMessages,
   'Back': 'Quay lại', 'Cancel': 'Hủy', 'Contact': 'Liên hệ', 'Travellers': 'Hành khách', 'Review': 'Xem lại',
   'Baggage': 'Hành lý', 'Seats': 'Chỗ ngồi', 'Payment': 'Thanh toán', 'Next': 'Tiếp tục',
   'Step {number} of {total}': 'Bước {number} trên {total}',

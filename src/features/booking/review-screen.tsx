@@ -5,6 +5,8 @@ import { checkoutReview } from './review';
 import { CheckoutButton, CheckoutCard, CheckoutError, CheckoutShell, CheckoutText, MissingCheckout } from './ui';
 import { useLanguage } from '../i18n/provider';
 import { formatDate, formatTime } from '../i18n/translate';
+import { MoneyText } from '../currency/ui';
+import { checkoutEstimate } from './estimate';
 
 export function ReviewScreen() {
   const { language, t } = useLanguage();
@@ -12,7 +14,7 @@ export function ReviewScreen() {
   const result = checkoutReview(draft);
   const [confirmed, setConfirmed] = useState<string | null>(null);
   if (!draft.itinerary) return <MissingCheckout />;
-  if (!result.success) return <CheckoutShell title="Check your details" step={2}>
+  if (!result.success) return <CheckoutShell title="Check your details" step={1}>
     <CheckoutCard>{result.messages.map((message, index) => <CheckoutError key={index} message={message} />)}</CheckoutCard>
     <CheckoutButton title={result.target === 'selection' ? 'Choose flights again' : result.target === 'contact' ? 'Edit contact details' : 'Edit travellers'}
       onPress={() => {
@@ -21,9 +23,10 @@ export function ReviewScreen() {
       }} />
   </CheckoutShell>;
   const { itinerary, contact, passengers, passengerSegments } = result.data;
+  const estimate = checkoutEstimate(draft);
   const fingerprint = JSON.stringify(result.data);
   const checked = fingerprint === confirmed;
-  return <CheckoutShell title="Review your details" step={2} back={() => router.dismissTo('/checkout/passengers')}>
+  return <CheckoutShell title="Review your details" step={1} back={() => router.dismissTo('/checkout/passengers')}>
     <CheckoutText muted message={"Take a moment to check names, dates and contact details before moving on to baggage and seats."} />
     <CheckoutCard>
       <CheckoutText title message={"Your flights"} />
@@ -35,6 +38,11 @@ export function ReviewScreen() {
         <CheckoutText muted>{t('Arrival')}: {formatTime(language, leg.arrivalAt, leg.destination.timezone)} ({leg.destination.timezone})</CheckoutText>
       </CheckoutCard>)}
     </CheckoutCard>
+    {estimate && <CheckoutCard>
+      <CheckoutText title message="Estimated total" />
+      <MoneyText amount={estimate.amount} currency={estimate.currency} />
+      <CheckoutText muted message="Final price is checked when booking." />
+    </CheckoutCard>}
     <CheckoutCard>
       <CheckoutText title message={"Contact details"} />
       <CheckoutText>{contact.contactName}</CheckoutText>
@@ -66,5 +74,6 @@ export function ReviewScreen() {
     {checked && <CheckoutCard><CheckoutText message={"Your traveller details have been checked. You can still edit them before booking."} /></CheckoutCard>}
     <CheckoutButton title={checked ? 'Details checked' : 'Confirm traveller details'} disabled={checked}
       onPress={() => setConfirmed(fingerprint)} />
+    {checked && <CheckoutButton title="Continue to baggage" onPress={() => router.push('/checkout/baggage')} />}
   </CheckoutShell>;
 }

@@ -4,7 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { Notice } from '@/features/auth/ui';
 import { useLanguage } from '@/features/i18n/provider';
-import { formatMoney, localeFor } from '@/features/i18n/translate';
+import { localeFor } from '@/features/i18n/translate';
+import { CurrencyControls, MoneyText } from '@/features/currency/ui';
 import { searchOneWay } from './data';
 import { cabinLabels, searchSchema, type FlightOffer, type SearchCriteria } from './model';
 import { FlightButton, flightColors, Page, styles } from './ui';
@@ -55,6 +56,7 @@ export function ResultsScreen({ input }: { input: Record<string, string | string
       <Text style={styles.subtitle}>{criteria.departureDate} · {t(cabinLabels[criteria.cabinClass])} ·
         {' '}{t('{count} hành khách', { count: criteria.adults + criteria.children + criteria.infants })}</Text>
     </View>
+    <CurrencyControls />
     {loading && <View style={styles.card}><ActivityIndicator color={flightColors.primary} accessibilityLabel={t('Đang tìm chuyến bay')} /></View>}
     <Notice text={t(error)} />
     {!!error && <FlightButton title={t('Thử lại')} secondary onPress={() => void searchQuery.refetch()} />}
@@ -111,7 +113,7 @@ function FlightCard({ offer, criteria }: { offer: FlightOffer; criteria: SearchC
     <View style={styles.divider} />
     <View style={styles.row}>
       <Text style={styles.muted}>{offer.fare.name}</Text>
-      <Text style={[styles.sectionTitle, { color: flightColors.primary }]}>{formatMoney(language, offer.total, offer.fare.currency)}</Text>
+      <MoneyText amount={offer.total} currency={offer.fare.currency} style={[styles.sectionTitle, { color: flightColors.primary }]} />
     </View>
     <Text style={styles.link}>{t('Xem chi tiết và điều kiện vé')} →</Text>
   </Pressable>;

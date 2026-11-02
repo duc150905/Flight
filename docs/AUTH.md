@@ -98,7 +98,7 @@ committing the template file does not change the email sent by hosted Supabase.
 2. In Authentication > Sign In / Providers > Email, keep email sign-in and
    **Confirm email** enabled.
 3. Open Authentication > Emails > Templates > **Confirm sign up**. Set the
-   subject to `Mã xác nhận tài khoản Flight`, paste
+   subject to `Mã xác nhận tài khoản Flyora`, paste
    `supabase/templates/confirmation.html` into the body, and save. Keep
    `{{ .Token }}` intact; the email must contain a numeric code instead of only
    `{{ .ConfirmationURL }}`.
@@ -119,7 +119,7 @@ choose a transactional SMTP provider instead.
 
 In Supabase **SMTP Settings**, use host `smtp.gmail.com`, port `465` (or `587`
 with TLS), the dedicated Gmail address as both SMTP username and sender email,
-the App Password as SMTP password, and `Flight` as sender name. Save the SMTP
+the App Password as SMTP password, and `Flyora` as sender name. Save the SMTP
 settings before editing **Confirm sign up**. The project owner may need to do
 this if the SMTP switch is disabled for a team member's role.
 

@@ -1,6 +1,7 @@
 import type { PropsWithChildren } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppBrand } from '@/components/app-brand';
 
 export const flightColors = {
   background: '#FFFFFF', surface: '#FFFFFF', text: '#253540', muted: '#536570',
@@ -28,7 +29,7 @@ export function Page({ children }: PropsWithChildren) {
 }
 
 export function Brand() {
-  return <Text style={styles.brand}>FLIGHT<Text style={{ color: flightColors.primary }}>.</Text></Text>;
+  return <AppBrand />;
 }
 
 export const styles = StyleSheet.create({
