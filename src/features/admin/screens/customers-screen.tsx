@@ -6,6 +6,7 @@ import { Pressable, Text, View } from 'react-native';
 import { useAuth } from '@/features/auth/auth-provider';
 import { ActionButton, Notice } from '@/features/auth/ui';
 import { supabase } from '@/lib/supabase';
+import { permissionsStore } from '../permissions-store';
 import { useAdminI18n } from '../i18n';
 import {
   filterAndPaginate,
@@ -65,15 +66,40 @@ export function AdminCustomersScreen() {
   const custQuery = useQuery({
     queryKey: ['admin-customers-bundle'],
     queryFn: loadCustomersBundle,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const adminIdSet = new Set<string>(custQuery.data?.adminActorIds ?? []);
   if (session?.user?.id) {
     adminIdSet.add(session.user.id);
   }
+  for (const id of permissionsStore.promotedIds) {
+    adminIdSet.add(id);
+  }
+  for (const id of permissionsStore.revokedIds) {
+    adminIdSet.delete(id);
+  }
 
   // Exclude Admin accounts from Customer Profiles list
-  const profiles = (custQuery.data?.profiles ?? []).filter((pr) => !adminIdSet.has(pr.id));
+  const existingProfIds = new Set((custQuery.data?.profiles ?? []).map((p) => p.id));
+  const mergedProfiles = [...(custQuery.data?.profiles ?? [])];
+  for (const evt of permissionsStore.auditEvents) {
+    const rawTargetId = evt.targetUserId || '';
+    const matchId = evt.subtitle.match(/ID:\s*#([a-f0-9]+)/i)?.[1];
+    const targetId = rawTargetId || (matchId ? `user_${matchId}` : '');
+    if (targetId && !existingProfIds.has(targetId)) {
+      existingProfIds.add(targetId);
+      mergedProfiles.push({
+        id: targetId,
+        full_name: evt.targetName || 'Flyora User',
+        contact_phone: '',
+        created_at: evt.createdAt,
+        updated_at: evt.createdAt,
+      } as ProfileRow);
+    }
+  }
+  const profiles = mergedProfiles.filter((pr) => !adminIdSet.has(pr.id));
   const bookings = custQuery.data?.bookings ?? [];
   const passengers = custQuery.data?.passengers ?? [];
 

@@ -3,6 +3,7 @@ import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { ActivityIndicator, Text } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import { useLanguage } from '@/features/i18n/provider';
 
 import { supabase } from '@/lib/supabase';
@@ -101,6 +102,7 @@ export function AccountScreen() {
 function ProfileForm({ userId, profile, onSaved, onBack }: {
   userId: string; profile: Profile; onSaved: (profile: Profile) => void; onBack: () => void;
 }) {
+  const queryClient = useQueryClient();
   const { t } = useLanguage();
   const [error, setError] = useState('');
   const { control, handleSubmit, formState: { isSubmitting } } = useForm<ProfileInput>({
@@ -109,7 +111,11 @@ function ProfileForm({ userId, profile, onSaved, onBack }: {
   });
   const submit = handleSubmit(async values => {
     setError('');
-    try { onSaved(await profileService!.save(userId, values)); }
+    try {
+      const updated = await profileService!.save(userId, values);
+      void queryClient.invalidateQueries();
+      onSaved(updated);
+    }
     catch (error) { setError(profileErrorMessage(error)); }
   });
   return <>

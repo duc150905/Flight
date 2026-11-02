@@ -1,5 +1,5 @@
 import { router, type Href } from 'expo-router';
-import { useState, type PropsWithChildren, type ReactNode } from 'react';
+import { useEffect, useState, type PropsWithChildren, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/features/auth/auth-provider';
 import { colors } from '@/features/auth/ui';
+import { supabase } from '@/lib/supabase';
 import { LanguagePicker, useAdminI18n } from './i18n';
 import type { StatusFilter } from './model';
 
@@ -148,7 +149,35 @@ export function AdminShell({
   const [topSearchText, setTopSearchText] = useState('');
 
   const userEmail = session?.user?.email ?? 'admin@flyora.vn';
-  const initials = userEmail.slice(0, 2).toUpperCase();
+  const [displayName, setDisplayName] = useState<string>('');
+
+  useEffect(() => {
+    let active = true;
+    if (!session?.user?.id || !supabase) return;
+    supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', session.user.id)
+      .maybeSingle()
+      .then(({ data: prof }) => {
+        if (active) {
+          setDisplayName(prof?.full_name?.trim() ?? '');
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [session?.user?.id]);
+
+  const initials = displayName.trim()
+    ? displayName
+        .trim()
+        .split(/\s+/)
+        .map((w) => w[0]?.toUpperCase())
+        .slice(-2)
+        .join('') || displayName.slice(0, 2).toUpperCase()
+    : userEmail.slice(0, 2).toUpperCase();
   const activeNav = navRoutes.find((n) => n.key === activeSection) ?? navRoutes[0];
 
   const handleSignOut = async () => {
@@ -460,6 +489,11 @@ export function AdminShell({
                       <Text style={adminStyles.avatarText}>{initials}</Text>
                     </View>
                     <View style={{ flex: 1 }}>
+                      {displayName ? (
+                        <Text style={[adminStyles.accountMenuItemTitle, { fontSize: 14, fontWeight: '700' }]} numberOfLines={1}>
+                          {displayName}
+                        </Text>
+                      ) : null}
                       <Text style={adminStyles.accountMenuRole}>
                         {bi('QUẢN TRỊ VIÊN · ADMIN', 'ADMINISTRATOR · ADMIN')}
                       </Text>
@@ -648,6 +682,58 @@ export function AdminSearchFilterBar({
   );
 }
 
+function EllipsisJumpButton({
+  targetPage,
+  direction,
+  onPress,
+  bi,
+}: {
+  targetPage: number;
+  direction: 'prev' | 'next';
+  onPress: () => void;
+  bi: (vi: string, en: string) => string;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const label = bi(`Chuyển đến trang ${targetPage}`, `Jump to page ${targetPage}`);
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      {...({ title: label } as any)}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      onPress={onPress}
+      style={[
+        adminStyles.pagePill,
+        hovered && {
+          backgroundColor: '#ECFEFF',
+          borderColor: '#0891B2',
+          minWidth: 44,
+          paddingHorizontal: 8,
+        },
+      ]}
+    >
+      <Text
+        style={[
+          adminStyles.pagePillText,
+          hovered && {
+            color: '#0891B2',
+            fontWeight: '700',
+            fontSize: 12,
+          },
+        ]}
+      >
+        {hovered
+          ? direction === 'prev'
+            ? `« ${targetPage}`
+            : `${targetPage} »`
+          : '…'}
+      </Text>
+    </Pressable>
+  );
+}
+
 export function AdminPaginationBar({
   page,
   totalPages,
@@ -659,13 +745,48 @@ export function AdminPaginationBar({
   total: number;
   onPageChange: (nextPage: number) => void;
 }) {
-  const { ta } = useAdminI18n();
+  const { ta, bi } = useAdminI18n();
+  const [targetPageInput, setTargetPageInput] = useState('');
+
+  const handleJumpSubmit = () => {
+    const parsed = parseInt(targetPageInput.trim(), 10);
+    if (!isNaN(parsed) && parsed >= 1 && parsed <= totalPages) {
+      onPageChange(parsed);
+      setTargetPageInput('');
+    }
+  };
+
+  const getVisiblePages = (): (number | 'ellipsis-prev' | 'ellipsis-next')[] => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const pages: (number | 'ellipsis-prev' | 'ellipsis-next')[] = [1];
+    const start = Math.max(2, page - 1);
+    const end = Math.min(totalPages - 1, page + 1);
+
+    if (start > 2) {
+      pages.push('ellipsis-prev');
+    }
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    if (end < totalPages - 1) {
+      pages.push('ellipsis-next');
+    }
+    pages.push(totalPages);
+    return pages;
+  };
+
+  const visiblePages = getVisiblePages();
+
   return (
     <View style={adminStyles.paginationRow}>
       <Text style={adminStyles.muted}>
         {ta('admin.pagination.summary', { page, totalPages, total })}
       </Text>
-      <View style={adminStyles.rowGap}>
+
+      <View style={[adminStyles.rowGap, { flexWrap: 'wrap', alignItems: 'center' }]}>
+        {/* Previous page */}
         <Pressable
           accessibilityRole="button"
           disabled={page <= 1}
@@ -674,6 +795,55 @@ export function AdminPaginationBar({
         >
           <Text style={adminStyles.secondaryBtnText}>{ta('admin.pagination.prev')}</Text>
         </Pressable>
+
+        {/* Page numbers */}
+        {visiblePages.map((item, idx) => {
+          if (item === 'ellipsis-prev') {
+            const target = Math.max(1, page - 5);
+            return (
+              <EllipsisJumpButton
+                key={`ellipsis-prev-${idx}`}
+                targetPage={target}
+                direction="prev"
+                onPress={() => onPageChange(target)}
+                bi={bi}
+              />
+            );
+          }
+          if (item === 'ellipsis-next') {
+            const target = Math.min(totalPages, page + 5);
+            return (
+              <EllipsisJumpButton
+                key={`ellipsis-next-${idx}`}
+                targetPage={target}
+                direction="next"
+                onPress={() => onPageChange(target)}
+                bi={bi}
+              />
+            );
+          }
+          const isSelected = item === page;
+          return (
+            <Pressable
+              key={`page-${item}`}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isSelected }}
+              onPress={() => onPageChange(item)}
+              style={[adminStyles.pagePill, isSelected && adminStyles.pagePillActive]}
+            >
+              <Text
+                style={[
+                  adminStyles.pagePillText,
+                  isSelected && adminStyles.pagePillTextActive,
+                ]}
+              >
+                {item}
+              </Text>
+            </Pressable>
+          );
+        })}
+
+        {/* Next page */}
         <Pressable
           accessibilityRole="button"
           disabled={page >= totalPages}
@@ -682,6 +852,31 @@ export function AdminPaginationBar({
         >
           <Text style={adminStyles.secondaryBtnText}>{ta('admin.pagination.next')}</Text>
         </Pressable>
+
+        {/* Direct page jump input */}
+        {totalPages > 1 && (
+          <View style={adminStyles.pageJumpRow}>
+            <Text style={adminStyles.pageJumpLabel}>
+              {bi('Đến trang:', 'Go to:')}
+            </Text>
+            <TextInput
+              keyboardType="number-pad"
+              value={targetPageInput}
+              onChangeText={setTargetPageInput}
+              onSubmitEditing={handleJumpSubmit}
+              placeholder={String(page)}
+              placeholderTextColor="#94A3B8"
+              style={adminStyles.pageJumpInput}
+            />
+            <Pressable
+              accessibilityRole="button"
+              onPress={handleJumpSubmit}
+              style={adminStyles.pageJumpBtn}
+            >
+              <Text style={adminStyles.pageJumpBtnText}>{bi('Đi', 'Go')}</Text>
+            </Pressable>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -1299,6 +1494,84 @@ export const adminStyles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
     paddingVertical: 6,
+  },
+  paginationBtnSmall: {
+    minHeight: 36,
+    minWidth: 42,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: consolePalette.cardBorder,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paginationBtnText: {
+    color: '#0891B2',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  pagePill: {
+    minWidth: 36,
+    height: 36,
+    paddingHorizontal: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: consolePalette.cardBorder,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pagePillActive: {
+    backgroundColor: '#0891B2',
+    borderColor: '#0891B2',
+  },
+  pagePillText: {
+    color: consolePalette.heading,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  pagePillTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  pageJumpRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginLeft: 6,
+  },
+  pageJumpLabel: {
+    fontSize: 13,
+    color: consolePalette.subtext,
+    fontWeight: '500',
+  },
+  pageJumpInput: {
+    width: 48,
+    height: 36,
+    borderWidth: 1,
+    borderColor: consolePalette.cardBorder,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    textAlign: 'center',
+    fontSize: 13,
+    fontWeight: '600',
+    color: consolePalette.heading,
+    paddingVertical: 0,
+    paddingHorizontal: 4,
+  },
+  pageJumpBtn: {
+    height: 36,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#0891B2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pageJumpBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 24 },
   disabled: { opacity: 0.5 },

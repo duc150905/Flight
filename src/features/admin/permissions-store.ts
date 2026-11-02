@@ -101,6 +101,61 @@ export const permissionsStore = {
     };
   },
 
+  syncActorName(actorId: string | null, realName: string) {
+    if (!realName || /^bnvawg/i.test(realName) || realName === 'Admin') return;
+    let changed = false;
+    this.auditEvents = this.auditEvents.map((e) => {
+      const isMatch =
+        (actorId && e.actorId === actorId) ||
+        !e.actorName ||
+        e.actorName === 'Admin' ||
+        /^bnvawg/i.test(e.actorName) ||
+        e.title.startsWith('Admin ') ||
+        /^bnvawg/i.test(e.title);
+
+      if (isMatch && (e.actorName !== realName || !e.title.startsWith(realName))) {
+        changed = true;
+        const oldName = e.actorName || 'Admin';
+        let newTitle = e.title
+          .replace(/^bnvawg87z\b/i, realName)
+          .replace(/^Admin\b/i, realName);
+        if (oldName && oldName !== realName) {
+          newTitle = newTitle.replace(new RegExp(`^${oldName}\\b`, 'i'), realName);
+        }
+        return {
+          ...e,
+          actorName: realName,
+          title: newTitle,
+        };
+      }
+      return e;
+    });
+    if (changed) void this.persist();
+  },
+
+  syncTargetName(targetUserIdPrefix: string, newTargetName: string) {
+    if (!newTargetName) return;
+    let changed = false;
+    this.auditEvents = this.auditEvents.map((e) => {
+      const isTarget =
+        (e.targetUserId && e.targetUserId.toLowerCase().startsWith(targetUserIdPrefix.toLowerCase())) ||
+        (e.subtitle && e.subtitle.toLowerCase().includes(targetUserIdPrefix.toLowerCase())) ||
+        e.title.includes('Ca Gia Bảo');
+
+      if (isTarget && (e.targetName !== newTargetName || e.title.includes('Ca Gia Bảo'))) {
+        changed = true;
+        const newTitle = e.title.replace(/Ca Gia Bảo/g, newTargetName);
+        return {
+          ...e,
+          targetName: newTargetName,
+          title: newTitle,
+        };
+      }
+      return e;
+    });
+    if (changed) void this.persist();
+  },
+
   grantAdmin(input: {
     actorId: string | null;
     actorName: string;
