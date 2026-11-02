@@ -370,6 +370,7 @@ export type Database = {
           document_number: string | null
           document_type: Database["public"]["Enums"]["document_type"] | null
           family_name: string
+          gender: string | null
           given_names: string
           id: string
           nationality_code: string | null
@@ -385,6 +386,7 @@ export type Database = {
           document_number?: string | null
           document_type?: Database["public"]["Enums"]["document_type"] | null
           family_name: string
+          gender?: string | null
           given_names: string
           id?: string
           nationality_code?: string | null
@@ -400,6 +402,7 @@ export type Database = {
           document_number?: string | null
           document_type?: Database["public"]["Enums"]["document_type"] | null
           family_name?: string
+          gender?: string | null
           given_names?: string
           id?: string
           nationality_code?: string | null
@@ -1177,10 +1180,7 @@ export type Database = {
           selection_fee_amount: number
         }[]
       }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       addon_category: "baggage" | "meal" | "insurance_demo"

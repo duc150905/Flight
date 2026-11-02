@@ -48,6 +48,7 @@ export function ReviewScreen() {
         <CheckoutText>{t('Traveller {number}', { number: index + 1 })}</CheckoutText>
         <CheckoutText>{passenger.values.familyName} {passenger.values.givenNames}</CheckoutText>
         <CheckoutText muted>{t('Date of birth')}: {formatDate(language, passenger.values.dateOfBirth)}</CheckoutText>
+        {!!passenger.values.gender && <CheckoutText muted>{t('Gender (optional)')}: {t(passenger.values.gender)}</CheckoutText>}
         {passengerSegments.filter(segment => segment.passengerId === passenger.id).map(segment => {
           const leg = itinerary.legs.find(leg => leg.flightId === segment.flightId)!;
           const companion = passengers.find(p => p.id === segment.accompanyingPassengerId);

@@ -34,6 +34,7 @@ export function derivePassengerSegments(passengers: { id: string; values: Passen
 }
 export function passengerDetailsSchema(bookingDate: string) {
   return createBookingPassengerSchema(bookingDate).extend({
+    gender: z.string().refine(value => ['', 'male', 'female', 'unspecified'].includes(value), 'Select a valid gender option.').optional(),
     nationalityCode: z.string().trim().toUpperCase().optional(),
     passportIssuerCountry: z.string().trim().toUpperCase().optional(),
     passportNumber: z.string().trim().optional(), passportExpiryDate: z.string().trim().optional(),

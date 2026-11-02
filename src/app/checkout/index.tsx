@@ -23,7 +23,7 @@ export default function CheckoutEntry() {
         const selected = parseSelectionParameter(selection);
         if (!supabase) throw new Error('The booking service is unavailable. Please try again later.');
         const itinerary = await loadCheckoutItinerary(supabase, selected);
-        if (active) { beginCheckout(itinerary); router.replace('/checkout/contact'); }
+        if (active) { beginCheckout(itinerary); router.replace('/checkout/passengers'); }
       } catch {
         if (active) setFailure({ key: requestKey, message: 'We could not open these flights. Check your connection and retry, or return to search and choose your flights again.' });
       }

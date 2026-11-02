@@ -67,4 +67,8 @@ export const checkoutMessages = {
   '{count} travellers': '{count} hành khách', 'Gender (optional)': 'Giới tính (không bắt buộc)',
   'Select gender': 'Chọn giới tính', 'male': 'Nam', 'female': 'Nữ', 'unspecified': 'Không cung cấp',
   'Close': 'Đóng', 'Contact email': 'Email liên hệ',
+  'Select a valid gender option.': 'Chọn một mục giới tính hợp lệ.',
+  'Country calling code': 'Mã điện thoại quốc gia', 'Full international number': 'Nhập số quốc tế đầy đủ',
+  'Calling code': 'Mã vùng',
+  'Enter the full number or choose a calling code.': 'Nhập số điện thoại đầy đủ hoặc chọn mã quốc gia.',
 } as const;

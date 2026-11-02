@@ -29,7 +29,27 @@ export function restorePassengerForm(form: Pick<UseFormReturn<PassengerFormValue
 export async function revalidateCompanionFields(form: Pick<UseFormReturn<PassengerFormValues>, 'getValues' | 'getFieldState' | 'trigger'>) {
   const paths: FieldPath<PassengerFormValues>[] = [];
   form.getValues('passengers').forEach((passenger, index) => {
-    if (!passenger.id.startsWith('infant-')) return;
+    const path = `passengers.${index}.values.accompanyingAdultId` as const;
+    const state = form.getFieldState(path);
+    if (state.isTouched || state.error) paths.push(path);
+  });
+  return paths.length ? form.trigger(paths) : true;
+}
+
+export function travellerFormSchema(itinerary: CheckoutItinerary, bookingDate: string) {
+  return passengerPolicySchema(itinerary, bookingDate).safeExtend({ contact: bookingContactSchema });
+}
+export function travellerFormOptions(draft: CheckoutDraft, bookingDate: string, itinerary: CheckoutItinerary) {
+  return { ...checkoutValidationMode, resolver: zodResolver(travellerFormSchema(itinerary, bookingDate)),
+    defaultValues: { contact: draft.contact, passengers: draft.passengers } };
+}
+type TravellerFormValues = z.input<ReturnType<typeof travellerFormSchema>>;
+export function restoreTravellerForm(form: Pick<UseFormReturn<TravellerFormValues>, 'reset'>, draft: CheckoutDraft) {
+  form.reset({ contact: draft.contact, passengers: draft.passengers });
+}
+export async function revalidateTravellerCompanions(form: Pick<UseFormReturn<TravellerFormValues>, 'getValues' | 'getFieldState' | 'trigger'>) {
+  const paths: FieldPath<TravellerFormValues>[] = [];
+  form.getValues('passengers').forEach((_, index) => {
     const path = `passengers.${index}.values.accompanyingAdultId` as const;
     const state = form.getFieldState(path);
     if (state.isTouched || state.error) paths.push(path);

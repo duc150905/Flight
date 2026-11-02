@@ -53,7 +53,22 @@ local form state after a new itinerary.
 Traveller forms use fixed stable slots from the selected counts, separate names
 and birth dates, the same blur/change/submit feedback as contact, and individual
 draft updates by ID. Names can be identical without sharing data. Opening the
-traveller route without valid contact redirects to the contact step.
+traveller route now displays contact and travellers together, in the order from
+`flight.pdf` page 12. The legacy `/checkout/contact` route redirects here. One
+Next validates both sections; revisiting restores both from the same draft.
+Gender is optional (`male`, `female`, `unspecified`); omitted maps to SQL NULL.
+`booking_passengers.gender` is nullable and constrained, with existing RLS intact.
+The phone calling-code selector stores one raw phone string and supports a full
+number mode for other countries; it never assumes a domestic number is international.
+
+The shared language picker persists only the language preference, never personal
+details. Switching language translates labels and existing errors without
+remounting the form. See `LOCALIZATION.md` for TV1/TV3 integration.
+
+The fixed footer shows a display estimate from the selected DB fares, with
+base+tax+fee for each passenger’s type on each leg. Invalid/missing DOB temporarily
+uses the selected initial type; missing prices display unavailable. Final server
+pricing, inventory and seat holds remain future work.
 
 ## Approved demo passenger policy
 
