@@ -326,6 +326,10 @@ export function AdminCataloguesScreen() {
         'Ngừng hoạt động thay vì xóa cứng để bảo toàn lịch sử đơn đặt vé.',
         'Deactivate instead of hard-deleting to preserve historical booking references.',
       )}
+      onQuickSearch={(txt) => {
+        setQuery(txt);
+        setPage(1);
+      }}
     >
       <View style={adminStyles.chipRow}>
         {(

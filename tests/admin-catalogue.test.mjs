@@ -15,6 +15,7 @@ import {
   saveAdminAirport,
   saveAdminDestination,
   saveAdminFlightAddonOffer,
+  summarizeAdminBookingsAndRevenue,
 } from '../src/features/admin/model.ts';
 
 const SAMPLE_UUID = '00000000-0000-4000-8000-000000000001';
@@ -328,5 +329,68 @@ test('saveAdminAirport, saveAdminAirline, saveAdminDestination, saveAdminAddonPr
   assert.equal(calls[3].payload.weight_kg, 20);
   assert.equal(calls[4].table, 'flight_addon_offers');
   assert.equal(calls[4].payload.unit_amount, 280000);
+});
+
+test('summarizeAdminBookingsAndRevenue counts only confirmed bookings in simulated revenue and deducts completed refunds', () => {
+  const nowMs = Date.parse('2026-11-02T12:00:00Z');
+  const summary = summarizeAdminBookingsAndRevenue({
+    nowMs,
+    daysWindow: 30,
+    bookings: [
+      {
+        id: '1',
+        status: 'confirmed',
+        total_amount: 3_000_000,
+        created_at: '2026-10-25T10:00:00Z',
+        confirmed_at: '2026-10-25T10:05:00Z',
+      },
+      {
+        id: '2',
+        status: 'pending_payment',
+        total_amount: 2_000_000,
+        created_at: '2026-10-28T10:00:00Z',
+        confirmed_at: null,
+      },
+      {
+        id: '3',
+        status: 'cancelled',
+        total_amount: 1_500_000,
+        created_at: '2026-10-29T10:00:00Z',
+        confirmed_at: null,
+      },
+      {
+        id: '4',
+        status: 'expired',
+        total_amount: 1_800_000,
+        created_at: '2026-10-30T10:00:00Z',
+        confirmed_at: null,
+      },
+    ],
+    payments: [
+      { id: 'p1', status: 'succeeded', amount: 3_000_000, created_at: '2026-10-25T10:05:00Z' },
+      { id: 'p2', status: 'failed', amount: 2_000_000, created_at: '2026-10-28T10:05:00Z' },
+    ],
+    refunds: [
+      { id: 'r1', status: 'completed', amount: 400_000, created_at: '2026-10-31T10:00:00Z' },
+      { id: 'r2', status: 'initiated', amount: 500_000, created_at: '2026-10-31T11:00:00Z' },
+    ],
+    profiles: [
+      { id: 'u1', created_at: '2026-10-20T00:00:00Z' },
+      { id: 'u2', created_at: '2026-01-01T00:00:00Z' },
+    ],
+  });
+
+  assert.equal(summary.totalBookings, 4);
+  assert.equal(summary.confirmedCount, 1);
+  assert.equal(summary.pendingCount, 1);
+  assert.equal(summary.cancelledCount, 1);
+  assert.equal(summary.expiredCount, 1);
+  assert.equal(summary.confirmedGrossAmount, 3_000_000);
+  assert.equal(summary.completedRefundAmount, 400_000);
+  assert.equal(summary.simulatedNetAmount, 2_600_000);
+  assert.equal(summary.succeededPaymentsCount, 1);
+  assert.equal(summary.failedPaymentsCount, 1);
+  assert.equal(summary.totalCustomers, 2);
+  assert.equal(summary.newCustomersInWindow, 1);
 });
 

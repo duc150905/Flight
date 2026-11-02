@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { router, type Href } from 'expo-router';
+import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { ActivityIndicator, Text } from 'react-native';
@@ -21,9 +21,12 @@ const profileService = supabase ? createProfileService(supabase) : null;
 export function AccountScreen() {
   const { t } = useLanguage();
   const { session, actions } = useAuth();
+  const params = useLocalSearchParams<{ mode?: string }>();
   const userId = session?.user.id ?? '';
   const { isAdmin, loading: adminLoading } = useAdmin();
-  const [mode, setMode] = useState<Mode>('overview');
+  const [mode, setMode] = useState<Mode>(() =>
+    params.mode === 'profile' ? 'profile' : params.mode === 'password' ? 'password' : 'overview',
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -53,6 +56,9 @@ export function AccountScreen() {
   const saved = (text: string) => { setMessage(text); setMode('overview'); };
 
   return <AuthShell>
+    {mode === 'profile' && current.status === 'loading' && (
+      <ActivityIndicator color={colors.primary} accessibilityLabel="Đang tải hồ sơ" />
+    )}
     {mode === 'profile' && profile && <ProfileForm key={userId} userId={userId} profile={profile}
       onSaved={updated => {
         setProfileState({ ownerId: userId, status: 'ready', profile: updated, error: '' });
@@ -60,7 +66,7 @@ export function AccountScreen() {
       }} onBack={() => setMode('overview')} />}
     {mode === 'password' && <ChangePasswordForm onSaved={() => saved('Đã đổi mật khẩu.')}
       onBack={() => setMode('overview')} />}
-    {(mode === 'overview' || (mode === 'profile' && !profile)) && <>
+    {(mode === 'overview' || (mode === 'profile' && current.status === 'error')) && <>
       <Text style={[styles.label, { color: colors.success }]}>
         {t('ĐÃ ĐĂNG NHẬP')}{isAdmin ? ` • ${t('QUẢN TRỊ VIÊN')}` : ''}
       </Text>

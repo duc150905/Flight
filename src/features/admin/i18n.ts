@@ -4,19 +4,24 @@ import type { Language } from '@/features/i18n/language';
 
 const viMessages: Record<string, string> = {
   'admin.title': 'Quản trị hệ thống Flight',
-  'admin.subtitle': 'Quản lý danh mục, tàu bay, lịch bay, bảng giá và dịch vụ bổ sung (F09).',
+  'admin.subtitle':
+    'Quản lý Bookings, Khách hàng, Thanh toán, Lịch bay, Tàu bay, Danh mục & Báo cáo (F09–F10).',
   'admin.backToAccount': '← Tài khoản',
   'admin.backToHome': '← Tổng quan Quản trị',
   'admin.nav.home': 'Tổng quan',
-  'admin.nav.catalogues': 'Danh mục',
+  'admin.nav.bookings': 'Bookings',
+  'admin.nav.customers': 'Khách hàng',
+  'admin.nav.payments': 'Thanh toán',
+  'admin.nav.reports': 'Báo cáo & Nhật ký',
+  'admin.nav.flights': 'Chuyến bay',
   'admin.nav.aircraft': 'Máy bay & Ghế',
-  'admin.nav.flights': 'Chuyến bay & Giá',
+  'admin.nav.catalogues': 'Danh mục',
   'admin.nav.addons': 'Hành lý & Dịch vụ',
   'admin.status.active': 'Đang hoạt động',
   'admin.status.inactive': 'Ngừng hoạt động',
   'admin.filter.all': 'Tất cả',
-  'admin.filter.active': 'Đang bật',
-  'admin.filter.inactive': 'Đã tắt',
+  'admin.filter.active': 'Đang hoạt động',
+  'admin.filter.inactive': 'Ngừng hoạt động',
   'admin.search.placeholder': 'Tìm theo mã, tên hoặc thành phố…',
   'admin.pagination.summary': 'Trang {page}/{totalPages} · Tổng {total} mục',
   'admin.pagination.prev': '← Trang trước',
@@ -36,13 +41,18 @@ const viMessages: Record<string, string> = {
 
 const enMessages: Record<string, string> = {
   'admin.title': 'Flight Administration',
-  'admin.subtitle': 'Manage catalogues, aircraft, flight schedules, fares, and add-on services (F09).',
+  'admin.subtitle':
+    'Manage Bookings, Customers, Payments, Flights, Fleet, Catalogues & Audit Reports (F09–F10).',
   'admin.backToAccount': '← Account',
   'admin.backToHome': '← Admin Overview',
   'admin.nav.home': 'Overview',
-  'admin.nav.catalogues': 'Catalogues',
-  'admin.nav.aircraft': 'Aircraft & Seats',
+  'admin.nav.bookings': 'Bookings',
+  'admin.nav.customers': 'Customers',
+  'admin.nav.payments': 'Payments',
+  'admin.nav.reports': 'Reports & Audit',
   'admin.nav.flights': 'Flights & Fares',
+  'admin.nav.aircraft': 'Aircraft & Seats',
+  'admin.nav.catalogues': 'Catalogues',
   'admin.nav.addons': 'Baggage & Add-ons',
   'admin.status.active': 'Active',
   'admin.status.inactive': 'Inactive',
@@ -106,4 +116,3 @@ export function useAdminI18n() {
 }
 
 export { LanguagePicker };
-

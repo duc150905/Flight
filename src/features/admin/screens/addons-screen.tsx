@@ -294,6 +294,10 @@ export function AdminAddonsScreen() {
         'Quản lý danh mục sản phẩm dịch vụ (addon_products) và bảng giá gói dịch vụ bán theo từng chuyến bay (flight_addon_offers).',
         'Manage add-on service products (addon_products) and per-flight add-on pricing offers (flight_addon_offers).',
       )}
+      onQuickSearch={(txt) => {
+        setQuery(txt);
+        setPage(1);
+      }}
     >
       <View style={adminStyles.chipRow}>
         <Pressable

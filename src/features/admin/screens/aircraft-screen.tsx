@@ -352,6 +352,10 @@ export function AdminAircraftScreen() {
         'Thiết lập đội tàu bay theo hãng và sơ đồ khoang ghế trực quan 4 hạng ghế. Sơ đồ của tàu bay đã mở bán chuyến được bảo vệ không bị ghi đè.',
         'Manage airline fleet and visual 4-cabin seat maps. Templates for aircraft with published flights are protected.',
       )}
+      onQuickSearch={(txt) => {
+        setQuery(txt);
+        setPage(1);
+      }}
     >
       <AdminSearchFilterBar
         query={query}

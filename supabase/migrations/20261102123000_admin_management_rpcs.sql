@@ -92,10 +92,19 @@ begin
       tg_table_name || '.' || lower(tg_op),
       tg_table_name,
       new.id,
-      jsonb_build_object(
-        'is_active', new.is_active,
-        'operation', lower(tg_op)
-      )
+      case
+        when tg_op = 'UPDATE' then jsonb_build_object(
+          'is_active', new.is_active,
+          'operation', lower(tg_op),
+          'before', to_jsonb(old),
+          'after', to_jsonb(new)
+        )
+        else jsonb_build_object(
+          'is_active', new.is_active,
+          'operation', lower(tg_op),
+          'after', to_jsonb(new)
+        )
+      end
     );
   end if;
   return new;
@@ -281,7 +290,9 @@ begin
         'airline_id', v_result.airline_id,
         'registration_code', v_result.registration_code,
         'model_name', v_result.model_name,
-        'is_active', v_result.is_active
+        'is_active', v_result.is_active,
+        'before', to_jsonb(v_existing),
+        'after', to_jsonb(v_result)
       )
     );
   end if;
@@ -682,7 +693,9 @@ begin
       'arrival_at', v_result.arrival_at,
       'sales_close_at', v_result.sales_close_at,
       'status', v_result.status,
-      'published', (v_result.published_at is not null)
+      'published', (v_result.published_at is not null),
+      'before', case when p_flight_id is not null then to_jsonb(v_existing) else null end,
+      'after', to_jsonb(v_result)
     )
   );
 
@@ -790,7 +803,17 @@ begin
     jsonb_build_object(
       'open_sales', p_open_sales,
       'sales_close_at', v_result.sales_close_at,
-      'status', v_result.status
+      'status', v_result.status,
+      'before', jsonb_build_object(
+        'open_sales', (v_flight.published_at is not null and v_flight.sales_close_at > clock_timestamp()),
+        'sales_close_at', v_flight.sales_close_at,
+        'status', v_flight.status
+      ),
+      'after', jsonb_build_object(
+        'open_sales', p_open_sales,
+        'sales_close_at', v_result.sales_close_at,
+        'status', v_result.status
+      )
     )
   );
 
@@ -877,7 +900,17 @@ begin
       'flight_id', v_result.flight_id,
       'seat_code', v_result.seat_code,
       'is_blocked', v_result.is_blocked,
-      'selection_fee_amount', v_result.selection_fee_amount
+      'selection_fee_amount', v_result.selection_fee_amount,
+      'before', jsonb_build_object(
+        'seat_code', v_seat.seat_code,
+        'is_blocked', v_seat.is_blocked,
+        'selection_fee_amount', v_seat.selection_fee_amount
+      ),
+      'after', jsonb_build_object(
+        'seat_code', v_result.seat_code,
+        'is_blocked', v_result.is_blocked,
+        'selection_fee_amount', v_result.selection_fee_amount
+      )
     )
   );
 
@@ -1040,7 +1073,9 @@ begin
       'fare_code', v_result.fare_code,
       'cabin_class', v_result.cabin_class,
       'adult_base_amount', v_result.adult_base_amount,
-      'is_active', v_result.is_active
+      'is_active', v_result.is_active,
+      'before', case when p_fare_id is not null then to_jsonb(v_existing) else null end,
+      'after', to_jsonb(v_result)
     )
   );
 
