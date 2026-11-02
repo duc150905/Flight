@@ -1,3 +1,4 @@
+import { loadAllRows, loadAllAuditLogs } from '../complete-data';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -13,7 +14,6 @@ import {
   type BookingRow,
   type ProfileRow,
 } from '../model';
-import { adminListAuditLogs } from '../rpc';
 import {
   AdminLoadingState,
   AdminPaginationBar,
@@ -28,12 +28,12 @@ type CustomerTab = 'profiles' | 'passengers';
 async function loadCustomersBundle() {
   if (!supabase) throw new Error('Chưa cấu hình kết nối Supabase.');
   const [profRes, bkRes, paxRes, auditLogs] = await Promise.all([
-    supabase.from('profiles').select('*').order('created_at', { ascending: false }),
-    supabase
+    loadAllRows((from, to) => (supabase!.from('profiles').select('*').order('created_at', { ascending: false })).order('id').range(from, to)),
+    loadAllRows((from, to) => (supabase!
       .from('bookings')
-      .select('id,user_id,booking_code,status,total_amount,currency,contact_email,contact_phone'),
-    supabase.from('booking_passengers').select('*').order('created_at', { ascending: false }),
-    adminListAuditLogs(supabase, { limit: 200, offset: 0 }).catch(() => []),
+      .select('id,user_id,booking_code,status,total_amount,currency,contact_email,contact_phone')).order('id').range(from, to)),
+    loadAllRows((from, to) => (supabase!.from('booking_passengers').select('*').order('created_at', { ascending: false })).order('id').range(from, to)),
+    loadAllAuditLogs(supabase),
   ]);
 
   if (profRes.error) throw profRes.error;

@@ -1,3 +1,4 @@
+import { loadAllRows } from '../complete-data';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -27,10 +28,10 @@ type BookingStatusFilter = 'all' | 'confirmed' | 'pending_payment' | 'cancelled'
 async function loadAdminBookingsBundle() {
   if (!supabase) throw new Error('Chưa cấu hình kết nối Supabase.');
   const [bkRes, paxRes, segRes, evtRes] = await Promise.all([
-    supabase.from('bookings').select('*').order('created_at', { ascending: false }),
-    supabase.from('booking_passengers').select('*').order('ordinal', { ascending: true }),
-    supabase.from('booking_segments').select('*').order('journey_number', { ascending: true }),
-    supabase.from('booking_events').select('*').order('created_at', { ascending: false }),
+    loadAllRows((from, to) => (supabase!.from('bookings').select('*').order('created_at', { ascending: false })).order('id').range(from, to)),
+    loadAllRows((from, to) => (supabase!.from('booking_passengers').select('*').order('ordinal', { ascending: true })).order('id').range(from, to)),
+    loadAllRows((from, to) => (supabase!.from('booking_segments').select('*').order('journey_number', { ascending: true })).order('id').range(from, to)),
+    loadAllRows((from, to) => (supabase!.from('booking_events').select('*').order('created_at', { ascending: false })).order('id').range(from, to)),
   ]);
 
   if (bkRes.error) throw bkRes.error;

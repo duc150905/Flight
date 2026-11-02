@@ -1,3 +1,4 @@
+import { loadAllRows } from '../complete-data';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -22,14 +23,14 @@ import {
 } from '../ui';
 
 type PaymentTab = 'payments' | 'refunds';
-type PaymentStatusFilter = 'all' | 'succeeded' | 'initiated' | 'failed' | 'cancelled';
+type PaymentStatusFilter = 'all' | PaymentRow['status'];
 
 async function loadPaymentsBundle() {
   if (!supabase) throw new Error('Chưa cấu hình kết nối Supabase.');
   const [payRes, refRes, bkRes] = await Promise.all([
-    supabase.from('payments').select('*').order('created_at', { ascending: false }),
-    supabase.from('refunds').select('*').order('created_at', { ascending: false }),
-    supabase.from('bookings').select('id,booking_code,contact_name,contact_email,status'),
+    loadAllRows((from, to) => (supabase!.from('payments').select('*').order('created_at', { ascending: false })).order('id').range(from, to)),
+    loadAllRows((from, to) => (supabase!.from('refunds').select('*').order('created_at', { ascending: false })).order('id').range(from, to)),
+    loadAllRows((from, to) => (supabase!.from('bookings').select('id,booking_code,contact_name,contact_email,status')).order('id').range(from, to)),
   ]);
 
   if (payRes.error) throw payRes.error;
@@ -148,7 +149,7 @@ export function AdminPaymentsScreen() {
 
       {tab === 'payments' && (
         <View style={adminStyles.chipRow}>
-          {(['all', 'succeeded', 'initiated', 'failed', 'cancelled'] as PaymentStatusFilter[]).map(
+          {(['all', 'succeeded', 'pending', 'failed', 'cancelled'] satisfies PaymentStatusFilter[]).map(
             (st) => {
               const selected = statusFilter === st;
               return (

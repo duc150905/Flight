@@ -1,3 +1,4 @@
+import { loadAllRows, loadAllAuditLogs } from '../complete-data';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Pressable, Text, View } from 'react-native';
@@ -14,7 +15,6 @@ import {
   type ProfileRow,
 } from '../model';
 import {
-  adminListAuditLogs,
   type AdminAuditLogRow,
   type AircraftRow,
   type FlightInstanceRow,
@@ -44,21 +44,21 @@ async function loadReportsAndAuditBundle() {
     addonProducts,
     auditLogs,
   ] = await Promise.all([
-    supabase
+    loadAllRows((from, to) => (supabase!
       .from('bookings')
       .select('id,status,total_amount,created_at,confirmed_at')
-      .order('created_at', { ascending: false }),
-    supabase.from('payments').select('id,status,amount,created_at'),
-    supabase.from('refunds').select('id,status,amount,created_at'),
-    supabase.from('profiles').select('id,full_name,contact_phone,created_at'),
-    supabase
+      .order('created_at', { ascending: false })).order('id').range(from, to)),
+    loadAllRows((from, to) => (supabase!.from('payments').select('id,status,amount,created_at')).order('id').range(from, to)),
+    loadAllRows((from, to) => (supabase!.from('refunds').select('id,status,amount,created_at')).order('id').range(from, to)),
+    loadAllRows((from, to) => (supabase!.from('profiles').select('id,full_name,contact_phone,created_at')).order('id').range(from, to)),
+    loadAllRows((from, to) => (supabase!
       .from('flight_instances')
-      .select('id,flight_number,departure_airport_id,arrival_airport_id,departure_at'),
-    supabase.from('airports').select('id,iata_code,name,city'),
-    supabase.from('airlines').select('id,iata_code,name'),
-    supabase.from('aircraft').select('id,registration_code,model_name'),
-    supabase.from('addon_products').select('id,code,name'),
-    adminListAuditLogs(supabase, { limit: 100, offset: 0 }),
+      .select('id,flight_number,departure_airport_id,arrival_airport_id,departure_at')).order('id').range(from, to)),
+    loadAllRows((from, to) => (supabase!.from('airports').select('id,iata_code,name,city')).order('id').range(from, to)),
+    loadAllRows((from, to) => (supabase!.from('airlines').select('id,iata_code,name')).order('id').range(from, to)),
+    loadAllRows((from, to) => (supabase!.from('aircraft').select('id,registration_code,model_name')).order('id').range(from, to)),
+    loadAllRows((from, to) => (supabase!.from('addon_products').select('id,code,name')).order('id').range(from, to)),
+    loadAllAuditLogs(supabase),
   ]);
 
   const firstError =

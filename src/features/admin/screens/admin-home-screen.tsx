@@ -1,3 +1,4 @@
+import { loadAllRows, loadAllAuditLogs } from '../complete-data';
 import { router, type Href } from 'expo-router';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -7,24 +8,24 @@ import { ActionButton, Notice } from '@/features/auth/ui';
 import { supabase } from '@/lib/supabase';
 import { useAdminI18n } from '../i18n';
 import { formatAdminError, summarizeAdminBookingsAndRevenue } from '../model';
-import { adminListAuditLogs } from '../rpc';
+import { adminChartSeries } from '../chart-series';
 import { AdminLoadingState, AdminShell, AdminStatusBadge, adminStyles } from '../ui';
 
 async function loadConsoleOverview() {
   if (!supabase) throw new Error('Chưa cấu hình kết nối Supabase.');
   const [bookings, payments, refunds, profiles, flights, airports, aircraft, auditLogs] =
     await Promise.all([
-      supabase
+      loadAllRows((from, to) => (supabase!
         .from('bookings')
         .select('id,booking_code,contact_name,contact_email,status,total_amount,currency,created_at,confirmed_at')
-        .order('created_at', { ascending: false }),
-      supabase.from('payments').select('id,status,amount,created_at'),
-      supabase.from('refunds').select('id,status,amount,created_at'),
-      supabase.from('profiles').select('id,full_name,created_at'),
-      supabase.from('flight_instances').select('id,status,published_at'),
-      supabase.from('airports').select('id,is_active'),
-      supabase.from('aircraft').select('id,is_active'),
-      adminListAuditLogs(supabase, { limit: 200, offset: 0 }).catch(() => []),
+        .order('created_at', { ascending: false })).order('id').range(from, to)),
+      loadAllRows((from, to) => (supabase!.from('payments').select('id,status,amount,created_at')).order('id').range(from, to)),
+      loadAllRows((from, to) => (supabase!.from('refunds').select('id,status,amount,created_at')).order('id').range(from, to)),
+      loadAllRows((from, to) => (supabase!.from('profiles').select('id,full_name,created_at')).order('id').range(from, to)),
+      loadAllRows((from, to) => (supabase!.from('flight_instances').select('id,status,published_at')).order('id').range(from, to)),
+      loadAllRows((from, to) => (supabase!.from('airports').select('id,is_active')).order('id').range(from, to)),
+      loadAllRows((from, to) => (supabase!.from('aircraft').select('id,is_active')).order('id').range(from, to)),
+      loadAllAuditLogs(supabase),
     ]);
 
   const firstError =
@@ -206,12 +207,7 @@ export function AdminHomeScreen() {
 
   const recentBookings = (data?.bookings ?? []).slice(0, 5);
 
-  const dayLabels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-  const chartBars = dayLabels.map((day, idx) => {
-    const baseBookingPct = Math.min(100, 35 + ((idx * 17 + (metrics?.totalBookings ?? 4) * 9) % 60));
-    const baseRevPct = Math.min(100, 22 + ((idx * 13 + (metrics?.confirmedCount ?? 2) * 11) % 55));
-    return { day, bookingPct: baseBookingPct, revPct: baseRevPct };
-  });
+  const chartBars = adminChartSeries(data?.bookings ?? [], data?.fetchedAtMs, RANGE_DAYS[rangeTab]);
 
   return (
     <AdminShell
@@ -352,7 +348,7 @@ export function AdminHomeScreen() {
               <View style={dashStyles.legendItem}>
                 <View style={[dashStyles.legendDot, { backgroundColor: '#6366F1' }]} />
                 <Text style={dashStyles.legendText}>
-                  {bi('Doanh thu mô phỏng (VND)', 'Simulated Revenue (VND)')}
+                  {bi('Doanh thu vé xác nhận (VND)', 'Confirmed gross revenue (VND)')}
                 </Text>
               </View>
             </View>
@@ -368,18 +364,19 @@ export function AdminHomeScreen() {
           </View>
 
           {/* Visual Dual-Series Chart */}
+          <Text style={adminStyles.muted}>{bi('Theo ngày Việt Nam; mỗi chuỗi chuẩn hóa theo giá trị cao nhất của kỳ.', 'Vietnam reporting dates; each series is scaled to its period maximum.')}</Text>
           <View style={dashStyles.chartArea}>
             <View style={dashStyles.chartYAxis}>
-              <Text style={dashStyles.chartAxisText}>140</Text>
-              <Text style={dashStyles.chartAxisText}>105</Text>
-              <Text style={dashStyles.chartAxisText}>70</Text>
-              <Text style={dashStyles.chartAxisText}>35</Text>
+              <Text style={dashStyles.chartAxisText}>100%</Text>
+              <Text style={dashStyles.chartAxisText}>75%</Text>
+              <Text style={dashStyles.chartAxisText}>50%</Text>
+              <Text style={dashStyles.chartAxisText}>25%</Text>
               <Text style={dashStyles.chartAxisText}>0</Text>
             </View>
 
             <View style={dashStyles.chartBarsContainer}>
               {chartBars.map((point) => (
-                <View key={point.day} style={dashStyles.chartCol}>
+                <View key={point.day} style={dashStyles.chartCol} accessible accessibilityLabel={`${point.day}: ${point.bookings} bookings; ${point.revenue} VND`}>
                   <View style={dashStyles.chartBarPair}>
                     <View
                       style={[dashStyles.chartBarPrimary, { height: `${point.bookingPct}%` }]}
