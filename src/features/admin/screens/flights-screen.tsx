@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Pressable, Text, TextInput, View } from 'react-native';
@@ -90,6 +91,7 @@ async function loadFlightsBundle() {
 }
 
 export function AdminFlightsScreen() {
+  const params = useLocalSearchParams<{ q?: string }>();
   const { language, ta, bi, money, airportTime } = useAdminI18n();
   const queryClient = useQueryClient();
 
@@ -110,7 +112,7 @@ export function AdminFlightsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(typeof params.q === 'string' ? params.q : '');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [page, setPage] = useState(1);
 
@@ -488,6 +490,10 @@ export function AdminFlightsScreen() {
         'Tạo lịch bay theo múi giờ sân bay IANA, đóng/mở bán chuyến bay an toàn, quản lý hạng vé (flight_fares) và khóa/mở ghế (flight_seats).',
         'Schedule flights with IANA airport timezones, stop/reopen sales safely, manage flight_fares, and block/unblock flight_seats.',
       )}
+      onQuickSearch={(txt) => {
+        setQuery(txt);
+        setPage(1);
+      }}
     >
       {!!displayError && (
         <View style={adminStyles.card}>

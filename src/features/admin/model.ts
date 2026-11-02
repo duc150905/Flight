@@ -15,6 +15,14 @@ export type FlightFareRow = PublicTables['flight_fares']['Row'];
 export type FlightSeatRow = PublicTables['flight_seats']['Row'];
 export type AddonProductRow = PublicTables['addon_products']['Row'];
 export type FlightAddonOfferRow = PublicTables['flight_addon_offers']['Row'];
+export type BookingRow = PublicTables['bookings']['Row'];
+export type BookingPassengerRow = PublicTables['booking_passengers']['Row'];
+export type BookingSegmentRow = PublicTables['booking_segments']['Row'];
+export type BookingAddonRow = PublicTables['booking_addons']['Row'];
+export type BookingEventRow = PublicTables['booking_events']['Row'];
+export type PaymentRow = PublicTables['payments']['Row'];
+export type RefundRow = PublicTables['refunds']['Row'];
+export type ProfileRow = PublicTables['profiles']['Row'];
 
 export type StatusFilter = 'all' | 'active' | 'inactive';
 
@@ -438,5 +446,114 @@ export async function saveAdminFlightAddonOffer(
   const { data, error } = await query;
   if (error || !data) throw error ?? new Error('Không thể lưu gói bán dịch vụ trên chuyến.');
   return data;
+}
+
+export type BookingMetricsSummary = {
+  totalBookings: number;
+  confirmedCount: number;
+  pendingCount: number;
+  cancelledCount: number;
+  expiredCount: number;
+  confirmedGrossAmount: number;
+  completedRefundAmount: number;
+  simulatedNetAmount: number;
+  totalCustomers: number;
+  newCustomersInWindow: number;
+  succeededPaymentsCount: number;
+  failedPaymentsCount: number;
+};
+
+/**
+ * Aggregates F10 booking, payment, refund, and customer metrics for a given period.
+ * Per docs/FEATURES-AND-TEAM.md (F10):
+ * - Only `confirmed` bookings count toward simulated gross revenue.
+ * - `cancelled`, `expired`, and `pending_payment` bookings are excluded from revenue.
+ * - Completed refunds are deducted to produce `simulatedNetAmount`.
+ */
+export function summarizeAdminBookingsAndRevenue(input: {
+  bookings: readonly Pick<
+    BookingRow,
+    'id' | 'status' | 'total_amount' | 'created_at' | 'confirmed_at'
+  >[];
+  payments?: readonly Pick<PaymentRow, 'id' | 'status' | 'amount' | 'created_at'>[];
+  refunds?: readonly {
+    id: string;
+    status: RefundRow['status'] | 'completed';
+    amount: number;
+    created_at: string;
+  }[];
+  profiles?: readonly Pick<ProfileRow, 'id' | 'created_at'>[];
+  nowMs?: number;
+  daysWindow?: number;
+}): BookingMetricsSummary {
+  const nowMs = input.nowMs ?? Date.now();
+  const days = Math.max(1, input.daysWindow ?? 30);
+  const cutoffMs = nowMs - days * 86_400_000;
+
+  const bookingsInPeriod = input.bookings.filter((b) => {
+    const t = Date.parse(b.created_at);
+    return Number.isNaN(t) || t >= cutoffMs;
+  });
+
+  let confirmedCount = 0;
+  let pendingCount = 0;
+  let cancelledCount = 0;
+  let expiredCount = 0;
+  let confirmedGrossAmount = 0;
+
+  for (const b of bookingsInPeriod) {
+    if (b.status === 'confirmed') {
+      confirmedCount += 1;
+      confirmedGrossAmount += Math.max(0, b.total_amount || 0);
+    } else if (b.status === 'pending_payment') {
+      pendingCount += 1;
+    } else if (b.status === 'cancelled') {
+      cancelledCount += 1;
+    } else if (b.status === 'expired') {
+      expiredCount += 1;
+    }
+  }
+
+  let completedRefundAmount = 0;
+  for (const r of input.refunds ?? []) {
+    const t = Date.parse(r.created_at);
+    if (
+      (Number.isNaN(t) || t >= cutoffMs) &&
+      (r.status === 'succeeded' || r.status === 'completed')
+    ) {
+      completedRefundAmount += Math.max(0, r.amount || 0);
+    }
+  }
+
+  let succeededPaymentsCount = 0;
+  let failedPaymentsCount = 0;
+  for (const p of input.payments ?? []) {
+    const t = Date.parse(p.created_at);
+    if (Number.isNaN(t) || t >= cutoffMs) {
+      if (p.status === 'succeeded') succeededPaymentsCount += 1;
+      if (p.status === 'failed') failedPaymentsCount += 1;
+    }
+  }
+
+  const allProfiles = input.profiles ?? [];
+  const newCustomersInWindow = allProfiles.filter((pr) => {
+    const t = Date.parse(pr.created_at);
+    return !Number.isNaN(t) && t >= cutoffMs;
+  }).length;
+
+  return {
+    totalBookings: bookingsInPeriod.length,
+    confirmedCount,
+    pendingCount,
+    cancelledCount,
+    expiredCount,
+    confirmedGrossAmount,
+    completedRefundAmount,
+    simulatedNetAmount: Math.max(0, confirmedGrossAmount - completedRefundAmount),
+    totalCustomers: allProfiles.length,
+    newCustomersInWindow,
+    succeededPaymentsCount,
+    failedPaymentsCount,
+  };
 }
 
