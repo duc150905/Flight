@@ -1,5 +1,6 @@
 import { router, type Href } from 'expo-router';
-import { useEffect, useState, type PropsWithChildren, type ReactNode } from 'react';
+import { Image } from 'expo-image';
+import { useEffect, useRef, useState, type ElementRef, type PropsWithChildren, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -150,6 +151,17 @@ export function AdminShell({
 
   const userEmail = session?.user?.email ?? 'admin@flyora.vn';
   const [displayName, setDisplayName] = useState<string>('');
+  const tabsScrollRef = useRef<ElementRef<typeof ScrollView>>(null);
+  const [tabsScrollX, setTabsScrollX] = useState(0);
+
+  useEffect(() => {
+    if (isDesktop) return;
+    const activeIndex = navRoutes.findIndex((r) => r.key === activeSection);
+    if (activeIndex >= 0 && tabsScrollRef.current) {
+      const targetX = Math.max(0, activeIndex * 125 - 40);
+      tabsScrollRef.current.scrollTo({ x: targetX, animated: true });
+    }
+  }, [activeSection, isDesktop]);
 
   useEffect(() => {
     let active = true;
@@ -263,11 +275,17 @@ export function AdminShell({
     <View style={adminStyles.sidebarInner}>
       {/* Brand Logo */}
       <View style={adminStyles.brandRow}>
-        <View style={adminStyles.brandIconBox}>
-          <Text style={adminStyles.brandIconText}>✈</Text>
-        </View>
+        <Image
+          source={require('../../../assets/branding/logo.png')}
+          accessible={false}
+          alt=""
+          contentFit="contain"
+          style={adminStyles.brandLogo}
+        />
         <View style={{ flex: 1 }}>
-          <Text style={adminStyles.brandTitle}>Flyora</Text>
+          <Text style={adminStyles.brandTitle}>
+            Flyora<Text style={adminStyles.brandDot}>.</Text>
+          </Text>
           <Text style={adminStyles.brandSubtitle}>ADMIN CONSOLE</Text>
         </View>
       </View>
@@ -324,37 +342,58 @@ export function AdminShell({
           {/* Right Main Workspace Column */}
           <View style={adminStyles.mainColumn}>
             {/* Top Console Bar */}
-            <View style={adminStyles.topConsoleBar}>
+            <View style={[adminStyles.topConsoleBar, !isDesktop && adminStyles.topConsoleBarCompact]}>
               <View style={adminStyles.breadcrumbRow}>
                 {!isDesktop && (
                   <Pressable
                     accessibilityRole="button"
+                    accessibilityLabel={bi('Mở danh mục quản trị', 'Open admin navigation')}
                     onPress={() => setMobileMenuOpen((v) => !v)}
-                    style={adminStyles.mobileMenuBtn}
+                    style={[
+                      adminStyles.mobileMenuBtn,
+                      mobileMenuOpen && adminStyles.mobileMenuBtnActive,
+                    ]}
                   >
-                    <Text style={adminStyles.mobileMenuBtnText}>
+                    <Text
+                      style={[
+                        adminStyles.mobileMenuBtnText,
+                        mobileMenuOpen && adminStyles.mobileMenuBtnTextActive,
+                      ]}
+                    >
                       {mobileMenuOpen ? '✕' : '☰'}
+                    </Text>
+                    <Text
+                      style={[
+                        adminStyles.mobileMenuBtnLabel,
+                        mobileMenuOpen && adminStyles.mobileMenuBtnLabelActive,
+                      ]}
+                    >
+                      {mobileMenuOpen ? bi('Đóng', 'Close') : 'Menu'}
                     </Text>
                   </Pressable>
                 )}
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => router.replace('/admin' as Href)}
-                >
-                  <Text style={adminStyles.breadcrumbMuted}>Workspace</Text>
-                </Pressable>
-                <Text style={adminStyles.breadcrumbSeparator}>›</Text>
-                <Text style={adminStyles.breadcrumbCurrent} numberOfLines={1}>
-                  {ta(activeNav.labelKey)}
-                </Text>
+                {isDesktop && (
+                  <>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => router.replace('/admin' as Href)}
+                    >
+                      <Text style={adminStyles.breadcrumbMuted}>Workspace</Text>
+                    </Pressable>
+                    <Text style={adminStyles.breadcrumbSeparator}>›</Text>
+                    <Text style={adminStyles.breadcrumbCurrent} numberOfLines={1}>
+                      {ta(activeNav.labelKey)}
+                    </Text>
+                  </>
+                )}
               </View>
 
-              <View style={adminStyles.topBarRight}>
+              <View style={[adminStyles.topBarRight, !isDesktop && adminStyles.topBarRightCompact]}>
                 {/* Interactive Live Search Input right in the top bar */}
                 <View
                   style={[
                     adminStyles.topSearchInputWrapper,
-                    !isDesktop && { minWidth: 165, maxWidth: 210 },
+                    !isDesktop && adminStyles.topSearchInputWrapperCompact,
                   ]}
                 >
                   <Text style={adminStyles.topSearchIcon}>🔍</Text>
@@ -366,10 +405,14 @@ export function AdminShell({
                     }}
                     onSubmitEditing={handleTopSearchSubmit}
                     returnKeyType="search"
-                    placeholder={bi(
-                      'Tìm booking, hành khách, chuyến bay…',
-                      'Search bookings, passengers, flights…',
-                    )}
+                    placeholder={
+                      isDesktop
+                        ? bi(
+                            'Tìm booking, hành khách, chuyến bay…',
+                            'Search bookings, passengers, flights…',
+                          )
+                        : bi('Tìm kiếm…', 'Search…')
+                    }
                     placeholderTextColor={consolePalette.subtext}
                     autoCapitalize="none"
                     style={adminStyles.topSearchInput}
@@ -395,7 +438,7 @@ export function AdminShell({
                   </Pressable>
                 </View>
 
-                <LanguagePicker />
+                <LanguagePicker compact={!isDesktop} />
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={bi('Mở menu tài khoản', 'Open account menu')}
@@ -420,10 +463,28 @@ export function AdminShell({
                   </View>
                 )}
                 <View style={adminStyles.mobileTabsWrapper}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={bi('Cuộn menu sang trái', 'Scroll menu left')}
+                    onPress={() => {
+                      tabsScrollRef.current?.scrollTo({
+                        x: Math.max(0, tabsScrollX - 160),
+                        animated: true,
+                      });
+                    }}
+                    style={[adminStyles.mobileTabsChevron, adminStyles.mobileTabsChevronLeft]}
+                  >
+                    <Text style={adminStyles.mobileTabsChevronText}>‹</Text>
+                  </Pressable>
+
                   <ScrollView
+                    ref={tabsScrollRef}
                     horizontal
                     showsHorizontalScrollIndicator={false}
+                    onScroll={(e) => setTabsScrollX(e.nativeEvent.contentOffset.x)}
+                    scrollEventThrottle={16}
                     contentContainerStyle={adminStyles.mobileTabsScroll}
+                    style={{ flex: 1 }}
                   >
                     {navRoutes.map((item) => {
                       const selected = item.key === activeSection;
@@ -447,6 +508,20 @@ export function AdminShell({
                       );
                     })}
                   </ScrollView>
+
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={bi('Cuộn menu sang phải', 'Scroll menu right')}
+                    onPress={() => {
+                      tabsScrollRef.current?.scrollTo({
+                        x: tabsScrollX + 160,
+                        animated: true,
+                      });
+                    }}
+                    style={[adminStyles.mobileTabsChevron, adminStyles.mobileTabsChevronRight]}
+                  >
+                    <Text style={adminStyles.mobileTabsChevronText}>›</Text>
+                  </Pressable>
                 </View>
               </>
             )}
@@ -746,6 +821,9 @@ export function AdminPaginationBar({
   onPageChange: (nextPage: number) => void;
 }) {
   const { ta, bi } = useAdminI18n();
+  const { width } = useWindowDimensions();
+  const isCompact = width < 680;
+  const isMobile = width < 480;
   const [targetPageInput, setTargetPageInput] = useState('');
 
   const handleJumpSubmit = () => {
@@ -757,6 +835,30 @@ export function AdminPaginationBar({
   };
 
   const getVisiblePages = (): (number | 'ellipsis-prev' | 'ellipsis-next')[] => {
+    if (isMobile) {
+      if (totalPages <= 5) {
+        return Array.from({ length: totalPages }, (_, i) => i + 1);
+      }
+      const pages: (number | 'ellipsis-prev' | 'ellipsis-next')[] = [1];
+      if (page > 3) {
+        pages.push('ellipsis-prev');
+      } else if (page === 3) {
+        pages.push(2);
+      }
+      if (page > 1 && page < totalPages) {
+        pages.push(page);
+      }
+      if (page < totalPages - 2) {
+        pages.push('ellipsis-next');
+      } else if (page === totalPages - 2) {
+        pages.push(totalPages - 1);
+      }
+      if (!pages.includes(totalPages)) {
+        pages.push(totalPages);
+      }
+      return pages;
+    }
+
     if (totalPages <= 7) {
       return Array.from({ length: totalPages }, (_, i) => i + 1);
     }
@@ -780,82 +882,113 @@ export function AdminPaginationBar({
   const visiblePages = getVisiblePages();
 
   return (
-    <View style={adminStyles.paginationRow}>
-      <Text style={adminStyles.muted}>
+    <View style={[adminStyles.paginationRow, isCompact && { justifyContent: 'center' }]}>
+      <Text style={[adminStyles.muted, isCompact && { textAlign: 'center', width: '100%', marginBottom: 4 }]}>
         {ta('admin.pagination.summary', { page, totalPages, total })}
       </Text>
 
-      <View style={[adminStyles.rowGap, { flexWrap: 'wrap', alignItems: 'center' }]}>
-        {/* Previous page */}
-        <Pressable
-          accessibilityRole="button"
-          disabled={page <= 1}
-          onPress={() => onPageChange(page - 1)}
-          style={[adminStyles.secondaryBtnSmall, page <= 1 && adminStyles.disabled]}
-        >
-          <Text style={adminStyles.secondaryBtnText}>{ta('admin.pagination.prev')}</Text>
-        </Pressable>
+      <View
+        style={[
+          adminStyles.rowGap,
+          {
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: isCompact ? 'center' : 'flex-end',
+            width: isCompact ? '100%' : 'auto',
+          },
+        ]}
+      >
+        <View style={[adminStyles.rowGap, { alignItems: 'center', justifyContent: 'center' }]}>
+          {/* Previous page */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={ta('admin.pagination.prev')}
+            disabled={page <= 1}
+            onPress={() => onPageChange(page - 1)}
+            style={[
+              adminStyles.secondaryBtnSmall,
+              isCompact && { minWidth: 36, paddingHorizontal: 10 },
+              page <= 1 && adminStyles.disabled,
+            ]}
+          >
+            <Text style={adminStyles.secondaryBtnText}>
+              {isCompact ? '←' : ta('admin.pagination.prev')}
+            </Text>
+          </Pressable>
 
-        {/* Page numbers */}
-        {visiblePages.map((item, idx) => {
-          if (item === 'ellipsis-prev') {
-            const target = Math.max(1, page - 5);
+          {/* Page numbers */}
+          {visiblePages.map((item, idx) => {
+            if (item === 'ellipsis-prev') {
+              const target = Math.max(1, page - 5);
+              return (
+                <EllipsisJumpButton
+                  key={`ellipsis-prev-${idx}`}
+                  targetPage={target}
+                  direction="prev"
+                  onPress={() => onPageChange(target)}
+                  bi={bi}
+                />
+              );
+            }
+            if (item === 'ellipsis-next') {
+              const target = Math.min(totalPages, page + 5);
+              return (
+                <EllipsisJumpButton
+                  key={`ellipsis-next-${idx}`}
+                  targetPage={target}
+                  direction="next"
+                  onPress={() => onPageChange(target)}
+                  bi={bi}
+                />
+              );
+            }
+            const isSelected = item === page;
             return (
-              <EllipsisJumpButton
-                key={`ellipsis-prev-${idx}`}
-                targetPage={target}
-                direction="prev"
-                onPress={() => onPageChange(target)}
-                bi={bi}
-              />
-            );
-          }
-          if (item === 'ellipsis-next') {
-            const target = Math.min(totalPages, page + 5);
-            return (
-              <EllipsisJumpButton
-                key={`ellipsis-next-${idx}`}
-                targetPage={target}
-                direction="next"
-                onPress={() => onPageChange(target)}
-                bi={bi}
-              />
-            );
-          }
-          const isSelected = item === page;
-          return (
-            <Pressable
-              key={`page-${item}`}
-              accessibilityRole="button"
-              accessibilityState={{ selected: isSelected }}
-              onPress={() => onPageChange(item)}
-              style={[adminStyles.pagePill, isSelected && adminStyles.pagePillActive]}
-            >
-              <Text
-                style={[
-                  adminStyles.pagePillText,
-                  isSelected && adminStyles.pagePillTextActive,
-                ]}
+              <Pressable
+                key={`page-${item}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isSelected }}
+                onPress={() => onPageChange(item)}
+                style={[adminStyles.pagePill, isSelected && adminStyles.pagePillActive]}
               >
-                {item}
-              </Text>
-            </Pressable>
-          );
-        })}
+                <Text
+                  style={[
+                    adminStyles.pagePillText,
+                    isSelected && adminStyles.pagePillTextActive,
+                  ]}
+                >
+                  {item}
+                </Text>
+              </Pressable>
+            );
+          })}
 
-        {/* Next page */}
-        <Pressable
-          accessibilityRole="button"
-          disabled={page >= totalPages}
-          onPress={() => onPageChange(page + 1)}
-          style={[adminStyles.secondaryBtnSmall, page >= totalPages && adminStyles.disabled]}
-        >
-          <Text style={adminStyles.secondaryBtnText}>{ta('admin.pagination.next')}</Text>
-        </Pressable>
+          {/* Next page */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={ta('admin.pagination.next')}
+            disabled={page >= totalPages}
+            onPress={() => onPageChange(page + 1)}
+            style={[
+              adminStyles.secondaryBtnSmall,
+              isCompact && { minWidth: 36, paddingHorizontal: 10 },
+              page >= totalPages && adminStyles.disabled,
+            ]}
+          >
+            <Text style={adminStyles.secondaryBtnText}>
+              {isCompact ? '→' : ta('admin.pagination.next')}
+            </Text>
+          </Pressable>
+        </View>
 
         {/* Direct page jump input */}
         {totalPages > 1 && (
-          <View style={adminStyles.pageJumpRow}>
+          <View
+            style={[
+              adminStyles.pageJumpRow,
+              isCompact && { marginLeft: 0, marginTop: 4, width: '100%', justifyContent: 'center' },
+            ]}
+          >
             <Text style={adminStyles.pageJumpLabel}>
               {bi('Đến trang:', 'Go to:')}
             </Text>
@@ -976,34 +1109,32 @@ export const adminStyles = StyleSheet.create({
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
     paddingHorizontal: 4,
-    marginBottom: 2,
+    marginBottom: 4,
   },
-  brandIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    backgroundColor: consolePalette.brandTeal,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  brandIconText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '800',
+  brandLogo: {
+    width: 42,
+    height: 42,
+    borderRadius: 11,
   },
   brandTitle: {
-    fontSize: 19,
-    fontWeight: '800',
-    color: consolePalette.heading,
-    lineHeight: 22,
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#102A43',
+    lineHeight: 24,
+    letterSpacing: 1,
+  },
+  brandDot: {
+    color: '#00B8D0',
+    fontWeight: '900',
   },
   brandSubtitle: {
     fontSize: 10,
-    fontWeight: '700',
-    color: consolePalette.subtext,
-    letterSpacing: 1,
+    fontWeight: '800',
+    color: '#0891B2',
+    letterSpacing: 1.2,
+    marginTop: 2,
   },
   workspaceBox: {
     flexDirection: 'row',
@@ -1118,6 +1249,12 @@ export const adminStyles = StyleSheet.create({
     borderBottomColor: consolePalette.cardBorder,
     gap: 10,
   },
+  topConsoleBarCompact: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 8,
+    flexWrap: 'nowrap',
+  },
   breadcrumbRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1143,6 +1280,12 @@ export const adminStyles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 10,
   },
+  topBarRightCompact: {
+    flex: 1,
+    gap: 6,
+    justifyContent: 'flex-end',
+    flexWrap: 'nowrap',
+  },
   topSearchInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1155,6 +1298,15 @@ export const adminStyles = StyleSheet.create({
     borderColor: consolePalette.cardBorder,
     minWidth: 270,
     gap: 6,
+  },
+  topSearchInputWrapperCompact: {
+    flex: 1,
+    minWidth: 90,
+    maxWidth: 240,
+    height: 34,
+    paddingLeft: 8,
+    paddingRight: 4,
+    gap: 4,
   },
   topSearchIcon: {
     fontSize: 13,
@@ -1280,19 +1432,37 @@ export const adminStyles = StyleSheet.create({
     color: consolePalette.subtext,
   },
   mobileMenuBtn: {
-    width: 36,
-    height: 36,
+    height: 34,
+    paddingHorizontal: 10,
     borderRadius: 8,
     backgroundColor: consolePalette.subtleBg,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
     borderWidth: 1,
     borderColor: consolePalette.cardBorder,
   },
+  mobileMenuBtnActive: {
+    backgroundColor: consolePalette.brandTealLight,
+    borderColor: consolePalette.brandTealBorder,
+  },
   mobileMenuBtnText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
     color: consolePalette.heading,
+    lineHeight: 18,
+  },
+  mobileMenuBtnTextActive: {
+    color: consolePalette.brandTeal,
+  },
+  mobileMenuBtnLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: consolePalette.heading,
+  },
+  mobileMenuBtnLabelActive: {
+    color: consolePalette.brandTealDark,
   },
   mobileDrawerCard: {
     backgroundColor: '#FFFFFF',
@@ -1305,9 +1475,34 @@ export const adminStyles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: consolePalette.cardBorder,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  mobileTabsChevron: {
+    width: 26,
+    height: '100%',
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8FAFC',
+    zIndex: 2,
+  },
+  mobileTabsChevronLeft: {
+    borderRightWidth: 1,
+    borderRightColor: consolePalette.cardBorder,
+  },
+  mobileTabsChevronRight: {
+    borderLeftWidth: 1,
+    borderLeftColor: consolePalette.cardBorder,
+  },
+  mobileTabsChevronText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#64748B',
+    lineHeight: 20,
   },
   mobileTabsScroll: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 10,
     paddingVertical: 8,
     gap: 8,
   },
