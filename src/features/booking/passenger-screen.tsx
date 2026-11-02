@@ -30,7 +30,7 @@ function PassengerForm() {
     footer={{ title: 'Next', onPress: () => void form.handleSubmit(() => router.push('/checkout/review'))() }}>
     {draft.passengers.map((passenger, index) => <CheckoutCard key={passenger.id}>
       <CheckoutText title>{t('Traveller {number}', { number: index + 1 })} · {t(passenger.id.split('-')[0])}</CheckoutText>
-      <CheckoutText muted>Enter each traveller’s name as shown on their travel document.</CheckoutText>
+      <CheckoutText muted message={"Enter each traveller’s name as shown on their travel document."} />
       <CheckoutField control={form.control} name={`passengers.${index}.values.givenNames`} label="First name" placeholder={t('First name')} autoCapitalize="words" returnKeyType="next"
         onSubmitEditing={() => form.setFocus(`passengers.${index}.values.familyName`)}
         onRawChange={value => draft.updatePassenger(passenger.id, { givenNames: value })} />
@@ -46,11 +46,11 @@ function PassengerForm() {
           if (clearCompanion) form.setValue(`passengers.${index}.values.accompanyingAdultId`, '');
           void revalidateTravellerCompanions(form);
         }} />
-      <CheckoutText muted>Use YYYY-MM-DD, for example 2000-02-29.</CheckoutText>
-      <CheckoutText muted>Demo age rules: infant under 2, child 2–11, adult 12+. Age is checked on every flight date.</CheckoutText>
+      <CheckoutText muted message={"Use YYYY-MM-DD, for example 2000-02-29."} />
+      <CheckoutText muted message={"Demo age rules: infant under 2, child 2–11, adult 12+. Age is checked on every flight date."} />
       {draft.itinerary!.international && <>
-        <CheckoutText title>Passport details</CheckoutText>
-        <CheckoutText muted>Required for each traveller on this international itinerary.</CheckoutText>
+        <CheckoutText title message={"Passport details"} />
+        <CheckoutText muted message={"Required for each traveller on this international itinerary."} />
         <CheckoutField control={form.control} name={`passengers.${index}.values.nationalityCode`} label="Nationality country code" placeholder="e.g. VN" autoCapitalize="characters" maxLength={2} autoCorrect={false}
           onRawChange={value => draft.updatePassenger(passenger.id, { nationalityCode: value })} />
         <CheckoutField control={form.control} name={`passengers.${index}.values.passportNumber`} label="Passport number" autoCapitalize="characters" autoCorrect={false}
@@ -61,8 +61,8 @@ function PassengerForm() {
           onRawChange={value => draft.updatePassenger(passenger.id, { passportExpiryDate: value })} />
       </>}
       {infantLegsForPassenger(passenger.values.dateOfBirth, draft.itinerary!.legs).length > 0 && <>
-        <CheckoutText title>Accompanying adult</CheckoutText>
-        <CheckoutText muted>This infant has no separate seat. Choose a different adult aged 18+ for each infant. Fill in the adult’s birth date first.</CheckoutText>
+        <CheckoutText title message={"Accompanying adult"} />
+        <CheckoutText muted message={"This infant has no separate seat. Choose a different adult aged 18+ for each infant. Fill in the adult’s birth date first."} />
         <Controller control={form.control} name={`passengers.${index}.values.accompanyingAdultId`} render={({ field, fieldState }) => <View style={{ gap: 8 }}>
           {draft.passengers.filter(p => p.id !== passenger.id).map(adult => {
             const eligible = isEligibleCompanion(adult.values.dateOfBirth, infantLegsForPassenger(passenger.values.dateOfBirth, draft.itinerary!.legs));
@@ -84,7 +84,7 @@ function PassengerForm() {
     </CheckoutCard>)}
     <CheckoutError message={form.formState.errors.passengers?.message} />
     <CheckoutCard>
-      <CheckoutText title>Contact details</CheckoutText>
+      <CheckoutText title message={"Contact details"} />
       <CheckoutField control={form.control} name="contact.contactName" label="Full name" autoComplete="name" autoCapitalize="words" returnKeyType="next"
         onSubmitEditing={() => form.setFocus('contact.contactEmail')} onRawChange={value => draft.updateContact({ contactName: value })} />
       <CheckoutField control={form.control} name="contact.contactEmail" label="Contact email" placeholder={t('Email address')} autoComplete="email" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} returnKeyType="next"

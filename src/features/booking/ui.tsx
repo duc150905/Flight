@@ -4,7 +4,7 @@ import { useState, type PropsWithChildren } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LanguagePicker, useLanguage } from '../i18n/provider';
-import { formatMoney } from '../i18n/translate';
+import { displayText, formatMoney } from '../i18n/translate';
 import { useCheckout } from './checkout-provider';
 import { checkoutEstimate } from './estimate';
 
@@ -17,9 +17,9 @@ export function CheckoutButton({ title, onPress, secondary = false, disabled = f
     <Text style={[checkoutStyles.buttonText, { color: '#00414B' }]}>{t(title)}</Text>
   </Pressable>;
 }
-export function CheckoutText({ children, muted = false, title = false }: PropsWithChildren<{ muted?: boolean; title?: boolean }>) {
-  const { t } = useLanguage();
-  return <Text accessibilityRole={title ? 'header' : undefined} style={[title ? checkoutStyles.title : checkoutStyles.body, { color: muted ? colors.muted : colors.text }]}>{typeof children === 'string' ? t(children) : children}</Text>;
+export function CheckoutText({ children, message, muted = false, title = false }: PropsWithChildren<{ message?: string; muted?: boolean; title?: boolean }>) {
+  const { language } = useLanguage();
+  return <Text accessibilityRole={title ? 'header' : undefined} style={[title ? checkoutStyles.title : checkoutStyles.body, { color: muted ? colors.muted : colors.text }]}>{displayText(language, children, message)}</Text>;
 }
 export function CheckoutCard({ children }: PropsWithChildren) {
   return <View style={checkoutStyles.card}>{children}</View>;
@@ -70,7 +70,7 @@ export function CheckoutShell({ title, step, children, back, footer }: PropsWith
           <View style={{ flex: 1, minWidth: 130, gap: 3 }}>
             <Text style={checkoutStyles.caption}>{t('Estimated total')}</Text>
             <Text style={checkoutStyles.amount}>{estimate ? formatMoney(language, estimate.amount, estimate.currency) : t('Price unavailable')}</Text>
-            <Text style={checkoutStyles.caption}>{t('{count} travellers', { count: draft.passengers.length })}</Text>
+            <Text style={checkoutStyles.caption}>{t(draft.passengers.length === 1 ? '{count} traveller' : '{count} travellers', { count: draft.passengers.length })}</Text>
           </View>
           <View style={{ flex: 1, minWidth: 140 }}><CheckoutButton {...footer} /></View>
         </View>
@@ -79,8 +79,8 @@ export function CheckoutShell({ title, step, children, back, footer }: PropsWith
     </KeyboardAvoidingView>
     <Modal visible={discard} transparent animationType="none" onRequestClose={() => setDiscard(false)}>
       <View style={checkoutStyles.scrim}><View accessibilityViewIsModal style={checkoutStyles.dialog}>
-        <CheckoutText title>Discard your details?</CheckoutText>
-        <CheckoutText muted>Your contact and traveller information will be cleared.</CheckoutText>
+        <CheckoutText title message={"Discard your details?"} />
+        <CheckoutText muted message={"Your contact and traveller information will be cleared."} />
         <CheckoutButton title="Keep editing" onPress={() => setDiscard(false)} />
         <CheckoutButton title="Discard and leave" secondary onPress={() => { draft.reset(); setDiscard(false); router.replace('/'); }} />
       </View></View>
@@ -88,7 +88,7 @@ export function CheckoutShell({ title, step, children, back, footer }: PropsWith
   </SafeAreaView>;
 }
 export function MissingCheckout() {
-  return <CheckoutShell title="Choose your flights first"><CheckoutText muted>Your checkout is empty or has expired. Return to flight search to start again.</CheckoutText>
+  return <CheckoutShell title="Choose your flights first"><CheckoutText muted message={"Your checkout is empty or has expired. Return to flight search to start again."} />
     <CheckoutButton title="Back to home" onPress={() => router.replace('/')} /></CheckoutShell>;
 }
 export const checkoutStyles = StyleSheet.create({

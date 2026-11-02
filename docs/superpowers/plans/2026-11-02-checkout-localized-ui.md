@@ -25,41 +25,45 @@ components; combined RHF traveller/contact form; insert-only SQL demo fixtures.
 - Seed rerun and pre-existing shared catalogue ownership: Task6 SQL checks.
 
 ## Task 1: Per-leg passenger rules
-- [ ] RED tests: cross-birthday trips succeed, first-leg counts still checked,
+- [x] RED tests: cross-birthday trips succeed, first-leg counts still checked,
   per-leg seats and eligible unique companions are derived without splitting.
-- [ ] Implement passenger-policy helpers and expose per-leg review data; adapt UI
+- [x] Implement passenger-policy helpers and expose per-leg review data; adapt UI
   eligibility to infant legs. Update obsolete documentation.
-- [ ] Full tests + check; commit `fix(tv2): derive traveller rules per flight leg`.
+- [x] Full tests + check; commit `fix(tv2): derive traveller rules per flight leg`.
 
 ## Task 2: Shared language foundation
-- [ ] RED tests for device fallback, persisted vi/en, races, storage failure.
-- [ ] Install compatible expo-localization, implement pure locale store,
+- [x] RED tests for device fallback, persisted vi/en, races, storage failure.
+- [x] Install compatible expo-localization, implement pure locale store,
   typed translator/formatters, provider and reusable vi/en picker at root.
-- [ ] Tests + check; commit `feat(i18n): add persistent Vietnamese English foundation`.
+- [x] Tests + check; commit `feat(i18n): add persistent Vietnamese English foundation`.
 
 ## Task 3: Localize checkout
-- [ ] RED tests for bilingual error messages, dictionary parity, unchanged data.
-- [ ] Translate domain issues and all checkout surfaces/formatting, preserving
+- [x] RED tests for bilingual error messages, dictionary parity, unchanged data.
+- [x] Translate domain issues and all checkout surfaces/formatting, preserving
   existing active errors and raw input. Document integration for TV1/TV3.
-- [ ] Tests + check; commit `feat(tv2): localize checkout content and validation`.
+- [x] Tests + check; commit `feat(tv2): localize checkout content and validation`.
 
 ## Task 4: Reference components
-- [ ] Verify footer estimate and progress semantics with behavior tests.
-- [ ] Build PDF-aligned header, four icon steps, fields/sections/footer/safe area
+- [x] Verify footer estimate and progress semantics with behavior tests.
+- [x] Build PDF-aligned header, four icon steps, fields/sections/footer/safe area
   and responsive keyboard behavior. No fake totals or clickable future steps.
-- [ ] Tests + check; commit `style(tv2): align checkout components with reference PDF`.
+- [x] Tests + check; commit `style(tv2): align checkout components with reference PDF`.
 
 ## Task 5: Combined traveller screen
-- [ ] RED combined-form tests: independent IDs, contact/traveller errors, revisit,
+- [x] RED combined-form tests: independent IDs, contact/traveller errors, revisit,
   conditional documents/gender and unchanged data during locale switch.
-- [ ] Combine passenger/contact form in PDF order; preserve legacy entry routes;
+- [x] Combine passenger/contact form in PDF order; preserve legacy entry routes;
   review per-leg classifications. Add nullable DB gender only if needed via CLI.
-- [ ] Tests + check; commit `feat(tv2): match traveller information reference screen`.
+- [x] Tests + check; commit `feat(tv2): match traveller information reference screen`.
 
 ## Task 6: Safe demo fixtures and final review
-- [ ] Prepare insert-only deterministic seed and rollback verification SQL.
-- [ ] Verify fixture constraints/repeatability, data reads through public access
+- [x] Prepare insert-only deterministic seed and rollback verification SQL.
+- [x] Verify fixture constraints/repeatability, data reads through public access
   and handoff. Record applied environment and generated future dates/IDs.
-- [ ] All tests/check, web/Android bundles, independent code review; fix important
+- [x] All tests/check, web/Android bundles, independent code review; fix important
   findings, update current team-facing status and task walkthrough.
-- [ ] Commit `test(tv2): prepare safe checkout demo data`.
+- [x] Commit `test(tv2): prepare safe checkout demo data`.
+
+## Completion evidence (2026-11-02)
+
+124 Node tests; typecheck/lint; Web/Android exports; live read-only integration smoke; SQL gender constraint/RLS checks and seed rerun catalogue hashes passed. Browser QA at 390x844 verified language/error/data preservation and visible footer. Physical Android acceptance remains pending. Independent review: customer-text translation crash and phone input-order issue fixed with RED→GREEN regressions. Source English validation messages are stable translation identifiers. Dark button/icon text is used on reference turquoise for contrast.

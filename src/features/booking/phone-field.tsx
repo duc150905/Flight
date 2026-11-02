@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Controller, type Control, type FieldPath, type FieldValues } from 'react-hook-form';
 import { Modal, Pressable, Text, TextInput, View } from 'react-native';
 import { useLanguage } from '../i18n/provider';
-import { phoneCodes, splitPhone, choosePhoneCode } from './phone';
+import { phoneCodes, splitPhone, choosePhoneCode, editPhoneNumber } from './phone';
 import { CheckoutButton, CheckoutError, checkoutStyles, useCheckoutColors } from './ui';
 
 export function CheckoutPhoneField<T extends FieldValues>({ control, name, onRawChange }: { control: Control<T>; name: FieldPath<T>; onRawChange(value: string): void }) {
@@ -20,7 +20,7 @@ export function CheckoutPhoneField<T extends FieldValues>({ control, name, onRaw
         <TextInput ref={field.ref} value={parts.number} keyboardType="phone-pad" autoComplete="tel" accessibilityLabel={t('Phone number')}
           accessibilityHint={fieldState.error?.message ? t(fieldState.error.message) : t('Enter the full number or choose a calling code.')}
           placeholder={parts.code ? '901 234 567' : '+84 901 234 567'} placeholderTextColor={c.muted}
-          onBlur={field.onBlur} onChangeText={value => change(parts.code ? `${parts.code} ${value}` : value)}
+          onBlur={field.onBlur} onChangeText={value => change(editPhoneNumber(parts.code, value))}
           style={{ flex: 1, minWidth: 0, minHeight: 48, padding: 12, fontSize: 16, color: c.text, borderRadius: 8, borderWidth: 1, borderColor: fieldState.error ? c.error : c.border }} />
       </View>
       <CheckoutError message={fieldState.error?.message} />

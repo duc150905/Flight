@@ -1,5 +1,15 @@
 # Flight — nghiệp vụ, tính năng và phân công nhóm 3 người
 
+> Cập nhật 02/11/2026: phần trạng thái ngày 29/10 bên dưới là lịch sử lập kế
+> hoạch. Auth, schema tổng, TV1 discovery và nền tảng admin/tickets đã có trong
+> code ở mốc `3da5155`. Đợt TV2 tiếp theo nằm trên
+> `codex/tv2-checkout-localized-ui`: tuổi theo chặng, Việt–Anh và màn Traveller
+> theo PDF; chưa push/merge. DB flight-dev đã thêm giới tính nullable và fixture
+> chuyến/giá/hành lý/ghế. Hai thành viên còn lại đọc `CHECKOUT.md`,
+> `LOCALIZATION.md`, `CHECKOUT-DEMO.md`, `CHECKOUT-NEXT-WALKTHROUGH.md` trước khi
+> sửa phần giao nhau. Booking/hold/payment RPC và nghiệm thu Android thật còn
+> là các task tiếp theo; nền tảng ngôn ngữ chưa dịch hết màn của TV1/TV3.
+
 Ngày lập: 29/10/2026. Đây là đề xuất phân công; chưa biết tên, thế mạnh hoặc
 deadline của từng thành viên nên dùng TV1, TV2, TV3. Không phải tính năng nào
 trong checklist cũng đã được triển khai.

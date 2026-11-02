@@ -1,5 +1,10 @@
 # Checkout information (TV2)
 
+Current update (2026-11-02): per-leg birthdays, vi/en and the combined reference
+screen are implemented. See `CHECKOUT-NEXT-WALKTHROUGH.md` for the six new tasks
+and `CHECKOUT-DEMO.md` for shared fixtures and device test scenarios. The older
+verification section below records the previous delivery's state.
+
 The six F04 tasks use the original `Flight_Booking_Handoff.zip` screens as visual
 reference: white surfaces, turquoise accent, progress indicator, traveller cards
 and clear bottom actions. Personal data stays in RAM, never URL/storage/logs.

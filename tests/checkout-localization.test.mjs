@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { bookingContactSchema } from '../src/features/booking/contact.ts';
 import { createBookingPassengerSchema } from '../src/features/booking/passenger.ts';
-import { translate, formatDate, formatMoney } from '../src/features/i18n/translate.ts';
+import { translate, formatDate, formatMoney, displayText } from '../src/features/i18n/translate.ts';
 import { en, vi } from '../src/features/i18n/messages.ts';
 
 test('visible validation errors can switch language without modifying raw values', () => {
@@ -15,6 +15,13 @@ test('visible validation errors can switch language without modifying raw values
     for (const issue of result.error.issues) assert.notEqual(translate('vi', issue.message), translate('en', issue.message));
   }
   assert.deepEqual(raw, before);
+});
+test('customer names are raw text even when they match translation or prototype keys', () => {
+  for (const name of ['constructor', 'toString', 'Review', 'male']) {
+    assert.equal(translate('vi', 'constructor'), 'constructor');
+    assert.equal(displayText('vi', name), name);
+  }
+  assert.equal(displayText('vi', undefined, 'Review'), 'Xem lại');
 });
 test('checkout dictionaries are complete and dates, amounts and dynamic text follow language', () => {
   assert.deepEqual(Object.keys(vi).sort(), Object.keys(en).sort());

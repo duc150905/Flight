@@ -31,7 +31,7 @@ export default function CheckoutEntry() {
     void load(); return () => { active = false; };
   }, [selection, attempt, requestKey, beginCheckout]);
   return <CheckoutShell title="Your next journey">
-    <CheckoutText muted>Preparing your selected flights…</CheckoutText>
+    <CheckoutText muted message={"Preparing your selected flights…"} />
     {!error && <ActivityIndicator accessibilityLabel={t('Loading your selected flights')} />}
     <CheckoutError message={error} />
     {!!error && <CheckoutButton title="Try again" onPress={() => setAttempt(n => n + 1)} />}

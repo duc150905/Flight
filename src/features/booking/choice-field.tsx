@@ -19,7 +19,7 @@ export function CheckoutChoice<T extends FieldValues>({ control, name, label, op
     <CheckoutError message={fieldState.error?.message} />
     <Modal visible={open} transparent onRequestClose={() => { setOpen(false); field.onBlur(); }}>
       <View style={checkoutStyles.scrim}><View accessibilityViewIsModal style={checkoutStyles.dialog}>
-        <CheckoutText title>{label}</CheckoutText>
+        <CheckoutText title message={label} />
         {options.map(option => <Pressable key={option} accessibilityRole="radio" accessibilityState={{ checked: field.value === option }}
           onPress={() => { field.onChange(option); onRawChange(option); field.onBlur(); setOpen(false); }}
           style={{ minHeight: 48, justifyContent: 'center', borderBottomWidth: 1, borderColor: c.border }}>

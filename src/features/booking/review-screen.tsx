@@ -17,16 +17,16 @@ export function ReviewScreen() {
     <CheckoutButton title={result.target === 'selection' ? 'Choose flights again' : result.target === 'contact' ? 'Edit contact details' : 'Edit travellers'}
       onPress={() => {
         if (result.target === 'selection') { draft.reset(); router.replace('/'); }
-        else router.dismissTo(result.target === 'contact' ? '/checkout/contact' : '/checkout/passengers');
+        else router.dismissTo('/checkout/passengers');
       }} />
   </CheckoutShell>;
   const { itinerary, contact, passengers, passengerSegments } = result.data;
   const fingerprint = JSON.stringify(result.data);
   const checked = fingerprint === confirmed;
   return <CheckoutShell title="Review your details" step={2} back={() => router.dismissTo('/checkout/passengers')}>
-    <CheckoutText muted>Take a moment to check names, dates and contact details before moving on to baggage and seats.</CheckoutText>
+    <CheckoutText muted message={"Take a moment to check names, dates and contact details before moving on to baggage and seats."} />
     <CheckoutCard>
-      <CheckoutText title>Your flights</CheckoutText>
+      <CheckoutText title message={"Your flights"} />
       {itinerary.legs.map(leg => <CheckoutCard key={leg.flightId}>
         <CheckoutText>{leg.origin.iata_code} → {leg.destination.iata_code}</CheckoutText>
         <CheckoutText muted>{leg.origin.city} → {leg.destination.city}</CheckoutText>
@@ -36,11 +36,11 @@ export function ReviewScreen() {
       </CheckoutCard>)}
     </CheckoutCard>
     <CheckoutCard>
-      <CheckoutText title>Contact details</CheckoutText>
+      <CheckoutText title message={"Contact details"} />
       <CheckoutText>{contact.contactName}</CheckoutText>
       <CheckoutText>{contact.contactEmail}</CheckoutText>
       <CheckoutText>{contact.contactPhone}</CheckoutText>
-      <CheckoutButton title="Edit contact details" secondary onPress={() => router.dismissTo('/checkout/contact')} />
+      <CheckoutButton title="Edit contact details" secondary onPress={() => router.dismissTo('/checkout/passengers')} />
     </CheckoutCard>
     <CheckoutCard>
       <CheckoutText title>{t('Travellers')} · {passengers.length}</CheckoutText>
@@ -62,8 +62,8 @@ export function ReviewScreen() {
       </CheckoutCard>)}
       <CheckoutButton title="Edit travellers" secondary onPress={() => router.dismissTo('/checkout/passengers')} />
     </CheckoutCard>
-    <CheckoutText muted>Your booking is not confirmed yet. Baggage, seats and payment follow after these details.</CheckoutText>
-    {checked && <CheckoutCard><CheckoutText>Your traveller details have been checked. You can still edit them before booking.</CheckoutText></CheckoutCard>}
+    <CheckoutText muted message={"Your booking is not confirmed yet. Baggage, seats and payment follow after these details."} />
+    {checked && <CheckoutCard><CheckoutText message={"Your traveller details have been checked. You can still edit them before booking."} /></CheckoutCard>}
     <CheckoutButton title={checked ? 'Details checked' : 'Confirm traveller details'} disabled={checked}
       onPress={() => setConfirmed(fingerprint)} />
   </CheckoutShell>;

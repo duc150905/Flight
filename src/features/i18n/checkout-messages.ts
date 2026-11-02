@@ -65,6 +65,7 @@ export const checkoutMessages = {
   'Estimated total': 'Tổng tạm tính', 'Price unavailable': 'Chưa có giá',
   'Final price is checked when booking.': 'Giá cuối cùng sẽ được kiểm tra khi đặt vé.',
   '{count} travellers': '{count} hành khách', 'Gender (optional)': 'Giới tính (không bắt buộc)',
+  '{count} traveller': '{count} hành khách',
   'Select gender': 'Chọn giới tính', 'male': 'Nam', 'female': 'Nữ', 'unspecified': 'Không cung cấp',
   'Close': 'Đóng', 'Contact email': 'Email liên hệ',
   'Select a valid gender option.': 'Chọn một mục giới tính hợp lệ.',
