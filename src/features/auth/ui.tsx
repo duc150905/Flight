@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LanguagePicker } from '../i18n/provider';
+import { FlightBrand } from '@/components/flight-brand';
 
 export const colors = {
   background: '#F3F7FC', surface: '#FFFFFF', text: '#102A43', muted: '#526579',
@@ -19,7 +20,7 @@ export function AuthShell({ children }: PropsWithChildren) {
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.content}>
           <LanguagePicker />
-          <Text style={styles.brand}>FLIGHT<Text style={styles.brandDot}>.</Text></Text>
+          <FlightBrand />
           <Text style={styles.tagline}>Hành trình tiếp theo bắt đầu từ đây.</Text>
           <View style={styles.card}>{children}</View>
           <Text style={styles.footer}>Lên kế hoạch gọn gàng cho mỗi chuyến đi.</Text>
@@ -71,8 +72,7 @@ export const styles = StyleSheet.create({
   flex: { flex: 1 }, safe: { flex: 1, backgroundColor: colors.background },
   scroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 32 },
   content: { width: '100%', maxWidth: 460, alignSelf: 'center', gap: 12 },
-  brand: { color: colors.text, fontSize: 30, fontWeight: '900', letterSpacing: 3 },
-  brandDot: { color: colors.primary }, tagline: { color: colors.muted, fontSize: 16, marginBottom: 16 },
+  tagline: { color: colors.muted, fontSize: 16, marginBottom: 16 },
   card: { backgroundColor: colors.surface, padding: 24, borderRadius: 24, gap: 16, borderWidth: 1, borderColor: '#E4EBF4' },
   title: { color: colors.text, fontSize: 28, fontWeight: '700' },
   description: { color: colors.muted, fontSize: 15, lineHeight: 23 },

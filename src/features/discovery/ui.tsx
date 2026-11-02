@@ -1,7 +1,8 @@
 import type { PropsWithChildren } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/features/auth/ui';
+import { FlightBrand } from '@/components/flight-brand';
 
 export function Page({ children }: PropsWithChildren) {
   return <SafeAreaView style={styles.safe}>
@@ -14,14 +15,13 @@ export function Page({ children }: PropsWithChildren) {
 }
 
 export function Brand() {
-  return <Text style={styles.brand}>FLIGHT<Text style={{ color: colors.primary }}>.</Text></Text>;
+  return <FlightBrand />;
 }
 
 export const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   scroll: { flexGrow: 1, paddingHorizontal: 20, paddingTop: 24, paddingBottom: 48 },
   content: { width: '100%', maxWidth: 560, alignSelf: 'center', gap: 18 },
-  brand: { fontSize: 28, fontWeight: '900', letterSpacing: 3, color: colors.text },
   title: { fontSize: 27, fontWeight: '800', lineHeight: 34, color: colors.text },
   subtitle: { fontSize: 15, lineHeight: 23, color: colors.muted },
   sectionTitle: { fontSize: 19, fontWeight: '700', color: colors.text },
