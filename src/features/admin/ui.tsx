@@ -60,7 +60,6 @@ const navRoutes: NavRouteItem[] = [
     labelKey: 'admin.nav.bookings',
     icon: '🎫',
     group: 'workspace',
-    badge: 'F10',
   },
   {
     key: 'customers',
@@ -84,14 +83,13 @@ const navRoutes: NavRouteItem[] = [
     group: 'workspace',
   },
 
-  // FLIGHT CATALOGUE & OPERATIONS (F09)
+  // FLIGHT CATALOGUE & OPERATIONS
   {
     key: 'flights',
     href: '/admin/flights',
     labelKey: 'admin.nav.flights',
     icon: '✈',
     group: 'flight_ops',
-    badge: 'F09',
   },
   {
     key: 'aircraft',
@@ -139,7 +137,7 @@ export function AdminShell({
   const [signingOut, setSigningOut] = useState(false);
   const [topSearchText, setTopSearchText] = useState('');
 
-  const userEmail = session?.user?.email ?? 'admin@flight.vn';
+  const userEmail = session?.user?.email ?? 'admin@flyora.vn';
   const initials = userEmail.slice(0, 2).toUpperCase();
   const activeNav = navRoutes.find((n) => n.key === activeSection) ?? navRoutes[0];
 
@@ -149,7 +147,7 @@ export function AdminShell({
     try {
       await actions.logout();
       setAccountMenuOpen(false);
-      router.replace('/login' as Href);
+      router.replace('/account' as Href);
     } finally {
       setSigningOut(false);
     }
@@ -229,34 +227,18 @@ export function AdminShell({
           <Text style={adminStyles.brandIconText}>✈</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={adminStyles.brandTitle}>flight</Text>
+          <Text style={adminStyles.brandTitle}>Flyora</Text>
           <Text style={adminStyles.brandSubtitle}>ADMIN CONSOLE</Text>
         </View>
       </View>
 
-      {/* Workspace Selector Card */}
-      <View style={adminStyles.workspaceBox}>
-        <View style={adminStyles.workspaceAvatar}>
-          <Text style={adminStyles.workspaceAvatarText}>F</Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={adminStyles.workspaceTitle} numberOfLines={1}>
-            Flight Operations
-          </Text>
-          <Text style={adminStyles.workspaceSub} numberOfLines={1}>
-            {bi('Không gian Quản trị', 'Admin workspace')}
-          </Text>
-        </View>
-        <Text style={adminStyles.workspaceChevron}>⌄</Text>
-      </View>
-
-      {/* WORKSPACE Nav Group (F10) */}
+      {/* WORKSPACE Nav Group */}
       <Text style={adminStyles.sidebarGroupLabel}>WORKSPACE</Text>
       {renderNavGroup(workspaceItems, onAfterSelect)}
 
-      {/* FLIGHT OPS & CATALOGUE Nav Group (F09) */}
+      {/* FLIGHT OPS & CATALOGUE Nav Group */}
       <Text style={[adminStyles.sidebarGroupLabel, { marginTop: 10 }]}>
-        {bi('KHAI THÁC BAY (F09)', 'FLIGHT OPS (F09)')}
+        {bi('KHAI THÁC BAY', 'FLIGHT OPS')}
       </Text>
       {renderNavGroup(flightOpsItems, onAfterSelect)}
 

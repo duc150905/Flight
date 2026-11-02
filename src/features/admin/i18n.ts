@@ -3,9 +3,9 @@ import { formatMoney, formatTime } from '@/features/i18n/translate';
 import type { Language } from '@/features/i18n/language';
 
 const viMessages: Record<string, string> = {
-  'admin.title': 'Quản trị hệ thống Flight',
+  'admin.title': 'Quản trị hệ thống Flyora',
   'admin.subtitle':
-    'Quản lý Bookings, Khách hàng, Thanh toán, Lịch bay, Tàu bay, Danh mục & Báo cáo (F09–F10).',
+    'Quản lý Bookings, Khách hàng, Thanh toán, Lịch bay, Tàu bay, Danh mục & Báo cáo.',
   'admin.backToAccount': '← Tài khoản',
   'admin.backToHome': '← Tổng quan Quản trị',
   'admin.nav.home': 'Tổng quan',
@@ -40,9 +40,9 @@ const viMessages: Record<string, string> = {
 };
 
 const enMessages: Record<string, string> = {
-  'admin.title': 'Flight Administration',
+  'admin.title': 'Flyora Administration',
   'admin.subtitle':
-    'Manage Bookings, Customers, Payments, Flights, Fleet, Catalogues & Audit Reports (F09–F10).',
+    'Manage Bookings, Customers, Payments, Flights, Fleet, Catalogues & Audit Reports.',
   'admin.backToAccount': '← Account',
   'admin.backToHome': '← Admin Overview',
   'admin.nav.home': 'Overview',

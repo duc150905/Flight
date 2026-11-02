@@ -372,7 +372,7 @@ function buildAuditComparisons(
     comparisons.push({
       field: bi('Trạng thái hoạt động', 'Active status'),
       before: changes.is_active
-        ? bi('Ngừng hoạt động / Trước cập nhật', 'Inactive / Previous state')
+        ? bi('Ngừng hoạt động', 'Inactive')
         : bi('Đang hoạt động', 'Active'),
       after: changes.is_active
         ? bi('Đang hoạt động', 'Active')
@@ -696,7 +696,7 @@ export function AdminReportsScreen() {
   return (
     <AdminShell
       activeSection="reports"
-      title={bi('Báo cáo Đối soát & Nhật ký Quản trị (F10)', 'Reconciliation Reports & Audit Logs (F10)')}
+      title={bi('Báo cáo Đối soát & Nhật ký Quản trị', 'Reconciliation Reports & Audit Logs')}
       subtitle={bi(
         'Thống kê số lượng đơn và tổng tiền thanh toán mô phỏng theo kỳ (loại trừ đơn hủy/hết hạn, múi giờ Asia/Ho_Chi_Minh) cùng Nhật ký kiểm toán các thao tác quản trị.',
         'Simulated booking revenue reconciliation (excluding cancelled/expired, Asia/Ho_Chi_Minh timezone) and immutable Admin Audit Logs.',
@@ -745,8 +745,8 @@ export function AdminReportsScreen() {
         <View style={adminStyles.card}>
           <Notice
             text={bi(
-              'Lưu ý F10: Đây là thống kê số tiền thanh toán mô phỏng (Simulated Revenue) phục vụ kiểm thử học tập theo múi giờ chuẩn Asia/Ho_Chi_Minh, không phải doanh thu kế toán/kinh doanh thực tế.',
-              'F10 Note: All monetary figures represent simulated checkout payments in Asia/Ho_Chi_Minh timezone for educational testing, not real commercial revenue.',
+              'Lưu ý: Đây là thống kê số tiền thanh toán mô phỏng (Simulated Revenue) phục vụ kiểm thử học tập theo múi giờ chuẩn Asia/Ho_Chi_Minh, không phải doanh thu kế toán/kinh doanh thực tế.',
+              'Note: All monetary figures represent simulated checkout payments in Asia/Ho_Chi_Minh timezone for educational testing, not real commercial revenue.',
             )}
             success
           />
@@ -942,7 +942,7 @@ export function AdminReportsScreen() {
                                   color: '#64748B',
                                 }}
                               >
-                                {bi('Trước khi sửa:', 'Old value:')}
+                                {bi('Trước:', 'Before:')}
                               </Text>
                               <Text
                                 style={{
@@ -986,7 +986,7 @@ export function AdminReportsScreen() {
                                   color: '#0E7490',
                                 }}
                               >
-                                {bi('Sau khi sửa:', 'New value:')}
+                                {bi('Sau:', 'After:')}
                               </Text>
                               <Text
                                 style={{

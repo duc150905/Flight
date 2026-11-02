@@ -137,7 +137,7 @@ export function AdminBookingsScreen() {
   return (
     <AdminShell
       activeSection="bookings"
-      title={bi('Quản lý Đơn đặt chỗ (Bookings — F10)', 'Bookings Management (F10)')}
+      title={bi('Quản lý Đơn đặt chỗ (Bookings)', 'Bookings Management')}
       subtitle={bi(
         'Tra cứu đơn đặt vé theo mã PNR, tên hành khách, email, số điện thoại và trạng thái. Trạng thái đơn chỉ chuyển qua luồng giữ ghế & thanh toán hợp lệ của server.',
         'Search bookings by PNR, passenger, email, phone, and status. Booking states are strictly governed by server-side seat-hold & payment rules.',
@@ -258,8 +258,8 @@ export function AdminBookingsScreen() {
                   <View style={[adminStyles.card, { marginTop: 8, backgroundColor: '#F8FAFC' }]}>
                     <Notice
                       text={bi(
-                        'Quy tắc F10: Trạng thái đơn (pending_payment / confirmed / cancelled / expired) được đồng bộ nguyên tử với kho ghế và giao dịch thanh toán trên server; không cho phép sửa tay tùy ý.',
-                        'F10 Rule: Booking status is atomically synchronized with seat inventory and payment transactions on the server; arbitrary manual overrides are disabled.',
+                        'Lưu ý: Trạng thái đơn (pending_payment / confirmed / cancelled / expired) được đồng bộ nguyên tử với kho ghế và giao dịch thanh toán trên server; không cho phép sửa tay tùy ý.',
+                        'Note: Booking status is atomically synchronized with seat inventory and payment transactions on the server; arbitrary manual overrides are disabled.',
                       )}
                       success
                     />
