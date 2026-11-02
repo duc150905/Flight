@@ -5,6 +5,8 @@ import { checkoutReview } from './review';
 import { CheckoutButton, CheckoutCard, CheckoutError, CheckoutShell, CheckoutText, MissingCheckout } from './ui';
 import { useLanguage } from '../i18n/provider';
 import { formatDate, formatTime } from '../i18n/translate';
+import { MoneyText } from '../currency/ui';
+import { checkoutEstimate } from './estimate';
 
 export function ReviewScreen() {
   const { language, t } = useLanguage();
@@ -21,6 +23,7 @@ export function ReviewScreen() {
       }} />
   </CheckoutShell>;
   const { itinerary, contact, passengers, passengerSegments } = result.data;
+  const estimate = checkoutEstimate(draft);
   const fingerprint = JSON.stringify(result.data);
   const checked = fingerprint === confirmed;
   return <CheckoutShell title="Review your details" step={2} back={() => router.dismissTo('/checkout/passengers')}>
@@ -35,6 +38,11 @@ export function ReviewScreen() {
         <CheckoutText muted>{t('Arrival')}: {formatTime(language, leg.arrivalAt, leg.destination.timezone)} ({leg.destination.timezone})</CheckoutText>
       </CheckoutCard>)}
     </CheckoutCard>
+    {estimate && <CheckoutCard>
+      <CheckoutText title message="Estimated total" />
+      <MoneyText amount={estimate.amount} currency={estimate.currency} />
+      <CheckoutText muted message="Final price is checked when booking." />
+    </CheckoutCard>}
     <CheckoutCard>
       <CheckoutText title message={"Contact details"} />
       <CheckoutText>{contact.contactName}</CheckoutText>

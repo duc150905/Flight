@@ -7,6 +7,7 @@ import { ActionButton, Notice, colors } from '@/features/auth/ui';
 import { listAirports, listDestinations } from './data';
 import { cabinLabels, localDate, validateSearch, type Airport, type CabinClass, type Destination } from './model';
 import { Brand, Page, styles } from './ui';
+import { CurrencyControls } from '../currency/ui';
 
 const emptyAirports: Airport[] = [];
 const emptyDestinations: Destination[] = [];
@@ -73,6 +74,7 @@ export function HomeScreen() {
         <Text style={styles.link}>{session ? 'Tài khoản' : 'Đăng nhập'}</Text>
       </Pressable>
     </View>
+    <CurrencyControls />
     <View>
       <Text accessibilityRole="header" style={styles.title}>Bạn muốn bay tới đâu?</Text>
       <Text style={styles.subtitle}>Tìm chuyến bay và so sánh giá vé theo từng hạng.</Text>

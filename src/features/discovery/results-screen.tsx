@@ -4,8 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { ActionButton, Notice, colors } from '@/features/auth/ui';
 import { searchOneWay } from './data';
-import { cabinLabels, formatMoney, searchSchema, type FlightOffer, type SearchCriteria } from './model';
+import { cabinLabels, searchSchema, type FlightOffer, type SearchCriteria } from './model';
 import { Page, styles } from './ui';
+import { CurrencyControls, MoneyText } from '../currency/ui';
 
 type Sort = 'price' | 'departure' | 'duration';
 const emptyOffers: FlightOffer[] = [];
@@ -52,6 +53,7 @@ export function ResultsScreen({ input }: { input: Record<string, string | string
       <Text style={styles.subtitle}>{criteria.departureDate} · {cabinLabels[criteria.cabinClass]} ·
         {' '}{criteria.adults + criteria.children + criteria.infants} hành khách</Text>
     </View>
+    <CurrencyControls />
     {loading && <View style={styles.card}><ActivityIndicator color={colors.primary} accessibilityLabel="Đang tìm chuyến bay" /></View>}
     <Notice text={error} />
     {!!error && <ActionButton title="Thử lại" secondary onPress={() => void searchQuery.refetch()} />}
@@ -107,7 +109,7 @@ function FlightCard({ offer, criteria }: { offer: FlightOffer; criteria: SearchC
     <View style={styles.divider} />
     <View style={styles.row}>
       <Text style={styles.muted}>{offer.fare.name}</Text>
-      <Text style={[styles.sectionTitle, { color: colors.primary }]}>{formatMoney(offer.total, offer.fare.currency)}</Text>
+      <MoneyText amount={offer.total} currency={offer.fare.currency} style={[styles.sectionTitle, { color: colors.primary }]} />
     </View>
     <Text style={styles.link}>Xem chi tiết và điều kiện vé →</Text>
   </Pressable>;

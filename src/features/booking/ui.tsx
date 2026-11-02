@@ -4,7 +4,8 @@ import { useState, type PropsWithChildren } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LanguagePicker, useLanguage } from '../i18n/provider';
-import { displayText, formatMoney } from '../i18n/translate';
+import { displayText } from '../i18n/translate';
+import { CurrencyControls, MoneyText } from '../currency/ui';
 import { useCheckout } from './checkout-provider';
 import { checkoutEstimate } from './estimate';
 
@@ -46,7 +47,7 @@ export function CheckoutProgress() {
 }
 type FooterAction = { title: string; onPress(): void; disabled?: boolean };
 export function CheckoutShell({ title, step, children, back, footer }: PropsWithChildren<{ title: string; step?: number; back?: () => void; footer?: FooterAction }>) {
-  const draft = useCheckout(); const [discard, setDiscard] = useState(false); const { t, language } = useLanguage();
+  const draft = useCheckout(); const [discard, setDiscard] = useState(false); const { t } = useLanguage();
   const estimate = checkoutEstimate(draft);
   return <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -63,13 +64,14 @@ export function CheckoutShell({ title, step, children, back, footer }: PropsWith
         <Text accessibilityRole="header" style={checkoutStyles.screenTitle}>{t(title)}</Text>
       </View>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={checkoutStyles.scroll}>
-        <View style={checkoutStyles.content}>{children}<LanguagePicker /></View>
+        <View style={checkoutStyles.content}>{children}<LanguagePicker /><CurrencyControls /></View>
       </ScrollView>
       {footer && <View style={checkoutStyles.footer}>
         <View style={checkoutStyles.footerContent}>
           <View style={{ flex: 1, minWidth: 130, gap: 3 }}>
             <Text style={checkoutStyles.caption}>{t('Estimated total')}</Text>
-            <Text style={checkoutStyles.amount}>{estimate ? formatMoney(language, estimate.amount, estimate.currency) : t('Price unavailable')}</Text>
+            {estimate ? <MoneyText amount={estimate.amount} currency={estimate.currency} style={checkoutStyles.amount} />
+              : <Text style={checkoutStyles.amount}>{t('Price unavailable')}</Text>}
             <Text style={checkoutStyles.caption}>{t(draft.passengers.length === 1 ? '{count} traveller' : '{count} travellers', { count: draft.passengers.length })}</Text>
           </View>
           <View style={{ flex: 1, minWidth: 140 }}><CheckoutButton {...footer} /></View>

@@ -3,8 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { ActionButton, Notice, colors } from '@/features/auth/ui';
 import { loadFlightOffer } from './data';
-import { cabinLabels, checkoutHrefForOffer, formatMoney, searchSchema, type FlightOffer } from './model';
+import { cabinLabels, checkoutHrefForOffer, searchSchema, type FlightOffer } from './model';
 import { Page, styles } from './ui';
+import { CurrencyControls, MoneyText } from '../currency/ui';
+import { useDisplayMoney } from '../currency/provider';
+import { inlineMoney } from '../currency/presentation';
 
 function baggageText(value: unknown) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return 'Xem điều kiện tại bước đặt vé.';
@@ -15,6 +18,7 @@ function baggageText(value: unknown) {
 }
 
 export function DetailScreen({ input }: { input: Record<string, string | string[] | undefined> }) {
+  const displayMoney = useDisplayMoney();
   const key = [input.id, input.fareId, input.originId, input.destinationId, input.departureDate,
     input.adults, input.children, input.infants, input.cabinClass].join('|');
   const parsed = searchSchema.safeParse(input);
@@ -37,6 +41,7 @@ export function DetailScreen({ input }: { input: Record<string, string | string[
   return <Page>
     <Pressable accessibilityRole="button" onPress={() => router.back()}><Text style={styles.link}>← Kết quả tìm kiếm</Text></Pressable>
     <Text accessibilityRole="header" style={styles.title}>Chi tiết chuyến bay</Text>
+    <CurrencyControls />
     {loading && <ActivityIndicator color={colors.primary} accessibilityLabel="Đang tải chi tiết chuyến bay" />}
     <Notice text={error} />
     {!!error && <ActionButton title="Thử lại" secondary onPress={() => void detailQuery.refetch()} />}
@@ -57,11 +62,11 @@ export function DetailScreen({ input }: { input: Record<string, string | string[
         <Text style={styles.muted}>{baggageText(offer.fare.baggage_allowance)}</Text>
         <Text style={styles.label}>Điều kiện hủy</Text>
         <Text style={styles.muted}>{offer.fare.cancellation_allowed
-          ? `Được yêu cầu hủy trước giờ bay ít nhất ${offer.fare.cancellation_cutoff_minutes} phút. Phí hủy theo điều kiện vé: ${formatMoney(offer.fare.cancellation_fee_amount, offer.fare.currency)}. Server sẽ xác nhận số tiền cuối cùng.`
+          ? `Được yêu cầu hủy trước giờ bay ít nhất ${offer.fare.cancellation_cutoff_minutes} phút. Phí hủy theo điều kiện vé: ${inlineMoney(displayMoney(offer.fare.cancellation_fee_amount, offer.fare.currency))}. Server sẽ xác nhận số tiền cuối cùng.`
           : 'Không cho phép yêu cầu hủy theo điều kiện vé này.'}</Text>
         <View style={styles.divider} />
         <Text style={styles.label}>Tổng ước tính cho {criteria.adults + criteria.children + criteria.infants} hành khách</Text>
-        <Text style={[styles.title, { color: colors.primary }]}>{formatMoney(offer.total, offer.fare.currency)}</Text>
+        <MoneyText amount={offer.total} currency={offer.fare.currency} style={[styles.title, { color: colors.primary }]} />
         <Text style={styles.muted}>Giá và khả năng giữ chỗ sẽ được kiểm tra lại khi tạo đơn.</Text>
         <ActionButton title="Tiếp tục đặt vé" onPress={() => router.push(checkoutHrefForOffer(offer, criteria))} />
       </View>
