@@ -27,7 +27,8 @@ export type AdminSectionKey =
   | 'flights'
   | 'aircraft'
   | 'catalogues'
-  | 'addons';
+  | 'addons'
+  | 'permissions';
 
 const consolePalette = {
   brandTeal: '#0891B2',
@@ -47,7 +48,7 @@ type NavRouteItem = {
   href: string;
   labelKey: string;
   icon: string;
-  group: 'workspace' | 'flight_ops';
+  group: 'workspace' | 'flight_ops' | 'system';
   badge?: string;
 };
 
@@ -112,6 +113,15 @@ const navRoutes: NavRouteItem[] = [
     icon: '🧳',
     group: 'flight_ops',
   },
+
+  // SYSTEM
+  {
+    key: 'permissions',
+    href: '/admin/permissions',
+    labelKey: 'admin.nav.permissions',
+    icon: '🛡',
+    group: 'system',
+  },
 ];
 
 export function AdminShell({
@@ -173,6 +183,7 @@ export function AdminShell({
 
   const workspaceItems = navRoutes.filter((r) => r.group === 'workspace');
   const flightOpsItems = navRoutes.filter((r) => r.group === 'flight_ops');
+  const systemItems = navRoutes.filter((r) => r.group === 'system');
 
   const renderNavGroup = (items: NavRouteItem[], onAfterSelect?: () => void) => (
     <View style={adminStyles.sidebarNavList}>
@@ -244,21 +255,8 @@ export function AdminShell({
 
       {/* SYSTEM Nav Group */}
       <Text style={[adminStyles.sidebarGroupLabel, { marginTop: 10 }]}>SYSTEM</Text>
+      {renderNavGroup(systemItems, onAfterSelect)}
       <View style={adminStyles.sidebarNavList}>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => {
-            onAfterSelect?.();
-            router.push('/account');
-          }}
-          style={adminStyles.sidebarItem}
-        >
-          <Text style={adminStyles.sidebarItemIcon}>🛡</Text>
-          <Text style={adminStyles.sidebarItemText}>
-            {bi('Phân quyền & Tài khoản', 'Permissions & Account')}
-          </Text>
-        </Pressable>
-
         <Pressable
           accessibilityRole="button"
           onPress={() => {

@@ -1,5 +1,6 @@
 import { loadAllRows, loadAllAuditLogs } from '../complete-data';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { permissionsStore } from '../permissions-store';
 import { useQuery } from '@tanstack/react-query';
 import { Pressable, Text, View } from 'react-native';
 import { ActionButton, Notice } from '@/features/auth/ui';
@@ -404,6 +405,34 @@ function buildAuditComparisons(
     });
   }
 
+  if (log.entity_type === 'user_roles') {
+    if (log.action === 'role.grant' || log.action === 'role.revoke') {
+      comparisons.push({
+        field: bi('Vai trò tài khoản', 'Account Role'),
+        before:
+          log.action === 'role.grant'
+            ? bi('Khách hàng (Customer)', 'Customer')
+            : bi('Quản trị viên (Admin)', 'Administrator'),
+        after:
+          log.action === 'role.grant'
+            ? bi('Quản trị viên (Admin)', 'Administrator')
+            : bi('Khách hàng (Customer)', 'Customer'),
+      });
+    } else if (log.action === 'role.suspend' || log.action === 'role.reactivate') {
+      comparisons.push({
+        field: bi('Trạng thái tài khoản', 'Account Status'),
+        before:
+          log.action === 'role.suspend'
+            ? bi('Đang hoạt động (Active)', 'Active')
+            : bi('Đã tạm dừng (Suspended)', 'Suspended'),
+        after:
+          log.action === 'role.suspend'
+            ? bi('Đã tạm dừng (Suspended)', 'Suspended')
+            : bi('Đang hoạt động (Active)', 'Active'),
+      });
+    }
+  }
+
   return comparisons;
 }
 
@@ -451,6 +480,7 @@ function describeAuditLog(
     destinations: bi('Điểm đến nổi bật', 'Featured Destination'),
     addon_products: bi('Sản phẩm Dịch vụ', 'Add-on Product'),
     flight_addon_offers: bi('Gói Dịch vụ chuyến bay', 'Flight Add-on Offer'),
+    user_roles: bi('Phân quyền & Tài khoản', 'Access Control & Roles'),
   };
   const categoryLabel = categoryMap[log.entity_type] ?? log.entity_type;
 
@@ -489,6 +519,17 @@ function describeAuditLog(
     targetDescription = ad
       ? bi(`Dịch vụ ${ad.code} — ${ad.name}`, `Add-on ${ad.code} — ${ad.name}`)
       : bi(`Dịch vụ bổ sung (#${log.entity_id.slice(0, 8)})`, `Add-on (#${log.entity_id.slice(0, 8)})`);
+  } else if (log.entity_type === 'user_roles') {
+    const tName =
+      typeof changes.target_name === 'string'
+        ? changes.target_name
+        : typeof changes.account === 'string'
+          ? changes.account
+          : log.entity_id
+            ? ctx.profileById.get(log.entity_id)?.full_name ?? `#${log.entity_id.slice(0, 8)}`
+            : bi('Tài khoản người dùng', 'User account');
+    const tEmail = typeof changes.email === 'string' ? ` (${changes.email})` : '';
+    targetDescription = `${tName}${tEmail}`;
   } else if (log.entity_id) {
     targetDescription = `${categoryLabel} (#${log.entity_id.slice(0, 8)})`;
   } else {
@@ -583,12 +624,41 @@ function describeAuditLog(
       badgeLabel = bi('LƯU SƠ ĐỒ GHẾ', 'SEAT MAP SAVED');
       badgeActive = true;
       break;
+    case 'role.grant': {
+      const name = String(changes.target_name ?? changes.granted_to ?? changes.account ?? bi('tài khoản', 'account'));
+      title = bi(`Cấp quyền Quản trị viên cho ${name}`, `Granted Administrator role to ${name}`);
+      badgeLabel = bi('CẤP QUYỀN ADMIN', 'ADMIN GRANTED');
+      badgeActive = true;
+      break;
+    }
+    case 'role.revoke': {
+      const name = String(changes.target_name ?? changes.revoked_from ?? changes.account ?? bi('tài khoản', 'account'));
+      title = bi(`Thu hồi quyền Quản trị viên của ${name}`, `Revoked Administrator role from ${name}`);
+      badgeLabel = bi('THU HỒI QUYỀN', 'ROLE REVOKED');
+      badgeActive = false;
+      break;
+    }
+    case 'role.suspend': {
+      const name = String(changes.target_name ?? changes.account ?? bi('tài khoản', 'account'));
+      title = bi(`Tạm dừng hoạt động tài khoản ${name}`, `Suspended account ${name}`);
+      badgeLabel = bi('TẠM DỪNG TÀI KHOẢN', 'ACCOUNT SUSPENDED');
+      badgeActive = false;
+      break;
+    }
+    case 'role.reactivate': {
+      const name = String(changes.target_name ?? changes.account ?? bi('tài khoản', 'account'));
+      title = bi(`Kích hoạt lại tài khoản ${name}`, `Re-activated account ${name}`);
+      badgeLabel = bi('KÍCH HOẠT LẠI', 'ACCOUNT RE-ACTIVATED');
+      badgeActive = true;
+      break;
+    }
     default: {
-      if (log.action.endsWith('.insert')) {
+      const actionStr = typeof log?.action === 'string' ? log.action : '';
+      if (actionStr.endsWith('.insert')) {
         title = bi(`Thêm mới ${targetDescription}`, `Created ${targetDescription}`);
         badgeLabel = bi('THÊM MỚI', 'CREATED');
         badgeActive = true;
-      } else if (log.action.endsWith('.update')) {
+      } else if (actionStr.endsWith('.update')) {
         title = bi(`Cập nhật ${targetDescription}`, `Updated ${targetDescription}`);
         badgeLabel =
           changes.is_active === false
@@ -596,8 +666,8 @@ function describeAuditLog(
             : bi('CẬP NHẬT', 'UPDATED');
         badgeActive = changes.is_active !== false;
       } else {
-        title = `${categoryLabel}: ${log.action}`;
-        badgeLabel = log.action.toUpperCase();
+        title = actionStr ? `${categoryLabel}: ${actionStr}` : categoryLabel;
+        badgeLabel = actionStr ? actionStr.toUpperCase() : bi('HOẠT ĐỘNG', 'ACTIVITY');
       }
     }
   }
@@ -626,6 +696,16 @@ export function AdminReportsScreen() {
   const [entityFilter, setEntityFilter] = useState<string>('all');
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
+
+  const [permAuditRows, setPermAuditRows] = useState<AdminAuditLogRow[]>(() =>
+    permissionsStore.toAuditLogRows(),
+  );
+
+  useEffect(() => {
+    permissionsStore.load().then(() => {
+      setPermAuditRows(permissionsStore.toAuditLogRows());
+    });
+  }, []);
 
   const reportQuery = useQuery({
     queryKey: ['admin-reports-audit-bundle'],
@@ -658,6 +738,7 @@ export function AdminReportsScreen() {
 
   const auditFilterChips: { key: string; label: string }[] = [
     { key: 'all', label: bi('Tất cả hoạt động', 'All activities') },
+    { key: 'user_roles', label: bi('🛡 Phân quyền', '🛡 Roles & Access') },
     { key: 'flight_instances', label: bi('✈ Chuyến bay', '✈ Flights') },
     { key: 'flight_fares', label: bi('🏷 Giá vé', '🏷 Fares') },
     { key: 'flight_seats', label: bi('💺 Kho ghế chuyến', '💺 Flight Seats') },
@@ -667,7 +748,8 @@ export function AdminReportsScreen() {
     { key: 'addon_products', label: bi('🧳 Dịch vụ & Hành lý', '🧳 Add-ons') },
   ];
 
-  const auditLogs = (data?.auditLogs ?? []).map((log) => ({
+  const allAuditRows = [...permAuditRows, ...(data?.auditLogs ?? [])];
+  const auditLogs = allAuditRows.map((log) => ({
     raw: log,
     human: describeAuditLog(log, lookupCtx),
   }));
