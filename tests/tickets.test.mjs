@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { createTicketService, TicketNotFoundError, ticketErrorMessage, TICKET_PAGE_SIZE } from '../src/features/tickets/model.ts';
-import { bookingStatusLabel, cabinClassLabel, flightSnapshotSummary, formatMoney, tripTypeLabel } from '../src/features/tickets/presentation.ts';
+import { bookingStatusLabel, cabinClassLabel, flightSnapshotSummary, formatDateTime, formatMoney, tripTypeLabel } from '../src/features/tickets/presentation.ts';
+import { translate } from '../src/features/i18n/translate.ts';
 
 const bookingId = '11111111-1111-4111-8111-111111111111';
 const booking = { id: bookingId, user_id: 'user-1', booking_code: 'FLIGHT42' };
@@ -88,4 +89,12 @@ test('booking labels and snapshots remain safe when optional snapshot fields are
     departureTimezone: null, arrivalTimezone: null,
   });
   assert.equal(flightSnapshotSummary(null).departureCode, null);
+});
+
+test('ticket status, dates and amounts follow the shared language choice', () => {
+  assert.equal(translate('en', bookingStatusLabel('confirmed')), 'Confirmed');
+  assert.equal(translate('en', tripTypeLabel('round_trip')), 'Round trip');
+  assert.notEqual(formatDateTime('2030-03-08T02:00:00Z', 'Asia/Ho_Chi_Minh', 'vi'),
+    formatDateTime('2030-03-08T02:00:00Z', 'Asia/Ho_Chi_Minh', 'en'));
+  assert.notEqual(formatMoney(1200000, 'VND', 'vi'), formatMoney(1200000, 'VND', 'en'));
 });

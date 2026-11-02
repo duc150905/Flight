@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ActionButton, colors } from '@/features/auth/ui';
+import { useLanguage } from '@/features/i18n/provider';
 
 export const ticketStyles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
@@ -33,11 +34,12 @@ export function TicketBack({ label, onPress }: { label: string; onPress: () => v
 export function TicketState({ title, description, loading = false, action, onAction, children }: PropsWithChildren<{
   title: string; description: string; loading?: boolean; action?: string; onAction?: () => void;
 }>) {
+  const { t } = useLanguage();
   return <SafeAreaView style={ticketStyles.safe}>
     <View style={[ticketStyles.content, ticketStyles.state]}>
       <Text accessibilityRole="header" style={ticketStyles.title}>{title}</Text>
       <Text style={ticketStyles.subtitle}>{description}</Text>
-      {loading && <ActivityIndicator color={colors.primary} accessibilityLabel="Đang tải" />}
+      {loading && <ActivityIndicator color={colors.primary} accessibilityLabel={t('Đang tải')} />}
       {children}
       {action && onAction && <ActionButton title={action} onPress={onAction} />}
     </View>

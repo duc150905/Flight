@@ -37,6 +37,35 @@ test('login sends normalized credentials and propagates auth errors', async () =
   } });
   await assert.rejects(() => actions.login(credentials), e => e.code === 'invalid_credentials');
 });
+test('Google sign-in delegates redirect handling to the browser on web and to the app on mobile', async () => {
+  const requests = [];
+  const actions = createAuthService({ signInWithOAuth: async input => {
+    requests.push(input);
+    return { data: { url: 'https://example.supabase.co/auth/v1/authorize' }, error: null };
+  } });
+  assert.equal(await actions.googleSignIn('http://localhost:8081/account', false), 'https://example.supabase.co/auth/v1/authorize');
+  await actions.googleSignIn('flight://account', true);
+  assert.deepEqual(requests, [
+    { provider: 'google', options: { redirectTo: 'http://localhost:8081/account', skipBrowserRedirect: false } },
+    { provider: 'google', options: { redirectTo: 'flight://account', skipBrowserRedirect: true } },
+  ]);
+});
+test('Google callback only creates a session from tokens at the requested redirect', async () => {
+  let sessionInput;
+  const actions = createAuthService({ setSession: async input => {
+    sessionInput = input;
+    return { data: { session: { user: { id: 'google-user' } } }, error: null };
+  } });
+  await actions.completeGoogleSignIn('flight://account#access_token=access%2Bvalue&refresh_token=refresh%2Fvalue', 'flight://account');
+  assert.deepEqual(sessionInput, { access_token: 'access+value', refresh_token: 'refresh/value' });
+  sessionInput = undefined;
+  for (const url of [
+    'flight://other#access_token=a&refresh_token=b',
+    'flight://account#access_token=a',
+    'flight://account?error=access_denied#access_token=a&refresh_token=b',
+  ]) await assert.rejects(() => actions.completeGoogleSignIn(url, 'flight://account'));
+  assert.equal(sessionInput, undefined);
+});
 test('verification must receive a session before it succeeds', async () => {
   const actions = createAuthService({ verifyOtp: async input => {
     assert.deepEqual(input, { email: 'person@example.com', token: '123456', type: 'email' });
