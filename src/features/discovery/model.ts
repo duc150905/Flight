@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { databaseIdSchema } from '../../lib/database-id.ts';
 import type { Database } from '@/types/database.generated';
 import { buildCheckoutHref, selectionFromDiscovery } from '../booking/selection.ts';
 
@@ -15,8 +16,8 @@ const calendarDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Nhập ngày theo 
 }, 'Ngày khởi hành không hợp lệ.');
 
 export const searchSchema = z.object({
-  originId: z.uuid('Chọn sân bay đi.'),
-  destinationId: z.uuid('Chọn sân bay đến.'),
+  originId: databaseIdSchema('Chọn sân bay đi.'),
+  destinationId: databaseIdSchema('Chọn sân bay đến.'),
   departureDate: calendarDate,
   adults: z.coerce.number().int().min(1).max(9),
   children: z.coerce.number().int().min(0).max(8),

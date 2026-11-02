@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { databaseIdSchema } from '../../lib/database-id.ts';
 
 export const passengerCountsSchema = z.object({
   adults: z.number().int().min(1).max(9), children: z.number().int().min(0).max(8),
@@ -10,7 +11,7 @@ export const selectedItinerarySchema = z.object({
   tripType: z.enum(['one_way', 'round_trip', 'multi_city']),
   passengers: passengerCountsSchema,
   segments: z.array(z.object({
-    flightId: z.uuid(), fareId: z.uuid(),
+    flightId: databaseIdSchema(), fareId: databaseIdSchema(),
     journeyIndex: z.number().int().min(1).max(12), legIndex: z.number().int().min(1).max(12),
   })).min(1).max(12),
 }).superRefine((value, ctx) => {

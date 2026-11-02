@@ -28,6 +28,8 @@ legs. At most 12 legs, 9 seated passengers, one infant per selected adult. No
 prices/names/PII are accepted in the handoff. The URL only transports IDs/counts.
 
 Flight data is read again from Supabase, not trusted from route parameters.
+Database ID validation accepts canonical PostgreSQL UUIDs, including the
+deterministic hashes from TV3's seed, and normalizes case before duplicate checks.
 `loadCheckoutItinerary` rejects missing/inactive/mismatched fares, closed or
 unpublished flights outside scheduled/delayed status, invalid connections and reversed times.
 Dates use airport timezones. This is not a price quote or seat guarantee.
