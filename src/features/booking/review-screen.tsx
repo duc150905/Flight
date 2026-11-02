@@ -3,8 +3,11 @@ import { useState } from 'react';
 import { useCheckout } from './checkout-provider';
 import { checkoutReview } from './review';
 import { CheckoutButton, CheckoutCard, CheckoutError, CheckoutShell, CheckoutText, MissingCheckout } from './ui';
+import { useLanguage } from '../i18n/provider';
+import { formatDate, formatTime } from '../i18n/translate';
 
 export function ReviewScreen() {
+  const { language, t } = useLanguage();
   const draft = useCheckout();
   const result = checkoutReview(draft);
   const [confirmed, setConfirmed] = useState<string | null>(null);
@@ -17,10 +20,9 @@ export function ReviewScreen() {
         else router.dismissTo(result.target === 'contact' ? '/checkout/contact' : '/checkout/passengers');
       }} />
   </CheckoutShell>;
-  const { itinerary, contact, passengers } = result.data;
+  const { itinerary, contact, passengers, passengerSegments } = result.data;
   const fingerprint = JSON.stringify(result.data);
   const checked = fingerprint === confirmed;
-  const formatTime = (instant: string, timeZone: string) => new Intl.DateTimeFormat('en-GB', { timeZone, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(instant));
   return <CheckoutShell title="Review your details" step={2} back={() => router.dismissTo('/checkout/passengers')}>
     <CheckoutText muted>Take a moment to check names, dates and contact details before moving on to baggage and seats.</CheckoutText>
     <CheckoutCard>
@@ -29,8 +31,8 @@ export function ReviewScreen() {
         <CheckoutText>{leg.origin.iata_code} → {leg.destination.iata_code}</CheckoutText>
         <CheckoutText muted>{leg.origin.city} → {leg.destination.city}</CheckoutText>
         <CheckoutText>{leg.flightNumber} · {leg.fareName}</CheckoutText>
-        <CheckoutText muted>Departure: {formatTime(leg.departureAt, leg.origin.timezone)} ({leg.origin.timezone})</CheckoutText>
-        <CheckoutText muted>Arrival: {formatTime(leg.arrivalAt, leg.destination.timezone)} ({leg.destination.timezone})</CheckoutText>
+        <CheckoutText muted>{t('Departure')}: {formatTime(language, leg.departureAt, leg.origin.timezone)} ({leg.origin.timezone})</CheckoutText>
+        <CheckoutText muted>{t('Arrival')}: {formatTime(language, leg.arrivalAt, leg.destination.timezone)} ({leg.destination.timezone})</CheckoutText>
       </CheckoutCard>)}
     </CheckoutCard>
     <CheckoutCard>
@@ -41,16 +43,20 @@ export function ReviewScreen() {
       <CheckoutButton title="Edit contact details" secondary onPress={() => router.dismissTo('/checkout/contact')} />
     </CheckoutCard>
     <CheckoutCard>
-      <CheckoutText title>Travellers · {passengers.length}</CheckoutText>
+      <CheckoutText title>{t('Travellers')} · {passengers.length}</CheckoutText>
       {passengers.map((passenger, index) => <CheckoutCard key={passenger.id}>
-        <CheckoutText>Traveller {index + 1} · {passenger.id.split('-')[0]}</CheckoutText>
+        <CheckoutText>{t('Traveller {number}', { number: index + 1 })}</CheckoutText>
         <CheckoutText>{passenger.values.familyName} {passenger.values.givenNames}</CheckoutText>
-        <CheckoutText muted>Date of birth: {passenger.values.dateOfBirth}</CheckoutText>
-        {!!passenger.values.accompanyingAdultId && <CheckoutText muted>Accompanied by: {passengers.find(p => p.id === passenger.values.accompanyingAdultId)?.values.givenNames} ({passenger.values.accompanyingAdultId})</CheckoutText>}
+        <CheckoutText muted>{t('Date of birth')}: {formatDate(language, passenger.values.dateOfBirth)}</CheckoutText>
+        {passengerSegments.filter(segment => segment.passengerId === passenger.id).map(segment => {
+          const leg = itinerary.legs.find(leg => leg.flightId === segment.flightId)!;
+          const companion = passengers.find(p => p.id === segment.accompanyingPassengerId);
+          return <CheckoutText muted key={segment.flightId}>{leg.origin.iata_code} → {leg.destination.iata_code}: {t(segment.passengerType)} · {t(segment.requiresSeat ? 'Separate seat' : 'No separate seat')}{companion ? ` · ${t('Accompanied by')}: ${companion.values.givenNames} ${companion.values.familyName}` : ''}</CheckoutText>;
+        })}
         {!!passenger.values.passportNumber && <>
-          <CheckoutText muted>Nationality: {passenger.values.nationalityCode}</CheckoutText>
-          <CheckoutText>Passport: {passenger.values.passportNumber}</CheckoutText>
-          <CheckoutText muted>Issued by: {passenger.values.passportIssuerCountry} · Expires: {passenger.values.passportExpiryDate}</CheckoutText>
+          <CheckoutText muted>{t('Nationality')}: {passenger.values.nationalityCode}</CheckoutText>
+          <CheckoutText>{t('Passport')}: {passenger.values.passportNumber}</CheckoutText>
+          <CheckoutText muted>{t('Issued by')}: {passenger.values.passportIssuerCountry} · {t('Expires')}: {formatDate(language, passenger.values.passportExpiryDate!)}</CheckoutText>
         </>}
       </CheckoutCard>)}
       <CheckoutButton title="Edit travellers" secondary onPress={() => router.dismissTo('/checkout/passengers')} />

@@ -3,7 +3,7 @@ import { useState, type PropsWithChildren } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCheckout } from './checkout-provider';
-import { LanguagePicker } from '../i18n/provider';
+import { LanguagePicker, useLanguage } from '../i18n/provider';
 
 const palettes = {
   light: { background: '#F5F9FA', surface: '#FFFFFF', text: '#253540', muted: '#536570', primary: '#007E91', tint: '#E4F5F6', border: '#BCCBD1', error: '#B42318' },
@@ -11,26 +11,26 @@ const palettes = {
 };
 export function useCheckoutColors() { return palettes[useColorScheme() === 'dark' ? 'dark' : 'light']; }
 export function CheckoutButton({ title, onPress, secondary = false, disabled = false }: { title: string; onPress: () => void; secondary?: boolean; disabled?: boolean }) {
-  const c = useCheckoutColors();
+  const c = useCheckoutColors(); const { t } = useLanguage();
   return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
     style={({ pressed }) => [checkoutStyles.button, { backgroundColor: secondary ? c.tint : c.primary, opacity: disabled ? 0.5 : pressed ? 0.75 : 1 }]}>
-    <Text style={[checkoutStyles.buttonText, { color: secondary ? c.primary : c.background }]}>{title}</Text>
+    <Text style={[checkoutStyles.buttonText, { color: secondary ? c.primary : c.background }]}>{t(title)}</Text>
   </Pressable>;
 }
 export function CheckoutText({ children, muted = false, title = false }: PropsWithChildren<{ muted?: boolean; title?: boolean }>) {
-  const c = useCheckoutColors();
-  return <Text accessibilityRole={title ? 'header' : undefined} style={[title ? checkoutStyles.title : checkoutStyles.body, { color: muted ? c.muted : c.text }]}>{children}</Text>;
+  const c = useCheckoutColors(); const { t } = useLanguage();
+  return <Text accessibilityRole={title ? 'header' : undefined} style={[title ? checkoutStyles.title : checkoutStyles.body, { color: muted ? c.muted : c.text }]}>{typeof children === 'string' ? t(children) : children}</Text>;
 }
 export function CheckoutCard({ children }: PropsWithChildren) {
   const c = useCheckoutColors();
   return <View style={[checkoutStyles.card, { backgroundColor: c.surface, borderColor: c.border }]}>{children}</View>;
 }
 export function CheckoutError({ message }: { message?: string }) {
-  const c = useCheckoutColors();
-  return message ? <Text accessibilityLiveRegion="polite" style={[checkoutStyles.body, { color: c.error }]}>{message}</Text> : null;
+  const c = useCheckoutColors(); const { t } = useLanguage();
+  return message ? <Text accessibilityLiveRegion="polite" style={[checkoutStyles.body, { color: c.error }]}>{t(message)}</Text> : null;
 }
 export function CheckoutShell({ title, step, children, back }: PropsWithChildren<{ title: string; step?: number; back?: () => void }>) {
-  const c = useCheckoutColors(); const draft = useCheckout(); const [discard, setDiscard] = useState(false);
+  const c = useCheckoutColors(); const draft = useCheckout(); const [discard, setDiscard] = useState(false); const { t } = useLanguage();
   return <SafeAreaView style={{ flex: 1, backgroundColor: c.background }}>
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={checkoutStyles.scroll}>
@@ -38,15 +38,15 @@ export function CheckoutShell({ title, step, children, back }: PropsWithChildren
           <View style={checkoutStyles.toolbar}>
             {back ? <CheckoutButton title="Back" secondary onPress={back} /> : <CheckoutText muted>FLIGHT / BOOKING</CheckoutText>}
             <Pressable accessibilityRole="button" onPress={() => setDiscard(true)} style={checkoutStyles.cancel}>
-              <Text style={[checkoutStyles.body, { color: c.muted }]}>Cancel</Text>
+              <Text style={[checkoutStyles.body, { color: c.muted }]}>{t('Cancel')}</Text>
             </Pressable>
           </View>
           <LanguagePicker />
-          {step !== undefined && <View accessibilityLabel={`Step ${step + 1} of 3`} style={checkoutStyles.progress}>
+          {step !== undefined && <View accessibilityLabel={t('Step {number} of {total}', { number: step + 1, total: 3 })} style={checkoutStyles.progress}>
             {['Contact', 'Travellers', 'Review'].map((label, index) => <View key={label} style={checkoutStyles.progressItem}>
               <View style={[checkoutStyles.circle, { backgroundColor: index <= step ? c.primary : c.tint }]}>
                 <Text style={{ fontWeight: '700', color: index <= step ? c.background : c.muted }}>{index + 1}</Text>
-              </View><Text style={{ color: index === step ? c.primary : c.muted, fontSize: 13 }}>{label}</Text>
+              </View><Text style={{ color: index === step ? c.primary : c.muted, fontSize: 13 }}>{t(label)}</Text>
             </View>)}
           </View>}
           <CheckoutText title>{title}</CheckoutText>

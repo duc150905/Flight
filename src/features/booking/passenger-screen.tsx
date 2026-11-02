@@ -9,6 +9,7 @@ import { CheckoutField } from './form-field';
 import { localCalendarDay } from './itinerary-data';
 import { infantLegsForPassenger, isEligibleCompanion } from './passenger-policy';
 import { CheckoutButton, CheckoutCard, CheckoutError, CheckoutShell, CheckoutText, MissingCheckout, useCheckoutColors } from './ui';
+import { useLanguage } from '../i18n/provider';
 
 export function PassengerScreen() {
   const draft = useCheckout();
@@ -17,6 +18,7 @@ export function PassengerScreen() {
   return <PassengerForm key={JSON.stringify(draft.itinerary.selection)} />;
 }
 function PassengerForm() {
+  const { t } = useLanguage();
   const draft = useCheckout();
   const bookingDate = localCalendarDay(new Date(), draft.itinerary!.legs[0].origin.timezone);
   const form = useForm(passengerFormOptions(draft.passengers, bookingDate, draft.itinerary!));
@@ -27,7 +29,7 @@ function PassengerForm() {
     <CheckoutText muted>Enter each traveller’s name as shown on their travel document.</CheckoutText>
     <CheckoutText muted>Demo age rules: infant under 2, child 2–11, adult 12+. Age is checked on every flight date.</CheckoutText>
     {draft.passengers.map((passenger, index) => <CheckoutCard key={passenger.id}>
-      <CheckoutText title>Traveller {index + 1} · {passenger.id.split('-')[0]}</CheckoutText>
+      <CheckoutText title>{t('Traveller {number}', { number: index + 1 })} · {t(passenger.id.split('-')[0])}</CheckoutText>
       <CheckoutField control={form.control} name={`passengers.${index}.values.givenNames`} label="Given names" autoCapitalize="words" returnKeyType="next"
         onSubmitEditing={() => form.setFocus(`passengers.${index}.values.familyName`)}
         onRawChange={value => draft.updatePassenger(passenger.id, { givenNames: value })} />
@@ -56,7 +58,7 @@ function PassengerForm() {
           {draft.passengers.filter(p => p.id.startsWith('adult-')).map(adult => {
             const eligible = isEligibleCompanion(adult.values.dateOfBirth, infantLegsForPassenger(passenger.values.dateOfBirth, draft.itinerary!.legs));
             const selected = field.value === adult.id;
-            const label = `${adult.id}: ${[adult.values.givenNames, adult.values.familyName].filter(Boolean).join(' ') || 'Enter traveller details'}`;
+            const label = `${t('Traveller {number}', { number: draft.passengers.indexOf(adult) + 1 })}: ${[adult.values.givenNames, adult.values.familyName].filter(Boolean).join(' ') || t('Enter traveller details')}`;
             return <Pressable key={adult.id} accessibilityRole="radio" accessibilityLabel={label} accessibilityState={{ checked: selected, disabled: !eligible }} disabled={!eligible}
               onPress={() => {
                 draft.updatePassenger(passenger.id, { accompanyingAdultId: adult.id });
@@ -64,7 +66,7 @@ function PassengerForm() {
                 void revalidateCompanionFields(form);
               }}
               style={({ pressed }) => ({ minHeight: 52, padding: 14, borderWidth: selected ? 2 : 1, borderRadius: 10, borderColor: selected ? c.primary : c.border, backgroundColor: selected ? c.tint : c.surface, opacity: !eligible ? 0.5 : pressed ? 0.75 : 1 })}>
-              <Text style={{ color: c.text, fontSize: 16 }}>{selected ? 'Selected: ' : ''}{label}</Text>
+              <Text style={{ color: c.text, fontSize: 16 }}>{selected ? t('Selected: ') : ''}{label}</Text>
             </Pressable>;
           })}
           <CheckoutError message={fieldState.error?.message} />
