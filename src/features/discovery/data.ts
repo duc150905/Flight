@@ -48,7 +48,7 @@ export async function searchOneWay(input: unknown): Promise<{ criteria: SearchCr
       .eq('departure_airport_id', origin.id).eq('arrival_airport_id', destination.id)
       .in('status', ['scheduled', 'delayed']).not('published_at', 'is', null)
       .gt('sales_close_at', new Date().toISOString())
-      .gte('departure_at', from).lt('departure_at', until)
+      .gte('departure_at', from).gt('departure_at', new Date().toISOString()).lt('departure_at', until)
       .order('departure_at').order('id').range(offset, offset + pageSize - 1);
     if (error) throw error;
     flights.push(...(data ?? []).filter(flight =>

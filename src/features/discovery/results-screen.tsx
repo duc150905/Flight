@@ -2,17 +2,19 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
-import { ActionButton, Notice, colors } from '@/features/auth/ui';
+import { Notice } from '@/features/auth/ui';
+import { useLanguage } from '@/features/i18n/provider';
+import { localeFor } from '@/features/i18n/translate';
+import { CurrencyControls, MoneyText } from '@/features/currency/ui';
 import { searchOneWay } from './data';
 import { cabinLabels, searchSchema, type FlightOffer, type SearchCriteria } from './model';
-import { Page, styles } from './ui';
-import { CurrencyControls, MoneyText } from '../currency/ui';
+import { FlightButton, flightColors, Page, styles } from './ui';
 
 type Sort = 'price' | 'departure' | 'duration';
 const emptyOffers: FlightOffer[] = [];
 
-function timeAt(iso: string, timezone: string) {
-  return new Intl.DateTimeFormat('vi-VN', { timeZone: timezone, hour: '2-digit', minute: '2-digit' })
+function timeAt(iso: string, timezone: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, { timeZone: timezone, hour: '2-digit', minute: '2-digit' })
     .format(new Date(iso));
 }
 
@@ -21,6 +23,7 @@ function durationMinutes(offer: FlightOffer) {
 }
 
 export function ResultsScreen({ input }: { input: Record<string, string | string[] | undefined> }) {
+  const { t } = useLanguage();
   const searchKey = [input.originId, input.destinationId, input.departureDate, input.adults,
     input.children, input.infants, input.cabinClass].join('|');
   const parsed = searchSchema.safeParse(input);
@@ -43,39 +46,39 @@ export function ResultsScreen({ input }: { input: Record<string, string | string
         : durationMinutes(a) - durationMinutes(b)), [offers, airlineId, sort]);
 
   if (!criteria) return <Page>
-    <Text style={styles.title}>Thông tin tìm kiếm không hợp lệ</Text>
-    <ActionButton title="Về trang chủ" onPress={() => router.replace('/')} />
+    <Text style={styles.title}>{t('Thông tin tìm kiếm không hợp lệ')}</Text>
+    <FlightButton title={t('Về trang chủ')} onPress={() => router.replace('/')} />
   </Page>;
   return <Page>
-    <Pressable accessibilityRole="button" onPress={() => router.back()}><Text style={styles.link}>← Sửa tìm kiếm</Text></Pressable>
+    <Pressable accessibilityRole="button" onPress={() => router.back()}><Text style={styles.link}>← {t('Sửa tìm kiếm')}</Text></Pressable>
     <View>
-      <Text accessibilityRole="header" style={styles.title}>Chuyến bay một chiều</Text>
-      <Text style={styles.subtitle}>{criteria.departureDate} · {cabinLabels[criteria.cabinClass]} ·
-        {' '}{criteria.adults + criteria.children + criteria.infants} hành khách</Text>
+      <Text accessibilityRole="header" style={styles.title}>{t('Chuyến bay một chiều')}</Text>
+      <Text style={styles.subtitle}>{criteria.departureDate} · {t(cabinLabels[criteria.cabinClass])} ·
+        {' '}{t('{count} hành khách', { count: criteria.adults + criteria.children + criteria.infants })}</Text>
     </View>
     <CurrencyControls />
-    {loading && <View style={styles.card}><ActivityIndicator color={colors.primary} accessibilityLabel="Đang tìm chuyến bay" /></View>}
-    <Notice text={error} />
-    {!!error && <ActionButton title="Thử lại" secondary onPress={() => void searchQuery.refetch()} />}
+    {loading && <View style={styles.card}><ActivityIndicator color={flightColors.primary} accessibilityLabel={t('Đang tìm chuyến bay')} /></View>}
+    <Notice text={t(error)} />
+    {!!error && <FlightButton title={t('Thử lại')} secondary onPress={() => void searchQuery.refetch()} />}
     {!loading && !error && offers.length === 0 && <View style={styles.card}>
-      <Text style={styles.sectionTitle}>Chưa có chuyến bay phù hợp</Text>
-      <Text style={styles.muted}>Hãy thử ngày khác, hạng ghế khác hoặc tuyến khác.</Text>
+      <Text style={styles.sectionTitle}>{t('Chưa có chuyến bay phù hợp')}</Text>
+      <Text style={styles.muted}>{t('Hãy thử ngày khác, hạng ghế khác hoặc tuyến khác.')}</Text>
     </View>}
     {!loading && !error && offers.length > 0 && <>
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>{visible.length} lựa chọn</Text>
-        <Text style={styles.label}>Sắp xếp</Text>
+        <Text style={styles.sectionTitle}>{t('{count} lựa chọn', { count: visible.length })}</Text>
+        <Text style={styles.label}>{t('Sắp xếp')}</Text>
         <View style={styles.chipRow}>{([
           ['price', 'Giá thấp nhất'], ['departure', 'Giờ khởi hành'], ['duration', 'Thời gian bay'],
         ] as [Sort, string][]).map(([value, label]) =>
           <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected: sort === value }}
             onPress={() => setSort(value)} style={[styles.chip, sort === value && styles.selectedChip]}>
-            <Text style={styles.chipText}>{label}</Text>
+            <Text style={styles.chipText}>{t(label)}</Text>
           </Pressable>)}</View>
-        <Text style={styles.label}>Hãng bay</Text>
+        <Text style={styles.label}>{t('Hãng bay')}</Text>
         <View style={styles.chipRow}>
           <Pressable accessibilityRole="button" onPress={() => setAirlineId('')}
-            style={[styles.chip, !airlineId && styles.selectedChip]}><Text style={styles.chipText}>Tất cả</Text></Pressable>
+            style={[styles.chip, !airlineId && styles.selectedChip]}><Text style={styles.chipText}>{t('Tất cả')}</Text></Pressable>
           {airlines.map(([id, name]) => <Pressable key={id} accessibilityRole="button"
             onPress={() => setAirlineId(id)} style={[styles.chip, airlineId === id && styles.selectedChip]}>
             <Text style={styles.chipText}>{name}</Text>
@@ -83,12 +86,13 @@ export function ResultsScreen({ input }: { input: Record<string, string | string
         </View>
       </View>
       {visible.map(offer => <FlightCard key={offer.fare.id} offer={offer} criteria={criteria} />)}
-      <Text style={styles.muted}>Giá hiển thị là ước tính cho nhóm hành khách. Giá cuối cùng được kiểm tra lại khi đặt vé.</Text>
+      <Text style={styles.muted}>{t('Giá hiển thị là ước tính cho nhóm hành khách. Giá cuối cùng được kiểm tra lại khi đặt vé.')}</Text>
     </>}
   </Page>;
 }
 
 function FlightCard({ offer, criteria }: { offer: FlightOffer; criteria: SearchCriteria }) {
+  const { t, language } = useLanguage();
   const minutes = durationMinutes(offer);
   return <Pressable accessibilityRole="button" style={styles.card} onPress={() => router.push({
     pathname: '/flights/[id]', params: {
@@ -100,17 +104,17 @@ function FlightCard({ offer, criteria }: { offer: FlightOffer; criteria: SearchC
   })}>
     <Text style={styles.label}>{offer.airline.name} · {offer.flight.flight_number}</Text>
     <View style={styles.row}>
-      <View><Text style={styles.sectionTitle}>{timeAt(offer.flight.departure_at, offer.origin.timezone)}</Text>
+      <View><Text style={styles.sectionTitle}>{timeAt(offer.flight.departure_at, offer.origin.timezone, localeFor(language))}</Text>
         <Text style={styles.muted}>{offer.origin.iata_code}</Text></View>
-      <Text style={styles.muted}>{Math.floor(minutes / 60)}g {minutes % 60}p · Bay thẳng</Text>
-      <View><Text style={styles.sectionTitle}>{timeAt(offer.flight.arrival_at, offer.destination.timezone)}</Text>
+      <Text style={styles.muted}>{t('{hours}g {minutes}p', { hours: Math.floor(minutes / 60), minutes: minutes % 60 })} · {t('Bay thẳng')}</Text>
+      <View><Text style={styles.sectionTitle}>{timeAt(offer.flight.arrival_at, offer.destination.timezone, localeFor(language))}</Text>
         <Text style={styles.muted}>{offer.destination.iata_code}</Text></View>
     </View>
     <View style={styles.divider} />
     <View style={styles.row}>
       <Text style={styles.muted}>{offer.fare.name}</Text>
-      <MoneyText amount={offer.total} currency={offer.fare.currency} style={[styles.sectionTitle, { color: colors.primary }]} />
+      <MoneyText amount={offer.total} currency={offer.fare.currency} style={[styles.sectionTitle, { color: flightColors.primary }]} />
     </View>
-    <Text style={styles.link}>Xem chi tiết và điều kiện vé →</Text>
+    <Text style={styles.link}>{t('Xem chi tiết và điều kiện vé')} →</Text>
   </Pressable>;
 }

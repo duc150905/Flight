@@ -46,8 +46,18 @@ chuyến đã công bố/quyền admin. RLS bật trên bảng inventory gốc.
 - `supabase/migrations/20261029143747_harden_database_access.sql`: gộp các
   SELECT policy theo cùng quyền truy cập và thu hồi quyền gọi event-trigger
   helper `public.rls_auto_enable()` có sẵn trên cloud.
-- `src/types/database.generated.ts`: sinh từ schema public thật trên cloud.
-  `src/lib/supabase.ts` đã dùng `createClient<Database>` để kiểm tra kiểu truy vấn.
+- `supabase/migrations/20261030100000_expose_is_admin_rpc.sql`: expose `public.is_admin()`.
+- `supabase/migrations/20261102033140_add_optional_passenger_gender.sql`: cột
+  `booking_passengers.gender` tùy chọn cho form hành khách.
+- `supabase/migrations/20261102123000_admin_management_rpcs.sql`: chuyển
+  `public.is_admin()` sang `SECURITY INVOKER` (gọi `private.is_admin()`) và bổ sung
+  bộ RPC quản trị (`admin_upsert_aircraft`, `admin_upsert_aircraft_seats`,
+  `admin_save_flight_instance`, `admin_set_flight_sales`, `admin_update_flight_seat`,
+  `admin_save_flight_fare`, `admin_list_audit_logs`) kèm tự động ghi nhật ký vào
+  `private.admin_audit_logs`.
+- `src/types/database.generated.ts`: đồng bộ kiểu dữ liệu cho toàn bộ bảng và RPC public.
+  `src/lib/supabase.ts` đã dùng `createClient<Database>` để kiểm tra kiểu truy vấn,
+  và `src/features/admin/rpc.ts` cung cấp tầng gọi RPC quản trị có kiểm tra Zod.
 - `supabase/config.toml`: cấu hình môi trường Supabase local, PostgreSQL 17,
   chỉ expose `public`/`graphql_public`; đã bật `db.seed` trỏ tới `./seed.sql`.
 - `supabase/seed.sql`: bộ dữ liệu mẫu idempotent cho sân bay (nội địa & quốc tế),

@@ -6,4 +6,9 @@ Add common keys to `messages.ts`. Checkout uses stable English source messages a
 
 The first supported device language is used initially, with Vietnamese fallback. Manual choice is saved in AsyncStorage (`flight.language`), independent of authentication and checkout. Slow restoration cannot replace a newer manual choice. Writes are serialized; a storage failure leaves the current selection usable and displays a notice. The provider never keys/remounts the app by language.
 
-Scope: shared infrastructure and checkout. TV1/TV3 can reuse these exports to translate their own screens without another language store.
+Scope: shared infrastructure, checkout and TV1 (Auth, discovery, My Tickets).
+TV3 can reuse these exports without another language store. The TV1 dictionaries
+live in `auth-messages.ts`, `discovery-messages.ts` and `ticket-messages.ts`;
+their Vietnamese UI strings are stable lookup identifiers. User names, booking
+codes and catalogue values remain raw. More languages or catalogue translations
+need a separate data/content contract.

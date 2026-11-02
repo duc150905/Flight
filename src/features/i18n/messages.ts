@@ -1,5 +1,11 @@
 import { checkoutMessages } from './checkout-messages.ts';
+import { discoveryEnglish } from './discovery-messages.ts';
+import { ticketEnglish } from './ticket-messages.ts';
+import { authEnglish } from './auth-messages.ts';
 const checkoutEnglish = Object.fromEntries(Object.keys(checkoutMessages).map(key => [key, key])) as { [K in keyof typeof checkoutMessages]: K };
+const discoveryVietnamese = Object.fromEntries(Object.keys(discoveryEnglish).map(key => [key, key])) as { [K in keyof typeof discoveryEnglish]: K };
+const ticketVietnamese = Object.fromEntries(Object.keys(ticketEnglish).map(key => [key, key])) as { [K in keyof typeof ticketEnglish]: K };
+const authVietnamese = Object.fromEntries(Object.keys(authEnglish).map(key => [key, key])) as { [K in keyof typeof authEnglish]: K };
 export const en = {
   ...checkoutEnglish,
   'seats.available': 'Available', 'seats.selected': 'Selected', 'seats.selectedOther': 'Selected for another traveller',
@@ -27,6 +33,9 @@ export const en = {
   'extras.unavailable': 'Your fare or service is no longer available. Please choose flights again.',
   'extras.checkDetails': 'Please check traveller and contact details first.',
   'extras.changed': 'Baggage offers or prices changed. Select the package again or remove it.',
+  ...discoveryEnglish,
+  ...ticketEnglish,
+  ...authEnglish,
   'common.language': 'Language',
   'common.languageStorage': 'Language preference could not be saved on this device.',
   'currency.label': 'Display currency',
@@ -44,6 +53,9 @@ export const en = {
 export type MessageKey = keyof typeof en;
 export const vi: Record<MessageKey, string> = {
   ...checkoutMessages,
+  ...discoveryVietnamese,
+  ...ticketVietnamese,
+  ...authVietnamese,
   'common.language': 'Ngôn ngữ',
   'common.languageStorage': 'Chưa thể lưu lựa chọn ngôn ngữ trên thiết bị này.',
   'currency.label': 'Tiền tệ hiển thị',

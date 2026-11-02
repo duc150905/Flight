@@ -37,7 +37,23 @@ export type LoginInput = z.input<typeof loginSchema>;
 export type RegisterInput = z.input<typeof registerSchema>;
 export type NewPasswordInput = z.input<typeof newPasswordSchema>;
 export type ChangePasswordInput = z.input<typeof changePasswordSchema>;
-type AuthGateway = Pick<SupabaseClient['auth'], 'signUp' | 'signInWithPassword' | 'verifyOtp' | 'resend' | 'signOut' | 'resetPasswordForEmail' | 'updateUser'>;
+type AuthGateway = Pick<SupabaseClient['auth'], 'signUp' | 'signInWithPassword' | 'signInWithOAuth' | 'setSession' | 'verifyOtp' | 'resend' | 'signOut' | 'resetPasswordForEmail' | 'updateUser'>;
+
+function googleCallbackTokens(callbackUrl: string, redirectTo: string) {
+  const callback = new URL(callbackUrl);
+  const expected = new URL(redirectTo);
+  if (callback.protocol !== expected.protocol || callback.host !== expected.host || callback.pathname !== expected.pathname) {
+    throw new Error('Unexpected Google sign-in redirect');
+  }
+  const query = new URLSearchParams(callback.hash.slice(1));
+  if (callback.searchParams.has('error') || query.has('error')) {
+    throw Object.assign(new Error('Google sign-in was not completed'), { code: 'google_sign_in_failed' });
+  }
+  const access_token = query.get('access_token');
+  const refresh_token = query.get('refresh_token');
+  if (!access_token || !refresh_token) throw new Error('Google sign-in session missing');
+  return { access_token, refresh_token };
+}
 
 export function createAuthService(auth: AuthGateway) {
   return {
@@ -45,6 +61,19 @@ export function createAuthService(auth: AuthGateway) {
       const { data, error } = await auth.signInWithPassword(loginSchema.parse(input));
       if (error) throw error;
       if (!data.session) throw new Error('Session missing');
+    },
+    async googleSignIn(redirectTo: string, native: boolean) {
+      const { data, error } = await auth.signInWithOAuth({
+        provider: 'google', options: { redirectTo, skipBrowserRedirect: native },
+      });
+      if (error) throw error;
+      if (!data.url) throw new Error('Google sign-in URL missing');
+      return data.url;
+    },
+    async completeGoogleSignIn(callbackUrl: string, redirectTo: string) {
+      const { data, error } = await auth.setSession(googleCallbackTokens(callbackUrl, redirectTo));
+      if (error) throw error;
+      if (!data.session) throw new Error('Google sign-in session missing');
     },
     async register(input: RegisterInput) {
       const { name, email, password } = registerSchema.parse(input);
@@ -104,6 +133,7 @@ export function authErrorMessage(error: unknown): string {
     email_address_invalid: 'Email không hợp lệ.',
     email_address_not_authorized: 'Dịch vụ email thử nghiệm chưa thể gửi tới địa chỉ này.',
     signup_disabled: 'Hiện chưa thể đăng ký tài khoản mới.',
+    google_sign_in_failed: 'Không thể đăng nhập với Google. Hãy thử lại hoặc liên hệ quản trị viên.',
   };
   return messages[code] ?? 'Có lỗi xảy ra. Hãy kiểm tra kết nối và thử lại.';
 }

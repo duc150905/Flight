@@ -10,6 +10,8 @@
   `bookings` và các bảng con vẫn là ranh giới phân quyền thực sự.
 - Có trạng thái chờ, lỗi, thử lại, danh sách rỗng, làm mới và nút xem thêm.
   Khách chưa đăng nhập không truy vấn dữ liệu đơn.
+- Nhãn/trạng thái và định dạng ngày/tiền dùng lựa chọn Việt–Anh chung của ứng dụng;
+  dữ liệu lịch sử từ database như tên hành khách, hãng bay, mã vé được giữ nguyên.
 - Thông tin chuyến được đọc từ `flight_snapshot` của đơn, không phụ thuộc tên
   hãng/sân bay có thể bị sửa sau khi đặt. Nếu RPC tạo đơn chưa ghi một trường
   snapshot tùy chọn, UI hiện nhãn dự phòng thay vì lỗi.
