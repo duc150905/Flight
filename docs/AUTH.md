@@ -48,19 +48,47 @@ must re-enter them until a coordinated database backfill is performed.
 
 ## Required Dashboard setup (owner action)
 
-The publishable key cannot manage Auth configuration. No cloud template change
-has been made by this code.
+The publishable key cannot manage Auth configuration. The client already calls
+`signUp` and `verifyOtp({ email, token, type: 'email' })`, but the deployed
+`flight-dev` project currently uses Supabase's default **link** email and has
+custom SMTP disabled. On this Free project, the dashboard disables template
+editing until custom SMTP is enabled (or the project is upgraded to Pro). Merely
+committing the template file does not change the email sent by hosted Supabase.
 
-1. In Supabase Authentication, keep email sign-in and Confirm email enabled.
-2. Open email templates, select **Confirm signup**.
-3. Set a subject such as `Your Flight verification code`.
-4. Paste `supabase/templates/confirmation.html` into the email body and save.
-   The `{{ .Token }}` expression must remain intact.
-5. Use an email address allowed by your project's mail setup. Supabase's default
-   mail service may restrict recipients and rate-limit sending; configure custom
-   SMTP for a demo involving additional recipients or production usage.
-6. In email templates, select **Reset password** and paste
-   `supabase/templates/recovery.html` into the email body. Keep `{{ .Token }}`.
+1. Configure a transactional email provider under Authentication > Emails >
+   SMTP Settings. Keep SMTP credentials in the Supabase dashboard only; do not
+   put them in the Expo app, Git, or `EXPO_PUBLIC_*` variables. Alternatively,
+   use a Send Email Auth Hook backed by an external email provider.
+2. In Authentication > Sign In / Providers > Email, keep email sign-in and
+   **Confirm email** enabled.
+3. Open Authentication > Emails > Templates > **Confirm sign up**. Set the
+   subject to `Mã xác nhận tài khoản Flight`, paste
+   `supabase/templates/confirmation.html` into the body, and save. Keep
+   `{{ .Token }}` intact; the email must contain a numeric code instead of only
+   `{{ .ConfirmationURL }}`.
+4. For in-app password recovery, update **Reset password** with
+   `supabase/templates/recovery.html`, also keeping `{{ .Token }}`.
+5. Test with a **new** email address controlled by the tester. Re-registering a
+   confirmed account can return an obfuscated success without sending another
+   message. Check Auth Logs for delivery failures and email rate limits.
+
+### Classroom SMTP option without a custom domain
+
+A dedicated Gmail account can be used for a small classroom demo. Its address
+will appear as the sender, so do not use a personal mailbox. The account owner
+must enable Google 2-Step Verification and create a separate **App Password**
+for Supabase. Enter that password directly in the Supabase dashboard, never in
+the app or repository. If Google does not offer App Passwords for the account,
+choose a transactional SMTP provider instead.
+
+In Supabase **SMTP Settings**, use host `smtp.gmail.com`, port `465` (or `587`
+with TLS), the dedicated Gmail address as both SMTP username and sender email,
+the App Password as SMTP password, and `Flight` as sender name. Save the SMTP
+settings before editing **Confirm sign up**. The project owner may need to do
+this if the SMTP switch is disabled for a team member's role.
+
+References: https://support.google.com/accounts/answer/185833 and
+https://supabase.com/kb/troubleshooting/using-google-smtp-with-supabase-custom-smtp-ZZzU4Y.
 
 This flow does not require configuring a deep-link redirect to Expo Go.
 The default email template sends a link instead of the code our screen expects;
@@ -93,6 +121,8 @@ They do not send real email, create real users, or prove on-device delivery.
 
 - https://supabase.com/docs/guides/auth/quickstarts/react-native
 - https://supabase.com/docs/guides/auth/auth-email-templates
+- https://supabase.com/changelog/46599-changes-to-email-template-customisation-on-free-tier
+- https://supabase.com/docs/guides/auth/auth-smtp
 - https://supabase.com/docs/reference/javascript/auth-verifyotp
 - https://supabase.com/docs/reference/javascript/auth-resetpasswordforemail
 - https://supabase.com/docs/reference/javascript/auth-updateuser
