@@ -3,6 +3,7 @@ import { useState, type PropsWithChildren } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCheckout } from './checkout-provider';
+import { LanguagePicker } from '../i18n/provider';
 
 const palettes = {
   light: { background: '#F5F9FA', surface: '#FFFFFF', text: '#253540', muted: '#536570', primary: '#007E91', tint: '#E4F5F6', border: '#BCCBD1', error: '#B42318' },
@@ -40,6 +41,7 @@ export function CheckoutShell({ title, step, children, back }: PropsWithChildren
               <Text style={[checkoutStyles.body, { color: c.muted }]}>Cancel</Text>
             </Pressable>
           </View>
+          <LanguagePicker />
           {step !== undefined && <View accessibilityLabel={`Step ${step + 1} of 3`} style={checkoutStyles.progress}>
             {['Contact', 'Travellers', 'Review'].map((label, index) => <View key={label} style={checkoutStyles.progressItem}>
               <View style={[checkoutStyles.circle, { backgroundColor: index <= step ? c.primary : c.tint }]}>
