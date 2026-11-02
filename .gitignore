@@ -47,3 +47,6 @@ example
 # generated native folders
 /ios
 /android
+
+# Local screenshots from checkout visual QA
+/output/checkout-qa/

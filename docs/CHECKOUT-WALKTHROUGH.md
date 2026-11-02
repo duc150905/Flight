@@ -1,5 +1,8 @@
 # Review 6 task checkout của TV2
 
+> Bản này ghi nhận đợt 01/11/2026. Đợt 02/11 đã thay quy tắc sinh nhật, thêm
+> Việt–Anh và gộp màn theo PDF: xem [CHECKOUT-NEXT-WALKTHROUGH.md](CHECKOUT-NEXT-WALKTHROUGH.md).
+
 Ngày: 01/11/2026. Nhánh: `codex/tv2-checkout-flow`.
 
 Giao diện checkout dùng tiếng Anh, dựa trên ảnh Traveller information trong

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { CheckoutItinerary } from './itinerary-data.ts';
-import { calendarDateSchema, createBookingPassengerSchema } from './passenger.ts';
+import { calendarDateSchema, createBookingPassengerSchema, type PassengerDetailsInput } from './passenger.ts';
 
 // ISO 3166-1 alpha-2 codes. No device locale or translated country names in data.
 const countries = new Set(('AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW').split(' '));
@@ -18,8 +18,23 @@ export function isEligibleCompanion(rawBirthDate: string, legs: Pick<CheckoutIti
   return legs.length > 0 && calendarDateSchema.safeParse(birthDate).success
     && legs.every(leg => birthDate <= leg.departureDate && ageOnDate(birthDate, leg.departureDate) >= 18);
 }
+export function infantLegsForPassenger(rawBirthDate: string, legs: CheckoutItinerary['legs']) {
+  const birthDate = rawBirthDate.trim();
+  return calendarDateSchema.safeParse(birthDate).success
+    ? legs.filter(leg => birthDate <= leg.departureDate && classifyPassenger(birthDate, leg.departureDate) === 'infant') : [];
+}
+/** Derived checkout data, not a booking write. Stable passenger IDs never change. */
+export function derivePassengerSegments(passengers: { id: string; values: PassengerDetailsInput }[], legs: CheckoutItinerary['legs']) {
+  return legs.flatMap(leg => passengers.map(passenger => {
+    const passengerType = classifyPassenger(passenger.values.dateOfBirth.trim(), leg.departureDate);
+    return { passengerId: passenger.id, flightId: leg.flightId, journeyIndex: leg.journeyIndex, legIndex: leg.legIndex,
+      passengerType, requiresSeat: passengerType !== 'infant',
+      accompanyingPassengerId: passengerType === 'infant' ? passenger.values.accompanyingAdultId ?? null : null };
+  }));
+}
 export function passengerDetailsSchema(bookingDate: string) {
   return createBookingPassengerSchema(bookingDate).extend({
+    gender: z.string().refine(value => ['', 'male', 'female', 'unspecified'].includes(value), 'Select a valid gender option.').optional(),
     nationalityCode: z.string().trim().toUpperCase().optional(),
     passportIssuerCountry: z.string().trim().toUpperCase().optional(),
     passportNumber: z.string().trim().optional(), passportExpiryDate: z.string().trim().optional(),
@@ -40,24 +55,29 @@ export function passengerPolicySchema(itinerary: CheckoutItinerary, bookingDate:
       || expected.some(id => !passengers.some(p => p.id === id))) {
       ctx.addIssue({ code: 'custom', path: ['passengers'], message: 'Traveller counts must match your flight search. Please choose your flights again.' });
     }
-    const usedCompanions = new Set<string>();
+    const usedCompanions = itinerary.legs.map(() => new Set<string>());
     passengers.forEach((passenger, index) => {
       const value = passenger.values;
       const validBirthDate = calendarDateSchema.safeParse(value.dateOfBirth).success;
       if (validBirthDate) {
         const expectedType = passenger.id.split('-')[0];
-        if (itinerary.legs.some(leg => value.dateOfBirth > leg.departureDate || classifyPassenger(value.dateOfBirth, leg.departureDate) !== expectedType)) {
-          issue(index, 'dateOfBirth', 'Age on a flight date does not match the selected traveller type. Reselect travellers or split the trip if a birthday changes the type.');
+        if (itinerary.legs.some(leg => value.dateOfBirth > leg.departureDate)) {
+          issue(index, 'dateOfBirth', 'Date of birth cannot be after travel.');
+        } else if (itinerary.legs[0] && classifyPassenger(value.dateOfBirth, itinerary.legs[0].departureDate) !== expectedType) {
+          issue(index, 'dateOfBirth', 'Age on the first flight must match the selected traveller type.');
         }
-        if (expectedType === 'infant') {
-          const companion = passengers.find(p => p.id === value.accompanyingAdultId && p.id.startsWith('adult-'));
+        const infantLegs = infantLegsForPassenger(value.dateOfBirth, itinerary.legs);
+        if (infantLegs.length) {
+          const companion = passengers.find(p => p.id === value.accompanyingAdultId && p.id !== passenger.id);
           const companionBirth = companion?.values.dateOfBirth;
           if (!companionBirth || !calendarDateSchema.safeParse(companionBirth).success
-            || itinerary.legs.some(leg => companionBirth > leg.departureDate || ageOnDate(companionBirth, leg.departureDate) < 18)) {
-            issue(index, 'accompanyingAdultId', 'Choose a traveller aged 18 or over on every flight.');
-          } else if (usedCompanions.has(companion!.id)) {
-            issue(index, 'accompanyingAdultId', 'Each infant needs a different accompanying adult.');
-          } else usedCompanions.add(companion!.id);
+            || !isEligibleCompanion(companionBirth, infantLegs)) {
+            issue(index, 'accompanyingAdultId', 'Choose a traveller aged 18 or over on each flight where this traveller is an infant.');
+          } else {
+            const duplicate = itinerary.legs.some((leg, legIndex) => infantLegs.includes(leg) && usedCompanions[legIndex].has(companion!.id));
+            if (duplicate) issue(index, 'accompanyingAdultId', 'Each infant needs a different accompanying adult on the same flight.');
+            itinerary.legs.forEach((leg, legIndex) => { if (infantLegs.includes(leg)) usedCompanions[legIndex].add(companion!.id); });
+          }
         } else if (value.accompanyingAdultId) {
           issue(index, 'accompanyingAdultId', 'Only infants need an accompanying adult selection.');
         }
