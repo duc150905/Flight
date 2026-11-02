@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database.generated';
 import type { CheckoutItinerary } from './itinerary-data';
-import { parseAllowance, type BaggageOffer } from './baggage';
+import { parseAllowance, type BaggageOffer } from './baggage.ts';
 export async function loadBaggage(client: SupabaseClient<Database>, itinerary: CheckoutItinerary) {
   const [fares, offers, products] = await Promise.all([
     client.from('flight_fares').select('id,flight_id,baggage_allowance,is_active').in('id', itinerary.legs.map(l => l.fareId)).eq('is_active', true),

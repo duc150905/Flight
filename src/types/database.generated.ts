@@ -1165,6 +1165,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      quote_checkout: { Args: { p_request: Json }; Returns: Json }
       get_seat_map: {
         Args: { p_flight_id: string }
         Returns: {

@@ -51,16 +51,16 @@ giao diện lựa chọn trong `src/features/booking/`; thêm
 `quote.ts`, phần gọi/tải báo giá, màn/route tổng hợp; kiểu RPC, bản dịch, tài liệu
 và script kiểm tra tích hợp.
 
-- [ ] Viết test SQL về tính giá/phân quyền và test logic kiểm tra dữ liệu gửi/nhận
+- [x] Viết test SQL về tính giá/phân quyền và test logic kiểm tra dữ liệu gửi/nhận
   ở app. Chạy để thấy lỗi trước khi viết RPC.
-- [ ] Làm hàm báo giá chỉ đọc trong private và hàm public có quyền hạn giới hạn;
+- [x] Làm hàm báo giá chỉ đọc trong private và hàm public có quyền hạn giới hạn;
   tự xác định tuổi, lấy giá và đếm sức chứa phía server; trả mã lỗi an toàn.
-- [ ] Thử SQL trong giao dịch hoàn tác; xem quyền hàm và chạy bộ kiểm tra Supabase.
+- [x] Thử SQL trong giao dịch hoàn tác; xem quyền hàm và chạy bộ kiểm tra Supabase.
   Sau khi rà soát, triển khai migration bổ sung vào flight-dev và xác minh lịch sử.
-- [ ] Làm client RPC có kiểu dữ liệu, dấu nhận diện dữ liệu yêu cầu, bảng phân tích
+- [x] Làm client RPC có kiểu dữ liệu, dấu nhận diện dữ liệu yêu cầu, bảng phân tích
   tiền, hết hạn, thử lại và xác nhận đã xem giá đổi. Bỏ kết quả trả về muộn nếu
   lựa chọn đã đổi; báo giá lỗi/hết hạn phải hiển thị rõ là không còn hiệu lực.
-- [ ] Chạy SQL cho các ca bị từ chối, kiểm tra tích hợp bằng client dùng khóa public,
+- [x] Chạy SQL cho các ca bị từ chối, kiểm tra tích hợp bằng client dùng khóa public,
   test liên quan và lệnh check; cập nhật tài liệu DB/checkout và commit task 2.
 
 ## Task 3 — Sơ đồ ghế và ghép luồng hoàn chỉnh
@@ -90,4 +90,5 @@ checkout; cập nhật bản dịch, bản nháp, tổng tạm tính, yêu cầu
   gửi lên, truy cập chưa đăng nhập, kết quả mạng trả về muộn và tràn số tiền.
 - Giữ tương thích với auth, tìm chuyến, vé và danh mục/quản trị hiện có.
   Không lộ dữ liệu khách hoặc danh tính người đang giữ ghế.
+
 

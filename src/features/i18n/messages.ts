@@ -2,6 +2,16 @@ import { checkoutMessages } from './checkout-messages.ts';
 const checkoutEnglish = Object.fromEntries(Object.keys(checkoutMessages).map(key => [key, key])) as { [K in keyof typeof checkoutMessages]: K };
 export const en = {
   ...checkoutEnglish,
+  'quote.base': 'Base fare', 'quote.tax': 'Taxes', 'quote.fee': 'Fare fees', 'quote.baggage': 'Extra baggage', 'quote.seat': 'Seat selection',
+  'quote.validUntil': 'Quote valid until {time}', 'quote.expired': 'This quote expired. Please refresh it.',
+  'quote.changed': 'The current price differs from your estimate. Please review and acknowledge the new price.',
+  'quote.authRequired': 'Please sign in again to request a quote.', 'quote.invalid': 'Invalid quote data. Please check your selections.',
+  'quote.unavailable': 'Your flight or fare is no longer on sale. Please choose flights again.',
+  'quote.offerUnavailable': 'A baggage offer is no longer available. Go back and choose another package.',
+  'quote.seatUnavailable': 'Your selected seat is no longer available. Go back and select another seat.',
+  'quote.seatIneligible': 'A traveller is not eligible for the selected seat. Please choose another.',
+  'quote.soldOut': 'There are not enough seats in this cabin. Please choose another flight.',
+  'quote.loadError': 'Could not request a quote. Check your connection and retry.',
   'bags.allowance': '{pieces} pieces · {kg} kg', 'bags.allowanceUnavailable': 'Baggage allowance unavailable.',
   'bags.package': 'Add {kg} kg checked baggage',
   'extras.loadError': 'Could not load services. Check your connection and retry.',
