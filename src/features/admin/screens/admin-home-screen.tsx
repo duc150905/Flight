@@ -1,6 +1,6 @@
 import { loadAllRows, loadAllAuditLogs } from '../complete-data';
-import { router, type Href } from 'expo-router';
-import { useState } from 'react';
+import { router, useFocusEffect, type Href } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useAuth } from '@/features/auth/auth-provider';
@@ -36,7 +36,14 @@ async function loadConsoleOverview() {
     flights.error ??
     airports.error ??
     aircraft.error;
-  if (firstError) throw firstError;
+  if (firstError) {
+    const isPermissionError =
+      (firstError as { code?: string })?.code === '42501' ||
+      /permission denied|Admin privileges required/i.test((firstError as Error).message);
+    if (!isPermissionError) {
+      throw firstError;
+    }
+  }
 
   const adminActorIds = new Set<string>();
   for (const log of auditLogs) {
@@ -75,6 +82,9 @@ export function AdminHomeScreen() {
   const overviewQuery = useQuery({
     queryKey: ['admin-console-overview'],
     queryFn: loadConsoleOverview,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
   const data = overviewQuery.data;
@@ -95,8 +105,49 @@ export function AdminHomeScreen() {
       })
     : null;
 
-  const rawName = session?.user?.email?.split('@')[0] ?? 'Admin';
-  const adminName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+  const [selfName, setSelfName] = useState<string>('');
+  const userId = session?.user?.id;
+
+  const refreshProfileName = useCallback(async () => {
+    if (!userId || !supabase) return;
+    try {
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', userId)
+        .maybeSingle();
+      if (prof?.full_name?.trim()) {
+        setSelfName(prof.full_name.trim());
+      }
+    } catch {
+      // Ignore network hiccup
+    }
+  }, [userId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void refreshProfileName();
+      void overviewQuery.refetch();
+    }, [refreshProfileName, overviewQuery])
+  );
+
+  const currentProfile = session?.user?.id
+    ? (data?.profiles ?? []).find((p) => p.id === session.user.id)
+    : undefined;
+  const adminActorProfile = (data?.adminActorIds ?? [])
+    .map((id) => (data?.profiles ?? []).find((p) => p.id === id))
+    .find((p) => Boolean(p?.full_name?.trim()));
+
+  const candidateName =
+    selfName ||
+    currentProfile?.full_name?.trim() ||
+    (session?.user?.user_metadata?.full_name as string | undefined)?.trim() ||
+    adminActorProfile?.full_name?.trim();
+
+  const isGenericOrHash = !candidateName || /^bnvawg/i.test(candidateName) || candidateName === 'Admin';
+  const adminName = isGenericOrHash
+    ? (session?.user?.email?.split('@')[0] ?? 'Admin')
+    : candidateName;
 
   const kpiCards = [
     {
