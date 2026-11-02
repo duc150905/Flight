@@ -1,0 +1,15 @@
+export const extrasMessages = {
+  'Continue to baggage': 'Tiếp tục chọn hành lý',
+  'Seat choices are not held.': 'Ghế mới được chọn, chưa được giữ.',
+  'Cabin bags': 'Hành lý xách tay', 'Checked bags': 'Hành lý ký gửi',
+  'Included in your fare': 'Đã bao gồm trong hạng vé',
+  'No extra checked bag': 'Không mua thêm hành lý ký gửi',
+  'No extra baggage available for this flight.': 'Chuyến này chưa có gói hành lý mua thêm.',
+  'Baggage is selected separately for each traveller and flight.': 'Chọn hành lý riêng cho từng hành khách và từng chặng.',
+  'bags.allowance': '{pieces} kiện · {kg} kg', 'bags.allowanceUnavailable': 'Chưa tải được định mức hành lý.',
+  'bags.package': 'Thêm {kg} kg hành lý ký gửi',
+  'extras.loadError': 'Chưa tải được dịch vụ. Kiểm tra kết nối rồi thử lại.',
+  'extras.unavailable': 'Hạng vé hoặc dịch vụ đã ngừng bán. Vui lòng chọn lại chuyến.',
+  'extras.checkDetails': 'Vui lòng kiểm tra thông tin hành khách và liên hệ trước.',
+  'extras.changed': 'Gói hành lý hoặc giá đã đổi. Vui lòng chọn lại gói hoặc bỏ mua thêm.',
+} as const;

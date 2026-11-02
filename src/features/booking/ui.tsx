@@ -35,13 +35,13 @@ const stages = [
   { label: 'Seats', name: { ios: 'chair.fill', android: 'event_seat', web: 'event_seat' } },
   { label: 'Payment', name: { ios: 'creditcard', android: 'credit_card', web: 'credit_card' } },
 ] as const;
-export function CheckoutProgress() {
+export function CheckoutProgress({ step = 1 }: { step?: number }) {
   const { t } = useLanguage();
-  return <View accessibilityLabel={t('Step {number} of {total}', { number: 1, total: 4 })} style={checkoutStyles.progress}>
+  return <View accessibilityLabel={t('Step {number} of {total}', { number: step, total: 4 })} style={checkoutStyles.progress}>
     <View style={checkoutStyles.connector} />
-    {stages.map((stage, index) => <View key={stage.label} accessible accessibilityLabel={t(stage.label)} accessibilityState={{ selected: index === 0, disabled: index > 0 }}
-      style={[checkoutStyles.circle, { backgroundColor: index === 0 ? colors.primary : '#F1F3F4' }]}>
-      <SymbolView name={stage.name} size={25} tintColor={index === 0 ? '#00414B' : colors.muted} />
+    {stages.map((stage, index) => <View key={stage.label} accessible accessibilityLabel={t(stage.label)} accessibilityState={{ selected: index === step - 1, disabled: index > step - 1 }}
+      style={[checkoutStyles.circle, { backgroundColor: index < step ? colors.primary : '#F1F3F4' }]}>
+      <SymbolView name={stage.name} size={25} tintColor={index < step ? '#00414B' : colors.muted} />
     </View>)}
   </View>;
 }
@@ -56,7 +56,7 @@ export function CheckoutShell({ title, step, children, back, footer }: PropsWith
           <Pressable accessibilityRole="button" accessibilityLabel={t('Back')} onPress={back ?? (() => setDiscard(true))} style={checkoutStyles.iconButton}>
             <SymbolView name={{ ios: 'arrow.left', android: 'arrow_back', web: 'arrow_back' }} size={23} tintColor={colors.muted} />
           </Pressable>
-          {step !== undefined ? <CheckoutProgress /> : <View style={{ flex: 1 }} />}
+          {step !== undefined ? <CheckoutProgress step={step} /> : <View style={{ flex: 1 }} />}
           <Pressable accessibilityRole="button" accessibilityLabel={t('Cancel')} onPress={() => setDiscard(true)} style={checkoutStyles.iconButton}>
             <SymbolView name={{ ios: 'xmark', android: 'close', web: 'close' }} size={19} tintColor={colors.muted} />
           </Pressable>

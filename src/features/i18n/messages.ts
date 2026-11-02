@@ -2,6 +2,12 @@ import { checkoutMessages } from './checkout-messages.ts';
 const checkoutEnglish = Object.fromEntries(Object.keys(checkoutMessages).map(key => [key, key])) as { [K in keyof typeof checkoutMessages]: K };
 export const en = {
   ...checkoutEnglish,
+  'bags.allowance': '{pieces} pieces · {kg} kg', 'bags.allowanceUnavailable': 'Baggage allowance unavailable.',
+  'bags.package': 'Add {kg} kg checked baggage',
+  'extras.loadError': 'Could not load services. Check your connection and retry.',
+  'extras.unavailable': 'Your fare or service is no longer available. Please choose flights again.',
+  'extras.checkDetails': 'Please check traveller and contact details first.',
+  'extras.changed': 'Baggage offers or prices changed. Select the package again or remove it.',
   'common.language': 'Language',
   'common.languageStorage': 'Language preference could not be saved on this device.',
   'currency.label': 'Display currency',

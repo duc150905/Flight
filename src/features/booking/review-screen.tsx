@@ -74,5 +74,6 @@ export function ReviewScreen() {
     {checked && <CheckoutCard><CheckoutText message={"Your traveller details have been checked. You can still edit them before booking."} /></CheckoutCard>}
     <CheckoutButton title={checked ? 'Details checked' : 'Confirm traveller details'} disabled={checked}
       onPress={() => setConfirmed(fingerprint)} />
+    {checked && <CheckoutButton title="Continue to baggage" onPress={() => router.push('/checkout/baggage')} />}
   </CheckoutShell>;
 }
