@@ -113,6 +113,10 @@ export function SearchFlow({ airports, loading, error, onRetry, onClose, initial
     const airport = airportById.get(id);
     return airport ? `${airport.city} (${airport.iata_code})` : t(fallback);
   };
+  const indexedError = /^Chặng (\d+): (.+)$/.exec(validationError);
+  const localizedError = indexedError
+    ? t(`Chặng {number}: ${indexedError[2]}`, { number: indexedError[1] })
+    : t(validationError);
 
   return <SafeAreaView style={s.safe}>
     <View style={s.header}>
@@ -161,7 +165,7 @@ export function SearchFlow({ airports, loading, error, onRetry, onClose, initial
       </Pressable>
       <Notice text={error ? t('Không thể tải sân bay. Hãy kiểm tra kết nối hoặc cấu hình Supabase.') : ''} />
       {error && <Pressable accessibilityRole="button" onPress={onRetry}><Text style={s.outlineText}>{t('Thử tải sân bay')}</Text></Pressable>}
-      <Notice text={validationError} />
+      <Notice text={localizedError} />
     </ScrollView>
     <View style={s.footer}><PrimaryButton title={t('Tìm chuyến bay')} onPress={search}
       disabled={loading || error || airports.length === 0} /></View>
