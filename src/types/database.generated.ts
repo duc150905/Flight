@@ -1165,6 +1165,96 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_list_audit_logs: {
+        Args: {
+          p_entity_id?: string | null
+          p_entity_type?: string | null
+          p_limit?: number
+          p_offset?: number
+        }
+        Returns: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          safe_changes: Json
+        }[]
+      }
+      admin_save_flight_fare: {
+        Args: {
+          p_adult_base_amount?: number
+          p_adult_fee_amount?: number
+          p_adult_tax_amount?: number
+          p_baggage_allowance?: Json
+          p_cabin_class?: Database["public"]["Enums"]["cabin_class"]
+          p_cancellation_allowed?: boolean
+          p_cancellation_cutoff_minutes?: number
+          p_cancellation_fee_amount?: number
+          p_child_base_amount?: number
+          p_child_fee_amount?: number
+          p_child_tax_amount?: number
+          p_fare_code?: string
+          p_fare_id?: string | null
+          p_flight_id?: string
+          p_infant_base_amount?: number
+          p_infant_fee_amount?: number
+          p_infant_tax_amount?: number
+          p_is_active?: boolean
+          p_name?: string
+        }
+        Returns: Database["public"]["Tables"]["flight_fares"]["Row"]
+      }
+      admin_save_flight_instance: {
+        Args: {
+          p_aircraft_id?: string
+          p_airline_id?: string
+          p_arrival_airport_id?: string
+          p_arrival_at?: string
+          p_departure_airport_id?: string
+          p_departure_at?: string
+          p_flight_id?: string | null
+          p_flight_number?: string
+          p_publish?: boolean
+          p_sales_close_at?: string | null
+          p_status?: Database["public"]["Enums"]["flight_status"]
+        }
+        Returns: Database["public"]["Tables"]["flight_instances"]["Row"]
+      }
+      admin_set_flight_sales: {
+        Args: {
+          p_flight_id: string
+          p_open_sales: boolean
+          p_sales_close_at?: string | null
+        }
+        Returns: Database["public"]["Tables"]["flight_instances"]["Row"]
+      }
+      admin_update_flight_seat: {
+        Args: {
+          p_flight_seat_id: string
+          p_is_blocked?: boolean | null
+          p_selection_fee_amount?: number | null
+        }
+        Returns: Database["public"]["Tables"]["flight_seats"]["Row"]
+      }
+      admin_upsert_aircraft: {
+        Args: {
+          p_aircraft_id?: string | null
+          p_airline_id?: string
+          p_is_active?: boolean
+          p_model_name?: string
+          p_registration_code?: string
+        }
+        Returns: Database["public"]["Tables"]["aircraft"]["Row"]
+      }
+      admin_upsert_aircraft_seats: {
+        Args: {
+          p_aircraft_id: string
+          p_seats: Json
+        }
+        Returns: number
+      }
       get_seat_map: {
         Args: { p_flight_id: string }
         Returns: {
