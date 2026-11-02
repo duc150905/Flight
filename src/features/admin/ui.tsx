@@ -149,7 +149,7 @@ export function AdminShell({
     try {
       await actions.logout();
       setAccountMenuOpen(false);
-      router.replace('/login' as Href);
+      router.replace('/account');
     } finally {
       setSigningOut(false);
     }
@@ -229,7 +229,7 @@ export function AdminShell({
           <Text style={adminStyles.brandIconText}>✈</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={adminStyles.brandTitle}>flight</Text>
+          <Text style={adminStyles.brandTitle}>Flyora</Text>
           <Text style={adminStyles.brandSubtitle}>ADMIN CONSOLE</Text>
         </View>
       </View>
