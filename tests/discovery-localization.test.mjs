@@ -8,7 +8,8 @@ test('trip search and validation messages switch language without changing selec
   assert.equal(translate('en', 'Khứ hồi'), 'Round trip');
   assert.equal(translate('en', 'Chặng {number}', { number: 2 }), 'Flight 2');
   assert.equal(translate('en', 'Mỗi em bé cần đi cùng một người lớn.'), 'Each infant needs an accompanying adult.');
-  assert.equal(translate('en', 'Hà Nội ngàn năm văn hiến'), 'Hà Nội ngàn năm văn hiến');
+  assert.equal(translate('en', 'Hà Nội ngàn năm văn hiến'), 'Hanoi, a thousand years of heritage');
+  assert.equal(translate('en', 'Nguyen Van An'), 'Nguyen Van An');
 });
 
 test('estimated fare keeps its currency while adapting the display locale', () => {

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, AppState } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../auth/auth-provider';
-import { MoneyText } from '../currency/ui';
+import { CurrencyRateNote, MoneyText } from '../currency/ui';
 import { useLanguage } from '../i18n/provider';
 import { useCheckout } from './checkout-provider';
 import { checkoutEstimate } from './estimate';
@@ -43,9 +43,19 @@ export function QuoteScreen() {
     <CheckoutButton title="Refresh quote" secondary disabled={query.isFetching} onPress={() => { void query.refetch(); }} />
     {usable && <>
       {changed && <CheckoutError message="quote.changed" />}
-      <CheckoutCard>{(['base', 'tax', 'fee', 'baggage', 'seat'] as const).map(field => <CheckoutCard key={field}>
+      <CheckoutCard>
+        <CheckoutText title message="Fare including taxes and fees" />
+        <MoneyText amount={quote.base + quote.tax + quote.fee} />
+        <CheckoutText muted message="Already included in the fare above; not charged again." />
+        {(['base', 'tax', 'fee'] as const).map(field => <CheckoutCard key={field}>
         <CheckoutText message={`quote.${field}`} /><MoneyText amount={quote[field]} /></CheckoutCard>)}
+        <CheckoutText muted message="Taxes and fare fees are configured per fare, not calculated from a fixed percentage." />
+        <CheckoutText title message="Additional services" />
+        {(['baggage', 'seat'] as const).map(field => <CheckoutCard key={field}>
+          <CheckoutText message={`quote.${field}`} /><MoneyText amount={quote[field]} />
+        </CheckoutCard>)}
         <CheckoutText title message="Total from server" /><MoneyText amount={quote.total} />
+        <CurrencyRateNote />
         <CheckoutText muted>{t('quote.validUntil', { time: new Intl.DateTimeFormat(language === 'vi' ? 'vi-VN' : 'en-GB', { timeStyle: 'short' }).format(new Date(quote.expiresAt)) })}</CheckoutText>
       </CheckoutCard>
       <CheckoutCard>{quote.lines.map(line => {
@@ -53,7 +63,7 @@ export function QuoteScreen() {
         return <CheckoutCard key={`${line.flightId}:${line.passengerId}`}>
           <CheckoutText>{p.values.givenNames} {p.values.familyName} · {leg.origin.iata_code} → {leg.destination.iata_code}</CheckoutText>
           <CheckoutText muted>{t(line.passengerType)} · {line.seatCode ?? t('No paid seat selected')}</CheckoutText>
-          {!!line.baggageName && <CheckoutText>{line.baggageName}</CheckoutText>}
+          {!!line.baggageName && <CheckoutText>{t(line.baggageName)}</CheckoutText>}
           <MoneyText amount={line.base + line.tax + line.fee + line.baggage + line.seat} />
         </CheckoutCard>;
       })}</CheckoutCard>

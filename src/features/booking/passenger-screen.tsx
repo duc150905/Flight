@@ -47,7 +47,7 @@ function PassengerForm() {
           void revalidateTravellerCompanions(form);
         }} />
       <CheckoutText muted message={"Use YYYY-MM-DD, for example 2000-02-29."} />
-      <CheckoutText muted message={"Demo age rules: infant under 2, child 2–11, adult 12+. Age is checked on every flight date."} />
+      <CheckoutText muted message={"Choose the correct age group: infant under 2, child 2–11, adult 12+. Age is calculated on each flight date."} />
       {draft.itinerary!.international && <>
         <CheckoutText title message={"Passport details"} />
         <CheckoutText muted message={"Required for each traveller on this international itinerary."} />

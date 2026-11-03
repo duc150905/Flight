@@ -7,11 +7,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppBrand } from '@/components/app-brand';
 import { useAuth } from '@/features/auth/auth-provider';
 import { Notice } from '@/features/auth/ui';
-import { CurrencyControls } from '@/features/currency/ui';
 import { LanguagePicker, useLanguage } from '@/features/i18n/provider';
 import { listAirports, listDestinations } from './data';
 import type { Airport, Destination } from './model';
 import { SearchFlow } from './search-flow';
+import { destinationImages } from './destination-images';
 import { flightColors } from './ui';
 
 const emptyAirports: Airport[] = [];
@@ -46,7 +46,7 @@ export function HomeScreen() {
         style={home.searchButton}>
         <Text style={home.searchIcon}>⌕</Text><Text style={home.searchLabel}>{t('Tìm chuyến bay')}</Text>
       </Pressable>
-      <View style={home.controls}><LanguagePicker /><View style={home.currency}><CurrencyControls /></View></View>
+      <View style={home.controls}><LanguagePicker /></View>
 
       <Text accessibilityRole="header" style={home.sectionTitle}>{t('Điểm đến dành cho bạn')}</Text>
       {destinationsQuery.isPending && <ActivityIndicator color={flightColors.primary} />}
@@ -77,16 +77,18 @@ export function HomeScreen() {
 function DestinationCard({ destination, airport, onPress }: {
   destination: Destination; airport: Airport; onPress: () => void;
 }) {
+  const { t } = useLanguage();
   const imageUri = destination.image_path && /^https:\/\//i.test(destination.image_path)
     ? destination.image_path : null;
+  const source = imageUri ? { uri: imageUri } : destinationImages[airport.iata_code];
   return <Pressable accessibilityRole="button" onPress={onPress} style={home.destinationCard}>
     <View style={home.destinationArt}>
-      {imageUri && <Image source={{ uri: imageUri }} contentFit="cover" style={StyleSheet.absoluteFill}
-        accessible={false} alt="" />}
-      {!imageUri && <Text style={home.destinationCode}>{airport.iata_code}</Text>}
+      {source && <Image source={source} contentFit="cover" style={StyleSheet.absoluteFill}
+        accessible={false} alt="" cachePolicy="memory-disk" />}
+      {!source && <Text style={home.destinationCode}>{airport.iata_code}</Text>}
     </View>
-    <Text numberOfLines={2} style={home.destinationTitle}>{destination.title}</Text>
-    <Text style={home.destinationCity}>{airport.city}</Text>
+    <Text numberOfLines={2} style={home.destinationTitle}>{t(destination.title)}</Text>
+    <Text style={home.destinationCity}>{t(airport.city)}</Text>
   </Pressable>;
 }
 
@@ -102,11 +104,10 @@ const home = StyleSheet.create({
   searchIcon: { color: '#8B95A5', fontSize: 25 },
   searchLabel: { color: '#8B95A5', fontSize: 17 },
   controls: { width: '100%', gap: 8 },
-  currency: { width: '100%' },
   sectionTitle: { color: '#353B46', fontSize: 20, fontWeight: '700', marginTop: 10 },
   destinations: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   destinationCard: { width: '47%', minWidth: 145, gap: 5 },
-  destinationArt: { height: 145, borderRadius: 10, backgroundColor: '#D4F0F5', justifyContent: 'flex-end', padding: 15 },
+  destinationArt: { aspectRatio: 1.5, borderRadius: 12, overflow: 'hidden', backgroundColor: '#D4F0F5', justifyContent: 'flex-end', padding: 15 },
   destinationCode: { color: '#007E91', fontSize: 30, fontWeight: '800' },
   destinationTitle: { color: '#353B46', fontSize: 14, fontWeight: '700' },
   destinationCity: { color: '#8B95A5', fontSize: 13 },

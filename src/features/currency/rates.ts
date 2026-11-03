@@ -1,4 +1,4 @@
-import type { CurrencyStorage } from './preferences.ts';
+type RateStorage = { getItem(key: string): Promise<string | null>; setItem(key: string, value: string): Promise<void> };
 
 export const RATE_ENDPOINT = 'https://open.er-api.com/v6/latest/USD';
 export const RATE_ATTRIBUTION = 'https://www.exchangerate-api.com';
@@ -32,7 +32,7 @@ export async function fetchUsdVnd(fetcher: FetchRate = fetch, now = Date.now): P
   } finally { clearTimeout(timeout); }
 }
 /** Public market data only; no booking amounts or personal data leave the device. */
-export function createRateService(storage: CurrencyStorage, load: () => Promise<ExchangeRate> = fetchUsdVnd, now = Date.now) {
+export function createRateService(storage: RateStorage, load: () => Promise<ExchangeRate> = fetchUsdVnd, now = Date.now) {
   let cached: ExchangeRate | null = null;
   let restored: Promise<void> | undefined;
   let pending: Promise<ExchangeRate> | undefined;

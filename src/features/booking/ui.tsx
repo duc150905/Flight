@@ -3,9 +3,9 @@ import { SymbolView } from 'expo-symbols';
 import { useState, type PropsWithChildren, type ReactNode } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LanguagePicker, useLanguage } from '../i18n/provider';
+import { useLanguage } from '../i18n/provider';
 import { displayText } from '../i18n/translate';
-import { CurrencyControls, MoneyText } from '../currency/ui';
+import { CurrencyRateNote, MoneyText } from '../currency/ui';
 import { useCheckout } from './checkout-provider';
 import { checkoutEstimate } from './estimate';
 
@@ -64,7 +64,7 @@ export function CheckoutShell({ title, step, children, back, footer, footerDetai
         <Text accessibilityRole="header" style={checkoutStyles.screenTitle}>{t(title)}</Text>
       </View>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={checkoutStyles.scroll}>
-        <View style={checkoutStyles.content}>{children}<LanguagePicker /><CurrencyControls /></View>
+        <View style={checkoutStyles.content}>{children}</View>
       </ScrollView>
       {footer && <View style={checkoutStyles.footer}>
         {footerDetail}
@@ -73,6 +73,7 @@ export function CheckoutShell({ title, step, children, back, footer, footerDetai
             <Text style={checkoutStyles.caption}>{t('Estimated total')}</Text>
             {estimate ? <MoneyText amount={estimate.amount} currency={estimate.currency} style={checkoutStyles.amount} />
               : <Text style={checkoutStyles.amount}>{t('Price unavailable')}</Text>}
+            {estimate && <CurrencyRateNote />}
             <Text style={checkoutStyles.caption}>{t(draft.passengers.length === 1 ? '{count} traveller' : '{count} travellers', { count: draft.passengers.length })}</Text>
           </View>
           <View style={{ flex: 1, minWidth: 140 }}><CheckoutButton {...footer} /></View>

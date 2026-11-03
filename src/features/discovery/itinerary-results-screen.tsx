@@ -6,7 +6,7 @@ import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { Notice } from '@/features/auth/ui';
 import { useLanguage } from '@/features/i18n/provider';
 import { localeFor } from '@/features/i18n/translate';
-import { CurrencyControls, MoneyText } from '@/features/currency/ui';
+import { CurrencyRateNote, MoneyText } from '@/features/currency/ui';
 import { useDisplayMoney } from '@/features/currency/provider';
 import { inlineMoney } from '@/features/currency/presentation';
 import { searchOneWay } from './data';
@@ -96,7 +96,6 @@ export function ItineraryResultsScreen({ rawSearch }: { rawSearch: unknown }) {
       <Text style={styles.subtitle}>{t('{selected}/{total} chặng đã chọn', { selected: selected.length, total: parsed.legs.length })} ·
         {' '}{t('{count} hành khách', { count: parsed.adults + parsed.children + parsed.infants })}</Text>
     </View>
-    <CurrencyControls />
     {selected.length > 0 && <View style={styles.card}>
       <Text style={styles.sectionTitle}>{t('Hành trình đã chọn')}</Text>
       {selected.map((offer, index) => <Text key={offer.flight.id} style={styles.muted}>
@@ -148,7 +147,8 @@ export function ItineraryResultsScreen({ rawSearch }: { rawSearch: unknown }) {
           </View>
           <Text style={styles.muted}>{t('Bay thẳng')} · {t('{hours}g {minutes}p', {
             hours: Math.floor(duration(offer) / 60), minutes: duration(offer) % 60,
-          })} · {offer.fare.name}</Text>
+          })} · {t(offer.fare.name)}</Text>
+          <Text style={styles.muted}>{t('Fare including taxes and fees')}</Text>
           <MoneyText amount={offer.total} currency={offer.fare.currency} style={[styles.sectionTitle, { color: flightColors.primary }]} />
           <Pressable accessibilityRole="button" style={styles.picker}
             onPress={() => setExpandedId(previous => previous === offer.fare.id ? '' : offer.fare.id)}>
@@ -175,5 +175,6 @@ export function ItineraryResultsScreen({ rawSearch }: { rawSearch: unknown }) {
       <Notice text={t(selectionError)} />
       <FlightButton title={t('Tiếp tục đặt vé')} onPress={continueCheckout} />
     </View>}
+    <CurrencyRateNote />
   </Page>;
 }

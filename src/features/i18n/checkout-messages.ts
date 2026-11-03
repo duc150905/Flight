@@ -3,6 +3,11 @@
 import { extrasMessages } from './extras-messages.ts';
 export const checkoutMessages = {
   ...extrasMessages,
+  'Fare including taxes and fees': 'Giá vé đã gồm thuế và phí',
+  'Already included in the fare above; not charged again.': 'Đã gồm trong giá vé phía trên, không tính thêm lần nữa.',
+  'Additional services': 'Dịch vụ mua thêm',
+  'Seat selection is optional. Your fare includes travel in the selected cabin; choosing a specific seat costs extra.': 'Bạn không bắt buộc mua dịch vụ chọn ghế. Vé đã bao gồm chỗ trong hạng khoang đã chọn; chỉ trả thêm khi tự chọn vị trí ghế cụ thể.',
+  'Taxes and fare fees are configured per fare, not calculated from a fixed percentage.': 'Thuế và phí được quy định theo từng gói vé, không tính theo một tỷ lệ phần trăm cố định.',
   'Back': 'Quay lại', 'Cancel': 'Hủy', 'Contact': 'Liên hệ', 'Travellers': 'Hành khách', 'Review': 'Xem lại',
   'Baggage': 'Hành lý', 'Seats': 'Chỗ ngồi', 'Payment': 'Thanh toán', 'Next': 'Tiếp tục',
   'Step {number} of {total}': 'Bước {number} trên {total}',
@@ -17,7 +22,7 @@ export const checkoutMessages = {
   'Your details stay in this checkout while you move between steps.': 'Thông tin được giữ lại khi bạn chuyển qua lại giữa các bước đặt vé.',
   'Continue to travellers': 'Tiếp tục nhập hành khách', 'Traveller information': 'Thông tin hành khách',
   'Enter each traveller’s name as shown on their travel document.': 'Nhập tên từng hành khách đúng như trên giấy tờ đi lại.',
-  'Demo age rules: infant under 2, child 2–11, adult 12+. Age is checked on every flight date.': 'Quy tắc demo: em bé dưới 2 tuổi, trẻ em 2–11 tuổi, người lớn từ 12 tuổi. Tuổi tính riêng vào ngày bay từng chặng.',
+  'Choose the correct age group: infant under 2, child 2–11, adult 12+. Age is calculated on each flight date.': 'Chọn đúng nhóm tuổi: em bé dưới 2 tuổi, trẻ em từ 2 đến dưới 12 tuổi, người lớn từ 12 tuổi. Tuổi được tính theo ngày bay của từng chặng.',
   'Traveller {number}': 'Hành khách {number}', 'adult': 'Người lớn', 'child': 'Trẻ em', 'infant': 'Em bé',
   'Given names': 'Tên đệm và tên', 'First name': 'Tên đệm và tên', 'Family name': 'Họ', 'Last name': 'Họ',
   'Date of birth': 'Ngày sinh', 'Use YYYY-MM-DD, for example 2000-02-29.': 'Nhập YYYY-MM-DD, ví dụ 2000-02-29.',

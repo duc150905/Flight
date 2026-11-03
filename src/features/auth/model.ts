@@ -120,6 +120,10 @@ export function createAuthService(auth: AuthGateway) {
   };
 }
 
+export function isEmailConfirmationRequired(error: unknown): boolean {
+  return !!error && typeof error === 'object' && 'code' in error && error.code === 'email_not_confirmed';
+}
+
 export function authErrorMessage(error: unknown): string {
   const code = error && typeof error === 'object' && 'code' in error ? String(error.code) : '';
   const messages: Record<string, string> = {
