@@ -44,22 +44,14 @@ export function BottomTabBar() {
   const handlePressHome = () => {
     closeSearch();
     if (pathname !== '/' && pathname !== '') {
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/');
-      }
+      router.replace('/');
     }
   };
 
   const handlePressExplore = () => {
     openSearch();
     if (pathname !== '/' && pathname !== '') {
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/?search=1' as any);
-      }
+      router.replace({ pathname: '/', params: { search: '1' } });
     }
   };
 
