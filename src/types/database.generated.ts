@@ -1169,6 +1169,7 @@ export type Database = {
       start_mock_payment: { Args: { p_booking_id: string; p_request_id: string }; Returns: Json }
       resolve_mock_payment: { Args: { p_payment_id: string; p_request_id: string; p_outcome: string }; Returns: Json }
       cancel_booking: { Args: { p_booking_id: string; p_request_id: string; p_expected_fee: number }; Returns: Json }
+      refund_mock_booking: { Args: { p_booking_id: string; p_request_id: string; p_outcome: string }; Returns: Json }
       create_booking: { Args: { p_request_id: string; p_request: Json }; Returns: Json }
       get_pending_booking: { Args: { p_booking_id: string }; Returns: Json }
       find_booking_request: { Args: { p_request_id: string }; Returns: Json }

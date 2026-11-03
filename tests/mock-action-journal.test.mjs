@@ -19,3 +19,7 @@ test('known server rejection permits reviewing a changed cancellation fee',async
  const result=await j.run('a','b','fee200',{kind:'cancel',expectedFee:200},async action=>action.expectedFee);
  assert.equal(result.recovered,false);assert.equal(result.value,200);
 });
+test('recovery without a saved action never starts a payment',async()=>{
+ let called=false;const j=createMockActionJournal({getItem:async()=>null,setItem:async()=>{}},()=> 'id');
+ assert.equal(await j.recover('a','b',async()=>{called=true;}),null);assert.equal(called,false);
+});

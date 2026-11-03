@@ -34,3 +34,7 @@ export async function cancelMockBooking(client:Client,bookingId:string,requestId
  const {data,error}=await client.rpc('cancel_booking',{p_booking_id:id.parse(bookingId),p_request_id:id.parse(requestId),p_expected_fee:money.parse(expectedFee)});
  if(error)throw Error(mockError(error));const parsed=parseMockState(data);if(parsed.booking.id!==bookingId)throw Error('mock.invalid');return parsed;
 }
+export async function refundMockBooking(client:Client,bookingId:string,requestId:string,outcome:Exclude<MockOutcome,'cancelled'>){
+ const {data,error}=await client.rpc('refund_mock_booking',{p_booking_id:id.parse(bookingId),p_request_id:id.parse(requestId),p_outcome:z.enum(['pending','succeeded','failed']).parse(outcome)});
+ if(error)throw Error(mockError(error));const parsed=parseMockState(data);if(parsed.booking.id!==bookingId)throw Error('mock.invalid');return parsed;
+}

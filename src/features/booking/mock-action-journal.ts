@@ -4,7 +4,7 @@ type Entry={id:string;bookingId:string;signature:string;action:MockAction;phase:
 /** Only IDs, simulation choice and expected fee; never traveller/card details. */
 export function createMockActionJournal(storage:Storage,uuid:()=>string){
  const tails=new Map<string,Promise<unknown>>();
- return {run<T>(owner:string,bookingId:string,signature:string,action:MockAction,send:(action:MockAction,id:string)=>Promise<T>){
+ function execute<T>(owner:string,bookingId:string,signature:string,action:MockAction|null,send:(action:MockAction,id:string)=>Promise<T>){
   const key=`flyora.mockAction.v1.${owner}.${bookingId}`;
   const task=(tails.get(key)??Promise.resolve()).catch(()=>{}).then(async()=>{
    if(!owner||!bookingId)throw Error('booking.authRequired');
@@ -12,8 +12,9 @@ export function createMockActionJournal(storage:Storage,uuid:()=>string){
    try{const raw=await storage.getItem(key);old=raw?JSON.parse(raw):null;
     if(old&&(old.bookingId!==bookingId||!old.id||!old.signature||!['sent','complete'].includes(old.phase)||!old.action))throw Error();
    }catch{throw Error('mock.storage');}
+   if(!action&&!old)return null;
    const recovered=!!old&&old.phase==='sent';
-   const entry:Entry=old&&(recovered||old.signature===signature)?old:{id:uuid(),bookingId,signature,action,phase:'sent'};
+   const entry:Entry=old&&(!action||recovered||old.signature===signature)?old:{id:uuid(),bookingId,signature,action:action!,phase:'sent'};
    try{await storage.setItem(key,JSON.stringify({...entry,phase:'sent'}));}catch{throw Error('mock.storage');}
    let value:T;
    try{value=await send(entry.action,entry.id);}catch(cause){
@@ -26,5 +27,9 @@ export function createMockActionJournal(storage:Storage,uuid:()=>string){
    return {value,recovered};
   });
   tails.set(key,task);void task.finally(()=>{if(tails.get(key)===task)tails.delete(key);}).catch(()=>{});return task;
- }};
+ }
+ return {
+  run<T>(owner:string,bookingId:string,signature:string,action:MockAction,send:(action:MockAction,id:string)=>Promise<T>){return execute(owner,bookingId,signature,action,send).then(result=>{if(!result)throw Error('mock.invalid');return result;});},
+  recover<T>(owner:string,bookingId:string,send:(action:MockAction,id:string)=>Promise<T>){return execute(owner,bookingId,'',null,send);},
+ };
 }
