@@ -1165,6 +1165,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_mock_payment_state: { Args: { p_booking_id: string }; Returns: Json }
+      start_mock_payment: { Args: { p_booking_id: string; p_request_id: string }; Returns: Json }
       create_booking: { Args: { p_request_id: string; p_request: Json }; Returns: Json }
       get_pending_booking: { Args: { p_booking_id: string }; Returns: Json }
       find_booking_request: { Args: { p_request_id: string }; Returns: Json }
