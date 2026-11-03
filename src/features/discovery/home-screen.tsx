@@ -1,5 +1,6 @@
-import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
+import { useStore } from 'zustand';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import {
@@ -21,6 +22,7 @@ import type { Airport, Destination } from './model';
 import { SearchFlow } from './search-flow';
 import { destinationImages } from './destination-images';
 import { flightColors } from './ui';
+import { consumeOpenSearch, searchStore } from './search-state';
 
 const emptyAirports: Airport[] = [];
 const emptyDestinations: Destination[] = [];
@@ -37,17 +39,27 @@ export function HomeScreen() {
   const airports = airportsQuery.data ?? emptyAirports;
   const destinations = destinationsQuery.data ?? emptyDestinations;
   const airportById = useMemo(() => new Map(airports.map(airport => [airport.id, airport])), [airports]);
-  const [searchOpen, setSearchOpen] = useState(false);
+  const params = useLocalSearchParams<{ search?: string }>();
+  const { searchOpen, openSearch, closeSearch } = useStore(searchStore);
   const [initialDestinationId, setInitialDestinationId] = useState('');
+
+  useFocusEffect(
+    useCallback(() => {
+      if (consumeOpenSearch() || params.search === '1' || params.search === 'true') {
+        setInitialDestinationId('');
+        openSearch();
+      }
+    }, [params.search, openSearch])
+  );
 
   const destinationCardWidth = isDesktop ? '23.4%' : isTablet ? '31.4%' : '47.5%';
 
   if (searchOpen) return <SearchFlow airports={airports} loading={airportsQuery.isPending}
     error={airportsQuery.isError} onRetry={() => void airportsQuery.refetch()}
-    onClose={() => setSearchOpen(false)} initialDestinationId={initialDestinationId} />;
+    onClose={closeSearch} initialDestinationId={initialDestinationId} />;
 
   return (
-    <SafeAreaView style={home.safe}>
+    <SafeAreaView style={home.safe} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={[home.scroll, isDesktop && home.scrollDesktop]}>
         <View style={[home.container, isDesktop && home.containerDesktop]}>
           {/* Top Header */}
@@ -76,7 +88,7 @@ export function HomeScreen() {
             accessibilityRole="button"
             onPress={() => {
               setInitialDestinationId('');
-              setSearchOpen(true);
+              openSearch();
             }}
             style={[home.searchButton, isDesktop && home.searchButtonDesktop]}
           >
@@ -139,7 +151,7 @@ export function HomeScreen() {
                   cardWidthStyle={{ width: destinationCardWidth }}
                   onPress={() => {
                     setInitialDestinationId(airport.id);
-                    setSearchOpen(true);
+                    openSearch();
                   }}
                 />
               );
@@ -153,7 +165,7 @@ export function HomeScreen() {
               accessibilityRole="button"
               onPress={() => {
                 setInitialDestinationId('');
-                setSearchOpen(true);
+                openSearch();
               }}
               style={[home.exploreCard, isDesktop && home.exploreCardDesktop]}
             >
@@ -236,12 +248,12 @@ const home = StyleSheet.create({
   scroll: {
     paddingHorizontal: 20,
     paddingTop: 28,
-    paddingBottom: 56,
+    paddingBottom: 20,
   },
   scrollDesktop: {
     paddingHorizontal: 36,
     paddingTop: 36,
-    paddingBottom: 64,
+    paddingBottom: 28,
   },
   container: {
     width: '100%',
