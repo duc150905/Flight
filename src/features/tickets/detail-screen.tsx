@@ -62,6 +62,8 @@ export function TicketDetailScreen() {
       <TicketBack label={t('Vé của tôi')} onPress={() => router.replace('/tickets')} />
       <Text accessibilityRole="header" style={ticketStyles.title}>{t('Đơn {code}', { code: booking.booking_code })}</Text>
       <Text style={ticketStyles.status}>{t(bookingStatusLabel(booking.status))}</Text>
+      {booking.status === 'pending_payment' && <ActionButton title={t('Resume pending booking')}
+        onPress={() => router.push({ pathname: '/pending/[id]', params: { id: booking.id } })} />}
       <View style={ticketStyles.card}>
         <Text style={ticketStyles.cardTitle}>{t('Thông tin đơn')}</Text>
         <Info label={t('Hành trình')} value={t(tripTypeLabel(booking.trip_type))} />

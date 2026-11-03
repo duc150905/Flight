@@ -46,7 +46,7 @@ export function CheckoutProgress({ step = 1 }: { step?: number }) {
   </View>;
 }
 type FooterAction = { title: string; onPress(): void; disabled?: boolean };
-export function CheckoutShell({ title, step, children, back, footer, footerDetail }: PropsWithChildren<{ title: string; step?: number; back?: () => void; footer?: FooterAction; footerDetail?: ReactNode }>) {
+export function CheckoutShell({ title, step, children, back, footer, footerDetail, savedTotal }: PropsWithChildren<{ title: string; step?: number; back?: () => void; footer?: FooterAction; footerDetail?: ReactNode; savedTotal?: { amount: number; count: number } }>) {
   const draft = useCheckout(); const [discard, setDiscard] = useState(false); const { t } = useLanguage();
   const estimate = checkoutEstimate(draft);
   return <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -57,7 +57,7 @@ export function CheckoutShell({ title, step, children, back, footer, footerDetai
             <SymbolView name={{ ios: 'arrow.left', android: 'arrow_back', web: 'arrow_back' }} size={23} tintColor={colors.muted} />
           </Pressable>
           {step !== undefined ? <CheckoutProgress step={step} /> : <View style={{ flex: 1 }} />}
-          <Pressable accessibilityRole="button" accessibilityLabel={t('Cancel')} onPress={() => setDiscard(true)} style={checkoutStyles.iconButton}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t(savedTotal ? 'My bookings' : 'Cancel')} onPress={() => savedTotal ? router.replace('/tickets') : setDiscard(true)} style={checkoutStyles.iconButton}>
             <SymbolView name={{ ios: 'xmark', android: 'close', web: 'close' }} size={19} tintColor={colors.muted} />
           </Pressable>
         </View>
@@ -70,15 +70,15 @@ export function CheckoutShell({ title, step, children, back, footer, footerDetai
         {footerDetail}
         <View style={checkoutStyles.footerContent}>
           <View style={{ flex: 1, minWidth: 130, gap: 3 }}>
-            <Text style={checkoutStyles.caption}>{t('Estimated total')}</Text>
-            {estimate ? <MoneyText amount={estimate.amount} currency={estimate.currency} style={checkoutStyles.amount} />
+            <Text style={checkoutStyles.caption}>{t(savedTotal ? 'Booking total' : 'Estimated total')}</Text>
+            {savedTotal ? <MoneyText amount={savedTotal.amount} style={checkoutStyles.amount} /> : estimate ? <MoneyText amount={estimate.amount} currency={estimate.currency} style={checkoutStyles.amount} />
               : <Text style={checkoutStyles.amount}>{t('Price unavailable')}</Text>}
-            {estimate && <CurrencyRateNote />}
-            <Text style={checkoutStyles.caption}>{t(draft.passengers.length === 1 ? '{count} traveller' : '{count} travellers', { count: draft.passengers.length })}</Text>
+            {(savedTotal || estimate) && <CurrencyRateNote />}
+            <Text style={checkoutStyles.caption}>{t((savedTotal?.count ?? draft.passengers.length) === 1 ? '{count} traveller' : '{count} travellers', { count: savedTotal?.count ?? draft.passengers.length })}</Text>
           </View>
           <View style={{ flex: 1, minWidth: 140 }}><CheckoutButton {...footer} /></View>
         </View>
-        <Text style={checkoutStyles.caption}>{t('Final price is checked when booking.')}</Text>
+        <Text style={checkoutStyles.caption}>{t(savedTotal ? 'No payment has been taken.' : 'Final price is checked when booking.')}</Text>
       </View>}
     </KeyboardAvoidingView>
     <Modal visible={discard} transparent animationType="none" onRequestClose={() => setDiscard(false)}>

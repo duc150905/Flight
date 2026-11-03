@@ -34,6 +34,7 @@ export function SeatsScreen() {
     footer={{ title: busy ? 'Loading' : 'Review quote', disabled: busy, onPress: () => { void next(); } }}>
     <CheckoutText muted message="Choose a seat for each flight, or skip paid seat selection." />
     <CheckoutText muted message="Seat selection is optional. Your fare includes travel in the selected cabin; choosing a specific seat costs extra." />
+    <CheckoutText muted message="Skipping paid seat selection adds no selection fee. A suitable seat is assigned when you create your booking." />
     <CheckoutText muted message="Seat choices are not held." /><CheckoutError message={error} />
     {draft.itinerary.legs.map(leg => <CheckoutCard key={leg.flightId}>
       <CheckoutText title>{leg.origin.iata_code} → {leg.destination.iata_code}</CheckoutText>

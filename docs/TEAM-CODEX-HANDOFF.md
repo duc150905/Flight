@@ -1,4 +1,15 @@
-# Cập nhật TV2 — 02/11/2026
+# Cập nhật TV2 — 03/11/2026
+
+Đọc `BOOKING-CREATION.md`: đã có `create_booking(uuid,jsonb)`,
+`get_pending_booking(uuid)`, `find_booking_request(uuid)`, giữ ghế tối đa 15 phút,
+phân ghế miễn phí và `/pending/[id]`. Hai migration `20261103065922` và
+`20261103065925` đã chạy trên flight-dev. Không cấp quyền ghi trực tiếp bảng
+giao dịch. Snapshot chuyến theo contract của tickets/presentation.ts.
+Đơn chờ có thể mở lại từ Vé của tôi; thanh toán/cancel/refund chưa triển khai.
+Hai migration admin/profile cũ vẫn chưa chạy trên cloud, đợt này không chạy lẫn.
+Kiểm tra Git để phân biệt code local, đã push và đã merge.
+
+## Snapshot cũ — 02/11/2026
 
 Đọc thêm `CHECKOUT-EXTRAS.md` và `CURRENCY.md` trước khi sửa phần giao nhau.
 Checkout đã có hành lý theo người/chặng, sơ đồ ghế chọn trong RAM và báo giá

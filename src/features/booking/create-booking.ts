@@ -21,6 +21,7 @@ export function bookingPayload(draft: CheckoutDraftState, displayedQuote: Checko
 }
 export type BookingPayload = ReturnType<typeof bookingPayload>;
 const safeCodes = new Set(['booking.authRequired', 'booking.invalid', 'booking.requestConflict', 'booking.priceChanged',
+  'booking.requestClosed', 'booking.storageError', 'booking.recoveryError',
   'booking.quoteExpired', 'booking.seatRequired', 'booking.inventoryChanged', 'quote.authRequired', 'quote.invalid',
   'quote.unavailable', 'quote.offerUnavailable', 'quote.seatUnavailable', 'quote.seatIneligible', 'quote.soldOut']);
 export function bookingError(error: unknown) {

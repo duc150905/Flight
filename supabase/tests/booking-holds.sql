@@ -3,7 +3,7 @@ insert into auth.users(id,email,raw_user_meta_data) values ('00000000-0000-4000-
 insert into auth.users(id,email,raw_user_meta_data) values ('00000000-0000-4000-8000-000000000099','other-test@example.invalid','{"full_name":"Other Test"}');
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000052',true);
 do $$
-declare fl record; payload jsonb; req jsonb; q jsonb; result jsonb; detail jsonb; bid uuid; seat uuid; rid uuid:=gen_random_uuid(); actual text;
+declare fl record; payload jsonb; req jsonb; late_req jsonb; q jsonb; result jsonb; detail jsonb; bid uuid; seat uuid; rid uuid:=gen_random_uuid(); actual text;
 begin
  select f.id,fa.id fare into fl from public.flight_instances f join public.flight_fares fa on fa.flight_id=f.id
  where f.flight_number='F0103' and f.departure_at>now()+interval '1 hour' and fa.fare_code='DEMO_STANDARD' order by f.departure_at limit 1;
@@ -30,10 +30,11 @@ begin
  if (public.find_booking_request(rid)->>'id')::uuid<>bid then raise exception 'Request recovery failed'; end if;
  -- A missing recovery request is closed, so a late create cannot duplicate it.
  rid:=gen_random_uuid();
+ late_req:=jsonb_set(req,'{checkout,seats}','[]');
+ late_req:=jsonb_set(late_req,'{expectedQuote}',public.quote_checkout(late_req->'checkout'));
  if public.find_booking_request(rid) is not null then raise exception 'Missing request unexpectedly found'; end if;
- begin perform public.create_booking(rid,jsonb_set(req,'{checkout,seats}','[]')); exception when others then actual:=sqlerrm; end;
- -- Quote mismatch may be detected before closure; either way no second booking.
- if actual not in ('booking.requestClosed','booking.priceChanged','quote.seatUnavailable') then raise exception 'Late request was not rejected: %',actual; end if;
+ begin perform public.create_booking(rid,late_req); exception when others then actual:=sqlerrm; end;
+ if actual is distinct from 'booking.requestClosed' then raise exception 'Late request was not rejected: %',actual; end if;
  actual:=null;
  select create_request_id into rid from public.bookings where id=bid;
  -- Expire both booking and holds; only synthetic booking rows touched.

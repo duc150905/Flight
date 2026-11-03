@@ -2,6 +2,9 @@ begin;
 set local lock_timeout='10s';
 set local statement_timeout='60s';
 
+create function private.valid_booking_country(p_code text) returns boolean language sql immutable set search_path='' as $$ select p_code is null or p_code=any(string_to_array('AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW',' ')) $$;
+revoke all on function private.valid_booking_country(text) from public,anon,authenticated;
+
 -- Private helper; creation owns the transaction and has already locked inventory.
 -- Task 1 requires an explicit seat. Task 2 replaces this with free auto allocation.
 create function private.allocate_booking_seats(p_booking uuid,p_checkout jsonb) returns void
@@ -67,7 +70,9 @@ begin
  where status='held' and expires_at<=v_now and flight_id in (select (value->>'flightId')::uuid from jsonb_array_elements(payload->'segments'));
  q:=private.quote_checkout(payload);
  if jsonb_typeof(expected) is distinct from 'object' or (expected-'quotedAt'-'expiresAt') is distinct from (q-'quotedAt'-'expiresAt') then raise exception using message='booking.priceChanged'; end if;
- if (expected->>'expiresAt')::timestamptz<=v_now or (expected->>'quotedAt')::timestamptz>v_now+interval '1 minute'
+ if jsonb_typeof(expected->'expiresAt') is distinct from 'string' or jsonb_typeof(expected->'quotedAt') is distinct from 'string'
+ or (expected->>'expiresAt')::timestamptz<=v_now or (expected->>'expiresAt')::timestamptz<=(expected->>'quotedAt')::timestamptz
+ or (expected->>'quotedAt')::timestamptz>v_now+interval '1 minute'
  or (expected->>'expiresAt')::timestamptz>(expected->>'quotedAt')::timestamptz+interval '5 minutes' then raise exception using message='booking.quoteExpired'; end if;
  select least(v_now+interval '15 minutes',min(sales_close_at)) into expiry from public.flight_instances
  where id in (select (value->>'flightId')::uuid from jsonb_array_elements(payload->'segments'));
@@ -100,7 +105,7 @@ begin
   doc:=nullif(btrim(values_->>'passportNumber'),''); doc_expiry:=nullif(values_->>'passportExpiryDate','')::date;
   gender_:=nullif(values_->>'gender','');
   if (gender_ is not null and gender_ not in ('male','female','unspecified'))
-   or (nationality is not null and nationality!~'^[A-Z]{2}$') or (issuer is not null and issuer!~'^[A-Z]{2}$')
+   or not private.valid_booking_country(nationality) or not private.valid_booking_country(issuer)
    or (international and (nationality is null or doc is null or issuer is null or doc_expiry is null))
    or ((doc is not null or issuer is not null or doc_expiry is not null) and (doc is null or issuer is null or doc_expiry is null))
    or (doc is not null and (length(doc)>50 or doc~'[[:cntrl:]]')) or doc_expiry<last_arrival then raise exception using message='booking.invalid'; end if;

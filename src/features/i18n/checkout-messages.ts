@@ -3,6 +3,8 @@
 import { extrasMessages } from './extras-messages.ts';
 export const checkoutMessages = {
   ...extrasMessages,
+  'Travelling with an infant': 'Đi cùng em bé',
+  'Each infant under 2 needs their own accompanying traveller aged 18 or over on that flight.': 'Mỗi em bé dưới 2 tuổi cần một người đi kèm riêng từ đủ 18 tuổi trên chặng bay đó.',
   'Fare including taxes and fees': 'Giá vé đã gồm thuế và phí',
   'Already included in the fare above; not charged again.': 'Đã gồm trong giá vé phía trên, không tính thêm lần nữa.',
   'Additional services': 'Dịch vụ mua thêm',

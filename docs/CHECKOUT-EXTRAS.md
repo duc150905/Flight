@@ -1,5 +1,9 @@
 # Hành lý, báo giá và ghế — TV2
 
+**Cập nhật 03/11/2026:** phần dưới ghi lại ba task ban đầu. Hiện đã có tạo đơn,
+giữ ghế thật, phân ghế miễn phí và màn chờ thanh toán; xem `BOOKING-CREATION.md`.
+`quote_checkout` vẫn chỉ đọc; việc ghi đơn/giữ ghế nằm ở `create_booking` riêng.
+
 Thiết kế đã duyệt: `superpowers/specs/2026-11-02-baggage-quote-seats-design.md`.
 
 ## Task 1: hành lý

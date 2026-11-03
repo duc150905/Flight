@@ -11,10 +11,12 @@ import { checkoutEstimate } from './estimate';
 import { quoteRequest, requestKey } from './quote';
 import { loadQuote } from './quote-data';
 import { checkoutReview } from './review';
+import { useCreateBooking } from './use-create-booking';
 import { CheckoutButton, CheckoutCard, CheckoutError, CheckoutShell, CheckoutText, MissingCheckout } from './ui';
 export function QuoteScreen() {
   const draft = useCheckout(); const { session } = useAuth(); const { language, t } = useLanguage();
   const [now, setNow] = useState(Date.now); const [acknowledged, acknowledge] = useState('');
+  const creation = useCreateBooking();
   const valid = checkoutReview(draft).success;
   const request = draft.itinerary ? quoteRequest(draft) : null;
   const key = request ? requestKey(request, draft.revision) : '';
@@ -36,11 +38,14 @@ export function QuoteScreen() {
   const signature = `${key}:${quote?.quotedAt}`;
   return <CheckoutShell title="Quote summary" step={3} back={() => router.back()}>
     <CheckoutText muted message="Seat choices are not held." />
-    <CheckoutText muted message="This is a quote only. Booking and payment are not completed." />
+    <CheckoutText muted message="Review the price, then create your booking to hold seats. No payment is taken yet." />
+    {creation.busy && <ActivityIndicator accessibilityLabel={t('Creating booking')} />}
+    <CheckoutError message={creation.error} />
+    {creation.error && <CheckoutButton title="Check saved booking" secondary disabled={creation.busy} onPress={() => { void creation.recover(); }} />}
     {query.isFetching && <ActivityIndicator accessibilityLabel={t('Loading')} />}
     {query.isError && <CheckoutError message={query.error.message} />}
     {expired && <CheckoutError message="quote.expired" />}
-    <CheckoutButton title="Refresh quote" secondary disabled={query.isFetching} onPress={() => { void query.refetch(); }} />
+    <CheckoutButton title="Refresh quote" secondary disabled={query.isFetching || creation.busy} onPress={() => { void query.refetch(); }} />
     {usable && <>
       {changed && <CheckoutError message="quote.changed" />}
       <CheckoutCard>
@@ -68,6 +73,8 @@ export function QuoteScreen() {
         </CheckoutCard>;
       })}</CheckoutCard>
       <CheckoutButton title={acknowledged === signature ? 'Price reviewed' : 'I have reviewed this price'} disabled={acknowledged === signature} onPress={() => acknowledge(signature)} />
+      <CheckoutText muted message="Seats are held for up to 15 minutes after creating your booking. Automatic seat assignment is free; seats together are not guaranteed." />
+      <CheckoutButton title="Create booking and hold seats" disabled={creation.busy || (changed && acknowledged !== signature)} onPress={() => { void creation.submit(quote); }} />
     </>}
   </CheckoutShell>;
 }
