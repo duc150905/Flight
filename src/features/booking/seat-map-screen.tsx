@@ -28,7 +28,8 @@ export function SeatMapScreen({ flightId }: { flightId?: string }) {
   return <CheckoutShell title="Choose seats" step={3} back={() => router.back()} footer={{ title: 'Done', onPress: () => router.back() }}
     footerDetail={<CheckoutText>{passenger.values.givenNames} · {choice?.seatCode ?? t('No paid seat selected')}</CheckoutText>}>
     <CheckoutText title>{leg.origin.iata_code} → {leg.destination.iata_code}</CheckoutText>
-    <CheckoutText muted>{leg.flightNumber} · {leg.fareName}</CheckoutText>
+    <CheckoutText muted message="Seat selection is optional. Your fare includes travel in the selected cabin; choosing a specific seat costs extra." />
+    <CheckoutText muted>{leg.flightNumber} · {t(leg.fareName)}</CheckoutText>
     <Tabs label="Travellers" selected={passenger.id} onSelect={id => { selectPerson(id); setError(''); }} values={draft.passengers.map((p, i) => {
       const picked = draft.seats.find(s => s.flightId === flightId && s.passengerId === p.id);
       return { id: p.id, text: `${i + 1}. ${p.values.givenNames} · ${picked?.seatCode ?? '—'}` };

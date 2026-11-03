@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Notice } from '@/features/auth/ui';
-import { CurrencyControls, MoneyText } from '@/features/currency/ui';
+import { CurrencyRateNote, MoneyText } from '@/features/currency/ui';
 import { useLanguage } from '@/features/i18n/provider';
 import { localeFor } from '@/features/i18n/translate';
 import { searchOneWay } from './data';
@@ -62,7 +62,6 @@ export function ResultsScreen({ input }: { input: Record<string, string | string
             count: criteria.adults + criteria.children + criteria.infants,
           })} · {t(cabinLabels[criteria.cabinClass])}</Text></View>
       </Pressable>
-      <CurrencyControls />
       <View style={r.filterBar}>
         <Pressable accessibilityRole="button" onPress={() => setFiltersOpen(true)} style={r.filterButton}>
           <Text style={r.filterLabel}>☷ {t('Sắp xếp & lọc')}</Text></Pressable>
@@ -85,6 +84,7 @@ export function ResultsScreen({ input }: { input: Record<string, string | string
         {visible.length === 0 && <Text style={r.helper}>{t('Chưa có chuyến bay phù hợp')}</Text>}
         <Text style={r.helper}>{t('Giá hiển thị là ước tính cho nhóm hành khách. Giá cuối cùng được kiểm tra lại khi đặt vé.')}</Text>
       </>}
+      <CurrencyRateNote />
     </ScrollView>
     <Modal visible={filtersOpen} animationType="slide" onRequestClose={() => setFiltersOpen(false)}>
       <SafeAreaView style={r.safe}>
@@ -146,8 +146,9 @@ function FlightCard({ offer, criteria }: { offer: FlightOffer; criteria: SearchC
       <View style={r.timeEnd}><Text style={r.time}>{timeAt(offer.flight.arrival_at, offer.destination.timezone, localeFor(language))}</Text>
         <Text style={r.airportCode}>{offer.destination.iata_code}</Text></View>
     </View>
-    <View style={r.cardBottom}><Text style={r.fareName}>{offer.fare.name}</Text>
+    <View style={r.cardBottom}><Text style={r.fareName}>{t(offer.fare.name)}</Text>
       <MoneyText amount={offer.total} currency={offer.fare.currency} style={r.price} /></View>
+    <Text style={r.fareName}>{t('Fare including taxes and fees')}</Text>
   </Pressable>;
 }
 

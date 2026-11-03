@@ -33,10 +33,11 @@ export function SeatsScreen() {
   return <CheckoutShell title="Seats" step={3} back={() => router.back()}
     footer={{ title: busy ? 'Loading' : 'Review quote', disabled: busy, onPress: () => { void next(); } }}>
     <CheckoutText muted message="Choose a seat for each flight, or skip paid seat selection." />
+    <CheckoutText muted message="Seat selection is optional. Your fare includes travel in the selected cabin; choosing a specific seat costs extra." />
     <CheckoutText muted message="Seat choices are not held." /><CheckoutError message={error} />
     {draft.itinerary.legs.map(leg => <CheckoutCard key={leg.flightId}>
       <CheckoutText title>{leg.origin.iata_code} → {leg.destination.iata_code}</CheckoutText>
-      <CheckoutText muted>{leg.flightNumber} · {leg.fareName}</CheckoutText>
+      <CheckoutText muted>{leg.flightNumber} · {t(leg.fareName)}</CheckoutText>
       {draft.passengers.map(p => {
         const choice = draft.seats.find(s => s.flightId === leg.flightId && s.passengerId === p.id);
         const infant = classifyPassenger(p.values.dateOfBirth.trim(), leg.departureDate) === 'infant';

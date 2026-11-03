@@ -5,7 +5,7 @@ import { checkoutReview } from './review';
 import { CheckoutButton, CheckoutCard, CheckoutError, CheckoutShell, CheckoutText, MissingCheckout } from './ui';
 import { useLanguage } from '../i18n/provider';
 import { formatDate, formatTime } from '../i18n/translate';
-import { MoneyText } from '../currency/ui';
+import { CurrencyRateNote, MoneyText } from '../currency/ui';
 import { checkoutEstimate } from './estimate';
 
 export function ReviewScreen() {
@@ -32,8 +32,8 @@ export function ReviewScreen() {
       <CheckoutText title message={"Your flights"} />
       {itinerary.legs.map(leg => <CheckoutCard key={leg.flightId}>
         <CheckoutText>{leg.origin.iata_code} → {leg.destination.iata_code}</CheckoutText>
-        <CheckoutText muted>{leg.origin.city} → {leg.destination.city}</CheckoutText>
-        <CheckoutText>{leg.flightNumber} · {leg.fareName}</CheckoutText>
+        <CheckoutText muted>{t(leg.origin.city)} → {t(leg.destination.city)}</CheckoutText>
+        <CheckoutText>{leg.flightNumber} · {t(leg.fareName)}</CheckoutText>
         <CheckoutText muted>{t('Departure')}: {formatTime(language, leg.departureAt, leg.origin.timezone)} ({leg.origin.timezone})</CheckoutText>
         <CheckoutText muted>{t('Arrival')}: {formatTime(language, leg.arrivalAt, leg.destination.timezone)} ({leg.destination.timezone})</CheckoutText>
       </CheckoutCard>)}
@@ -41,6 +41,7 @@ export function ReviewScreen() {
     {estimate && <CheckoutCard>
       <CheckoutText title message="Estimated total" />
       <MoneyText amount={estimate.amount} currency={estimate.currency} />
+      <CurrencyRateNote />
       <CheckoutText muted message="Final price is checked when booking." />
     </CheckoutCard>}
     <CheckoutCard>

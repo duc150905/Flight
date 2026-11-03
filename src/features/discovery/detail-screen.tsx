@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Notice } from '@/features/auth/ui';
-import { CurrencyControls, MoneyText } from '@/features/currency/ui';
+import { CurrencyRateNote, MoneyText } from '@/features/currency/ui';
 import { useDisplayMoney } from '@/features/currency/provider';
 import { inlineMoney } from '@/features/currency/presentation';
 import { useLanguage } from '@/features/i18n/provider';
@@ -56,13 +56,12 @@ export function DetailScreen({ input }: { input: Record<string, string | string[
       <View style={d.back} />
     </View>
     <ScrollView contentContainerStyle={d.scroll}>
-      <CurrencyControls />
       {loading && <ActivityIndicator color={flightColors.primary} accessibilityLabel={t('Đang tải chi tiết chuyến bay')} />}
       <Notice text={t(error)} />
       {!!error && <FlightButton title={t('Thử lại')} secondary onPress={() => void detailQuery.refetch()} />}
       {offer && !loading && !error && <>
         <View style={d.routeSummary}>
-          <Text style={d.routeTitle}>{offer.origin.city} — {offer.destination.city}</Text>
+          <Text style={d.routeTitle}>{t(offer.origin.city)} — {t(offer.destination.city)}</Text>
           <Text style={d.routeSubtitle}>{formatTime(language, offer.flight.departure_at, offer.origin.timezone)}</Text>
           <Text style={d.tripBadge}>{t('Một chiều')}</Text>
         </View>
@@ -73,7 +72,7 @@ export function DetailScreen({ input }: { input: Record<string, string | string[
         </View>
         <View style={d.flightCard}>
           <View style={d.flightCardHeader}>
-            <Text style={d.flightRoute}>{offer.origin.city} – {offer.destination.city}</Text>
+            <Text style={d.flightRoute}>{t(offer.origin.city)} – {t(offer.destination.city)}</Text>
             <View style={d.airline}><Text style={d.airlineName}>{offer.airline.name}</Text>
               <Text style={d.flightNumber}>{offer.flight.flight_number}</Text></View>
           </View>
@@ -88,7 +87,7 @@ export function DetailScreen({ input }: { input: Record<string, string | string[
           </View>
           <View style={d.cardNotes}>
             <Text style={d.note}>✓ {t('Hành lý bao gồm')}: {baggageText(offer.fare.baggage_allowance, t)}</Text>
-            <Text style={d.note}>✓ {offer.fare.name} · {t(cabinLabels[offer.fare.cabin_class])}</Text>
+            <Text style={d.note}>✓ {t(offer.fare.name)} · {t(cabinLabels[offer.fare.cabin_class])}</Text>
           </View>
         </View>
         <View style={d.section}>
@@ -102,6 +101,8 @@ export function DetailScreen({ input }: { input: Record<string, string | string[
         </View>
         <View style={d.section}>
           <Text style={d.sectionTitle}>{t('Điều kiện vé')}</Text>
+          <Text style={d.sectionSubtitle}>{t('Fare including taxes and fees')}</Text>
+          <Text style={d.sectionSubtitle}>{t('Seat selection is optional. Your fare includes travel in the selected cabin; choosing a specific seat costs extra.')}</Text>
           <Text style={d.sectionSubtitle}>{offer.fare.cancellation_allowed
             ? t('Được yêu cầu hủy trước giờ bay ít nhất {minutes} phút. Phí hủy theo điều kiện vé: {fee}. Server sẽ xác nhận số tiền cuối cùng.', {
               minutes: offer.fare.cancellation_cutoff_minutes,
@@ -115,7 +116,7 @@ export function DetailScreen({ input }: { input: Record<string, string | string[
       <View style={d.footerPrice}><MoneyText amount={offer.total} currency={offer.fare.currency} style={d.price} />
         <Text style={d.priceCaption}>{t('{count} hành khách', {
           count: criteria.adults + criteria.children + criteria.infants,
-        })}</Text></View>
+        })}</Text><CurrencyRateNote /></View>
       <Pressable accessibilityRole="button" onPress={() => router.push(checkoutHrefForOffer(offer, criteria))}
         style={d.selectButton}><Text style={d.selectText}>{t('Tiếp tục đặt vé')}</Text></Pressable>
     </View>}

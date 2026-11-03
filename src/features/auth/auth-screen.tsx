@@ -2,15 +2,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { Platform, Text } from 'react-native';
+import { useForm, useWatch } from 'react-hook-form';
+import { Platform, Pressable, Text } from 'react-native';
 import { useLanguage } from '@/features/i18n/provider';
 import { useAuth } from './auth-provider';
 import {
-  authErrorMessage, loginSchema, newPasswordSchema, registerSchema, verificationSchema,
+  authErrorMessage, isEmailConfirmationRequired, loginSchema, newPasswordSchema, registerSchema, verificationSchema,
   type LoginInput, type NewPasswordInput, type RegisterInput,
 } from './model';
-import { ActionButton, AuthShell, FormField, Notice, styles } from './ui';
+import { ActionButton, AuthShell, FormField, GoogleIcon, Notice, styles } from './ui';
 
 type Mode = 'login' | 'register' | 'verify' | 'forgot' | 'reset';
 type Navigation = { change: (mode: Mode, email?: string) => void };
@@ -37,16 +37,22 @@ function LoginForm({ change }: Navigation) {
   const { actions } = useAuth();
   const [error, setError] = useState('');
   const [googleBusy, setGoogleBusy] = useState(false);
+  const [confirmationEmail, setConfirmationEmail] = useState<string | null>(null);
   const { control, handleSubmit, getValues, formState: { isSubmitting } } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema), defaultValues: { email: '', password: '' },
   });
+  const currentEmail = useWatch({ control, name: 'email' });
+  const showConfirmation = confirmationEmail !== null && confirmationEmail === currentEmail.trim().toLowerCase();
   const submit = handleSubmit(async values => {
-    setError('');
-    try { await actions!.login(values); } catch (error) { setError(authErrorMessage(error)); }
+    setError(''); setConfirmationEmail(null);
+    try { await actions!.login(values); } catch (error) {
+      setError(authErrorMessage(error));
+      if (isEmailConfirmationRequired(error)) setConfirmationEmail(values.email.trim().toLowerCase());
+    }
   });
   const signInWithGoogle = async () => {
     if (googleBusy || isSubmitting) return;
-    setGoogleBusy(true); setError('');
+    setGoogleBusy(true); setError(''); setConfirmationEmail(null);
     try {
       const native = Platform.OS !== 'web';
       const redirectTo = native ? Linking.createURL('account') : `${window.location.origin}/account`;
@@ -66,12 +72,16 @@ function LoginForm({ change }: Navigation) {
       keyboardType="email-address" autoComplete="email" editable={!busy} placeholder="you@example.com" />
     <FormField control={control} name="password" label="Mật khẩu" password autoCapitalize="none" autoCorrect={false}
       autoComplete="current-password" editable={!busy} returnKeyType="go" onSubmitEditing={() => void submit()} />
+    <Pressable accessibilityRole="button" disabled={busy} accessibilityState={{ disabled: busy }}
+      onPress={() => change('forgot', getValues('email'))} style={styles.forgotLink}>
+      <Text style={styles.link}>{t('Quên mật khẩu?')}</Text>
+    </Pressable>
     <Notice text={error} />
+    {showConfirmation && <ActionButton title="Xác nhận email" secondary disabled={busy}
+      onPress={() => { if (confirmationEmail) change('verify', confirmationEmail); }} />}
     <ActionButton title="Đăng nhập" busy={isSubmitting} disabled={googleBusy} onPress={() => void submit()} />
-    <ActionButton title="Tiếp tục với Google" secondary busy={googleBusy} disabled={isSubmitting} onPress={() => void signInWithGoogle()} />
+    <ActionButton title="Tiếp tục với Google" outlined icon={<GoogleIcon />} busy={googleBusy} disabled={isSubmitting} onPress={() => void signInWithGoogle()} />
     <ActionButton title="Tạo tài khoản" secondary disabled={busy} onPress={() => change('register')} />
-    <ActionButton title="Xác nhận email" secondary disabled={busy} onPress={() => change('verify', getValues('email'))} />
-    <ActionButton title="Quên mật khẩu?" secondary disabled={busy} onPress={() => change('forgot', getValues('email'))} />
   </>;
 }
 

@@ -48,7 +48,7 @@ export function SearchFlow({ airports, loading, error, onRetry, onClose, initial
   const [validationError, setValidationError] = useState('');
   const airportById = useMemo(() => new Map(airports.map(airport => [airport.id, airport])), [airports]);
   const matches = airports.filter(airport =>
-    `${airport.city} ${airport.name} ${airport.iata_code}`.toLocaleLowerCase('vi-VN')
+    `${airport.city} ${airport.name} ${t(airport.city)} ${t(airport.name)} ${airport.iata_code}`.toLocaleLowerCase('vi-VN')
       .includes(airportQuery.trim().toLocaleLowerCase('vi-VN'))).slice(0, 12);
 
   const updateLeg = (index: number, field: keyof TripLeg, value: string) => {
@@ -111,7 +111,7 @@ export function SearchFlow({ airports, loading, error, onRetry, onClose, initial
   };
   const airportLabel = (id: string, fallback: string) => {
     const airport = airportById.get(id);
-    return airport ? `${airport.city} (${airport.iata_code})` : t(fallback);
+    return airport ? `${t(airport.city)} (${airport.iata_code})` : t(fallback);
   };
   const indexedError = /^Chặng (\d+): (.+)$/.exec(validationError);
   const localizedError = indexedError
@@ -185,8 +185,8 @@ export function SearchFlow({ airports, loading, error, onRetry, onClose, initial
             onPress={() => { if (airportPicker) updateLeg(airportPicker.index, airportPicker.field, airport.id);
               setAirportPicker(null); }} style={s.airportRow}>
             <View style={s.airportIcon}><Text style={s.airportIconText}>↗</Text></View>
-            <View style={s.airportCopy}><Text style={s.airportCity}>{airport.city}</Text>
-              <Text style={s.airportName}>{airport.name}</Text></View>
+            <View style={s.airportCopy}><Text style={s.airportCity}>{t(airport.city)}</Text>
+              <Text style={s.airportName}>{t(airport.name)}</Text></View>
             <Text style={s.airportCode}>{airport.iata_code}</Text>
           </Pressable>)}
         </ScrollView>
@@ -240,6 +240,7 @@ export function SearchFlow({ airports, loading, error, onRetry, onClose, initial
         <ModalHeader title={t('Hành khách & hạng ghế')} onClose={() => setOptionsOpen(false)} />
         <ScrollView contentContainerStyle={s.optionsScroll}>
           <Text style={s.modalSection}>{t('Hành khách')}</Text>
+          <Text style={s.airportName}>{t('Choose the correct age group: infant under 2, child 2–11, adult 12+. Age is calculated on each flight date.')}</Text>
           <CountRow label={t('Người lớn')} hint={t('Từ 12 tuổi')} value={adults} minimum={1}
             maximum={Math.min(9 - children, 9)} onChange={value => {
               setAdults(value); setInfants(previous => Math.min(previous, value));

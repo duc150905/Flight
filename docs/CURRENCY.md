@@ -1,9 +1,12 @@
 # VND/USD display currency — Flyora
 
-Language (`vi`/`en`) and display currency (`VND`/`USD`) are independent. Default
-currency is VND. The selected currency is saved in AsyncStorage under
-`flyora.displayCurrency`; changing language, account or checkout route does not
-reset it or remount the checkout form.
+Display currency follows the app language: Vietnamese (`vi`) uses VND; English
+(`en`) uses USD. There is no separate VND/USD selector. Currency is derived
+synchronously from the shared language state, including the device default and
+restored language choice (`flight.language`). The legacy `flyora.displayCurrency`
+setting is ignored; there are no currency preference reads or writes.
+Switching language updates display prices without remounting checkout or clearing
+entered contact, traveller, baggage or seat selections.
 
 ## Meaning of the displayed amounts
 
@@ -28,8 +31,10 @@ choice. Invalid/unsafe amounts show unavailable rather than a fabricated price.
 
 Source: [ExchangeRate-API Open Access](https://www.exchangerate-api.com/docs/free),
 endpoint `https://open.er-api.com/v6/latest/USD`. No API key is needed. Its public
-data updates daily and allows caching; each screen using USD displays the
-required provider attribution link and rate timestamp. Only a public USD-rate
+data updates daily and allows caching; screens using USD display a discreet
+provider attribution link (checkout: directly below the total; home: none, because
+it has no converted amounts). The large rate/date/explanation block was removed on
+2026-11-03 at the user's request. Only a public USD-rate
 request is sent; no booking, contact, auth token or passenger data is transmitted.
 On web, the attribution opens separately so it does not leave the checkout form.
 
@@ -39,7 +44,7 @@ minutes in the future or an implausible next-update interval is rejected.
 The normalized rate is stored as `flyora.fx.usd-vnd` on the device and reused
 until the provider's next-update time. Concurrent requests are deduplicated.
 
-A root query runs only when USD is selected. It checks hourly and on app resume;
+A root query runs only when English is active after language restoration. It checks hourly and on app resume;
 the cache avoids an HTTP request while current. Fetch has an eight-second abort
 timeout. A still-valid cached rate can be used if refreshing fails. An expired
 rate is never used for USD: amounts fall back to clearly labelled VND with a
@@ -49,18 +54,27 @@ checks the clock in case the operating system suspended timers.
 
 ## Files and reuse
 
-- `src/features/currency/preferences.ts`: independent preference store and ordered writes.
+- `src/features/currency/preferences.ts`: shared language-to-currency mapping.
 - `rates.ts`: provider validation, timeout and persistent rate cache.
 - `presentation.ts`: conversion, rounding, original amount and fallback.
 - `provider.tsx`: one app-level query/lifecycle bridge; `useCurrency` and `useDisplayMoney`.
-- `ui.tsx`: `CurrencyControls` and `MoneyText`; labels reuse the existing vi/en dictionary.
+- `ui.tsx`: `CurrencyRateNote` and `MoneyText`; no currency selection controls.
 
 Use `<MoneyText amount={vndAmount} currency="VND" />` for display and put
-`<CurrencyControls />` on the same screen for rate explanation/attribution.
+`<CurrencyRateNote />` on the same screen for rate explanation/attribution
+(hidden in Vietnamese).
 Keep API requests and business calculations in VND. Do not save a displayed USD
 estimate to VND DB columns or relabel an unconverted amount as USD.
 
-## Verification (2026-11-02)
+## Automated coverage for language-linked currency (2026-11-03)
+
+- Vietnamese → English → Vietnamese updates VND → USD → VND immediately.
+- Restored language overrides any obsolete currency setting without reading it.
+- Checkout contact data remains intact; storage failure does not block switching.
+- Existing rate validation, conversion, rounding and missing/stale-rate fallback
+  tests remain in place.
+
+## Earlier verification (2026-11-02, before removing the selector)
 
 - 139 automated tests pass, including cache failures, preference races, conversion
   direction, rounding, unsafe amounts and keeping original VND in inline fees.
