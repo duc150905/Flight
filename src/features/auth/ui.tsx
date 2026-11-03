@@ -37,12 +37,12 @@ export function AuthShell({ children }: PropsWithChildren) {
         toValue: 0,
         duration: 250,
         easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }),
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 250,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }),
     ]).start();
   };
@@ -53,12 +53,12 @@ export function AuthShell({ children }: PropsWithChildren) {
         toValue: drawerWidth,
         duration: 200,
         easing: Easing.in(Easing.cubic),
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }),
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }),
     ]).start(() => {
       setMenuOpen(false);

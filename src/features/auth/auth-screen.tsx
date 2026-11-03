@@ -35,7 +35,28 @@ export function AuthScreen({ onRecoveryChange }: { onRecoveryChange: (active: bo
 function LoginForm({ change }: Navigation) {
   const { t } = useLanguage();
   const { actions } = useAuth();
-  const [error, setError] = useState('');
+  const [error, setError] = useState(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const hash = window.location.hash;
+      const search = window.location.search;
+      if (hash.includes('error') || search.includes('error')) {
+        const raw = hash.startsWith('#') ? hash.slice(1) : search.startsWith('?') ? search.slice(1) : '';
+        const params = new URLSearchParams(raw);
+        const desc = params.get('error_description') || params.get('error');
+        if (desc) {
+          try {
+            window.history.replaceState(null, '', window.location.pathname);
+          } catch {
+            // Ignore history state errors in restrictive iframes
+          }
+          return desc.toLowerCase().includes('already') || desc.toLowerCase().includes('link')
+            ? 'Tài khoản này đã được tạo với Email và Mật khẩu. Hãy đăng nhập bằng mật khẩu.'
+            : 'Không thể đăng nhập với Google. Hãy thử lại hoặc đăng nhập bằng mật khẩu.';
+        }
+      }
+    }
+    return '';
+  });
   const [googleBusy, setGoogleBusy] = useState(false);
   const [confirmationEmail, setConfirmationEmail] = useState<string | null>(null);
   const { control, handleSubmit, getValues, formState: { isSubmitting } } = useForm<LoginInput>({
