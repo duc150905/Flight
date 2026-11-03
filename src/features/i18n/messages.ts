@@ -1,4 +1,5 @@
 import { checkoutMessages } from './checkout-messages.ts';
+import { bookingEnglish, bookingVietnamese } from './booking-messages.ts';
 import { discoveryEnglish } from './discovery-messages.ts';
 import { ticketEnglish } from './ticket-messages.ts';
 import { authEnglish } from './auth-messages.ts';
@@ -8,6 +9,7 @@ const discoveryVietnamese = Object.fromEntries(Object.keys(discoveryEnglish).map
 const ticketVietnamese = Object.fromEntries(Object.keys(ticketEnglish).map(key => [key, key])) as { [K in keyof typeof ticketEnglish]: K };
 const authVietnamese = Object.fromEntries(Object.keys(authEnglish).map(key => [key, key])) as { [K in keyof typeof authEnglish]: K };
 export const en = {
+  ...bookingEnglish,
   ...checkoutEnglish,
   'seats.available': 'Available', 'seats.selected': 'Selected', 'seats.selectedOther': 'Selected for another traveller',
   'seats.held': 'Held', 'seats.booked': 'Booked', 'seats.blocked': 'Blocked',
@@ -52,6 +54,7 @@ export const en = {
 } as const;
 export type MessageKey = keyof typeof en;
 export const vi: Record<MessageKey, string> = {
+  ...bookingVietnamese,
   ...checkoutMessages,
   ...discoveryVietnamese,
   ...ticketVietnamese,

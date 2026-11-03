@@ -1165,6 +1165,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_booking: { Args: { p_request_id: string; p_request: Json }; Returns: Json }
+      get_pending_booking: { Args: { p_booking_id: string }; Returns: Json }
+      find_booking_request: { Args: { p_request_id: string }; Returns: Json }
       quote_checkout: { Args: { p_request: Json }; Returns: Json }
       admin_list_audit_logs: {
         Args: {

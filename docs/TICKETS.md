@@ -18,12 +18,13 @@
 
 ## Phụ thuộc TV2/TV3
 
-Database hiện chỉ có bảng và quyền đọc; chưa có RPC `create_booking` hoặc
-`cancel_booking`, nên chưa thể tạo đơn mẫu từ app và chưa có nút yêu cầu hủy.
-Không dùng `UPDATE bookings` trực tiếp từ client để hủy hoặc đổi trạng thái.
-TV2 cần chốt khóa của `flight_snapshot` khi triển khai RPC tạo đơn, và TV1 cần
-nghiệm thu lại thời gian/sân bay theo snapshot thực tế. Khi có `cancel_booking`,
-thêm UI kiểm tra điều kiện phía server và retry an toàn theo `request_id`.
+Từ 03/11/2026 có RPC `create_booking`; chi tiết đơn pending có nút tiếp tục tới
+`/pending/[id]`. Màn này tải dữ liệu đã lưu, đồng bộ đồng hồ server và cập nhật
+trạng thái hết hạn khi mở lại. Danh sách cũ có thể còn ghi pending đến khi mở
+đơn để đồng bộ; ghế quá hạn không còn chặn người khác. Snapshot dùng đúng các
+khóa trong `flightSnapshotSummary`. Đọc `BOOKING-CREATION.md` trước khi đổi contract.
+Chưa có `cancel_booking` hoặc thanh toán. Không dùng `UPDATE bookings` trực tiếp
+từ client để hủy/đổi trạng thái. TV1 vẫn cần nghiệm thu toàn luồng trên Android.
 
 ## Kiểm thử
 

@@ -28,6 +28,10 @@ function PassengerForm() {
   const c = useCheckoutColors();
   return <CheckoutShell title="Traveller information" step={0}
     footer={{ title: 'Next', onPress: () => void form.handleSubmit(() => router.push('/checkout/review'))() }}>
+    {draft.itinerary!.selection.passengers.infants > 0 && <CheckoutCard>
+      <CheckoutText title message="Travelling with an infant" />
+      <CheckoutText message="Each infant under 2 needs their own accompanying traveller aged 18 or over on that flight." />
+    </CheckoutCard>}
     {draft.passengers.map((passenger, index) => <CheckoutCard key={passenger.id}>
       <CheckoutText title>{t('Traveller {number}', { number: index + 1 })} · {t(passenger.id.split('-')[0])}</CheckoutText>
       <CheckoutText muted message={"Enter each traveller’s name as shown on their travel document."} />

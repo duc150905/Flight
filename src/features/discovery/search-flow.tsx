@@ -249,6 +249,7 @@ export function SearchFlow({ airports, loading, error, onRetry, onClose, initial
             maximum={Math.min(8, 9 - adults)} onChange={setChildren} />
           <CountRow label={t('Em bé')} hint={t('Dưới 2 tuổi')} value={infants} minimum={0}
             maximum={adults} onChange={setInfants} />
+          <Text style={s.airportName}>{t('Each infant under 2 needs their own accompanying traveller aged 18 or over on that flight.')}</Text>
           <Text style={s.modalSection}>{t('Hạng ghế')}</Text>
           {(Object.keys(cabinLabels) as CabinClass[]).map(value => <Pressable key={value}
             accessibilityRole="radio" accessibilityState={{ checked: cabinClass === value }}

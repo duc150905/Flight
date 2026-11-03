@@ -1,5 +1,10 @@
 # Checkout information (TV2)
 
+Update 2026-11-03: quote now leads to authenticated atomic `create_booking`,
+15-minute seat holds/free auto assignment, then `/pending/[id]`. Saved orders
+resume through Tickets. Read `BOOKING-CREATION.md` for contracts, ownership,
+retry recovery and deployment/verification limits. Payment processing is next.
+
 Current update (2026-11-02): per-leg birthdays, vi/en and the combined reference
 screen are implemented. See `CHECKOUT-NEXT-WALKTHROUGH.md` for the six new tasks
 and `CHECKOUT-DEMO.md` for shared fixtures and device test scenarios. The older
@@ -7,7 +12,8 @@ verification section below records the previous delivery's state.
 
 The six F04 tasks use the original `Flight_Booking_Handoff.zip` screens as visual
 reference: white surfaces, turquoise accent, progress indicator, traveller cards
-and clear bottom actions. Personal data stays in RAM, never URL/storage/logs.
+and clear bottom actions. The editable draft stays in RAM, never URL/device
+storage/logs. Creating a booking explicitly saves its details on the server.
 
 ## TV1 handoff
 

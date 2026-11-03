@@ -29,6 +29,7 @@ export function SeatMapScreen({ flightId }: { flightId?: string }) {
     footerDetail={<CheckoutText>{passenger.values.givenNames} · {choice?.seatCode ?? t('No paid seat selected')}</CheckoutText>}>
     <CheckoutText title>{leg.origin.iata_code} → {leg.destination.iata_code}</CheckoutText>
     <CheckoutText muted message="Seat selection is optional. Your fare includes travel in the selected cabin; choosing a specific seat costs extra." />
+    <CheckoutText muted message="Skipping paid seat selection adds no selection fee. A suitable seat is assigned when you create your booking." />
     <CheckoutText muted>{leg.flightNumber} · {t(leg.fareName)}</CheckoutText>
     <Tabs label="Travellers" selected={passenger.id} onSelect={id => { selectPerson(id); setError(''); }} values={draft.passengers.map((p, i) => {
       const picked = draft.seats.find(s => s.flightId === flightId && s.passengerId === p.id);
