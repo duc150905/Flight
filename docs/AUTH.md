@@ -34,11 +34,18 @@ The Supabase project owner must configure Google once:
    Supabase; do not put it in Git or an `EXPO_PUBLIC_*` variable.
 3. In Supabase Dashboard > Authentication > URL Configuration > Redirect URLs,
    allow `http://localhost:8081/account` and `flight://account`. The exact web
-   URL must match the address used to run the app. For Expo Go, the `exp://` URL
-   changes with the dev server; use a development build with the existing
-   `flight` scheme for reliable mobile testing.
-4. Sign out, then test Google login on web and in an Android/iOS development
-   build. Check account/profile and sign-out. A Google account using the same
+   URL must match the address used to run the app. Expo Go opens the project at
+   an `exp://` URL and cannot receive the app's `flight://account` callback.
+   Test mobile OAuth in a Flyora APK or development build instead.
+4. For an Android APK, use the `preview` profile in `eas.json`. The linked EAS
+   project is `@deamoniis-team/Flight` and the Android package is
+   `me.shopyora.flyora`. Configure `EXPO_PUBLIC_SUPABASE_URL` and
+   `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in the EAS **preview** environment
+   before a cloud build; the local `.env.local` is gitignored. Never put the
+   Supabase secret/service-role key in an `EXPO_PUBLIC_*` variable. Run
+   `npx eas-cli@latest build --platform android --profile preview`.
+5. Sign out, then test Google login on web and in the installed APK. Check
+   account/profile and sign-out. A Google account using the same
    verified email as an existing user may be linked by Supabase; verify this
    against a disposable test account before using real accounts.
 
