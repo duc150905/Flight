@@ -14,6 +14,10 @@ export async function loadAllRows<T>(page: (from: number, to: number) => Promise
   throw new Error('Too many records to load safely. Narrow the reporting dataset.');
 }
 export async function loadAllAuditLogs(client: SupabaseClient<Database>) {
-  const result = await loadAllRows(async from => ({ data: await adminListAuditLogs(client, { limit: 200, offset: from }), error: null }), 200);
-  return result.data;
+  try {
+    const result = await loadAllRows(async from => ({ data: await adminListAuditLogs(client, { limit: 200, offset: from }), error: null }), 200);
+    return result.data ?? [];
+  } catch {
+    return [];
+  }
 }

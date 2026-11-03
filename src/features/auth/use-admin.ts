@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './auth-provider';
 import { checkIsAdmin } from './admin';
+import { permissionsStore } from '../admin/permissions-store';
 
 export { checkIsAdmin };
 
@@ -38,7 +39,15 @@ export function useAdmin(): AdminStatus {
       return false;
     }
     try {
-      const res = await checkIsAdmin(supabase);
+      await permissionsStore.load();
+      let res = await checkIsAdmin(supabase);
+      if (currentUserId) {
+        if (permissionsStore.promotedIds.has(currentUserId)) {
+          res = true;
+        } else if (permissionsStore.revokedIds.has(currentUserId)) {
+          res = false;
+        }
+      }
       setData({ userId: currentUserId, isAdmin: res, error: null });
       return res;
     } catch (err) {
@@ -56,7 +65,20 @@ export function useAdmin(): AdminStatus {
       return;
     }
 
-    void checkIsAdmin(supabase).then(
+    const resolveAdminRole = async (): Promise<boolean> => {
+      await permissionsStore.load();
+      let res = await checkIsAdmin(supabase);
+      if (session.user.id) {
+        if (permissionsStore.promotedIds.has(session.user.id)) {
+          res = true;
+        } else if (permissionsStore.revokedIds.has(session.user.id)) {
+          res = false;
+        }
+      }
+      return res;
+    };
+
+    void resolveAdminRole().then(
       res => {
         if (!ignore) {
           setData({ userId: session.user.id, isAdmin: res, error: null });

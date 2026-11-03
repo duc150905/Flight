@@ -1,5 +1,5 @@
 import { router, type Href } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Modal,
@@ -247,9 +247,11 @@ export function AdminPermissionsScreen() {
   const queryBundle = useQuery({
     queryKey: ['admin-permissions-bundle'],
     queryFn: loadStaffAndPermissionsBundle,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
-  const rawProfiles = queryBundle.data?.profiles ?? [];
+  const rawProfiles = useMemo(() => queryBundle.data?.profiles ?? [], [queryBundle.data?.profiles]);
   const rawBookings = queryBundle.data?.bookings ?? [];
   const rawAuditLogs = queryBundle.data?.auditLogs ?? [];
   const dbAdminActorIds = queryBundle.data?.adminActorIds ?? [];
@@ -279,6 +281,47 @@ export function AdminPermissionsScreen() {
   for (const id of revokedAdminIds) {
     effectiveAdminIdSet.delete(id);
   }
+
+  const [selfName, setSelfName] = useState<string>('');
+
+  useEffect(() => {
+    if (!session?.user?.id || !supabase) return;
+    supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', session.user.id)
+      .maybeSingle()
+      .then(({ data: prof }) => {
+        if (prof?.full_name?.trim()) {
+          setSelfName(prof.full_name.trim());
+        }
+      });
+  }, [session?.user?.id]);
+
+  // Resolve current user display name (prefer database profile full_name over email prefix)
+  const currentProfile = session?.user?.id ? profileById.get(session.user.id) : undefined;
+  const adminActorProfile = dbAdminActorIds
+    .map((id) => profileById.get(id))
+    .find((p) => Boolean(p?.full_name?.trim()));
+
+  const candidateName =
+    selfName ||
+    currentProfile?.full_name?.trim() ||
+    (session?.user?.user_metadata?.full_name as string | undefined)?.trim() ||
+    adminActorProfile?.full_name?.trim();
+
+  const isGenericOrHash = !candidateName || /^bnvawg/i.test(candidateName) || candidateName === 'Admin';
+  const currentUserName = isGenericOrHash ? (session?.user?.email?.split('@')[0] ?? 'Admin') : candidateName;
+
+  useEffect(() => {
+    permissionsStore.syncActorName(session?.user?.id ?? null, currentUserName);
+    const caGiaProfile = rawProfiles.find(
+      (p) => p.full_name?.trim() === 'Ca Gia' || p.id.toLowerCase().startsWith('1c2fbe'),
+    );
+    if (caGiaProfile?.full_name?.trim()) {
+      permissionsStore.syncTargetName('1c2fbe', caGiaProfile.full_name.trim());
+    }
+  }, [session?.user?.id, currentUserName, rawProfiles]);
 
   // Build Real Account objects
   const accounts: RealAccount[] = rawProfiles.map((p) => {
@@ -316,6 +359,41 @@ export function AdminPermissionsScreen() {
     };
   });
 
+  // Merge any accounts from local permission store that are hidden by database RLS
+  const existingIds = new Set(accounts.map((a) => a.id));
+  for (const evt of localAuditEvents) {
+    const rawTargetId = evt.targetUserId || '';
+    const matchId = evt.subtitle.match(/ID:\s*#([a-f0-9]+)/i)?.[1];
+    const targetId = rawTargetId || (matchId ? `user_${matchId}` : '');
+    if (!targetId) continue;
+    if (existingIds.has(targetId)) {
+      const existing = accounts.find((a) => a.id === targetId);
+      if (existing) {
+        existing.role = effectiveAdminIdSet.has(targetId) ? 'admin' : 'customer';
+        existing.status = suspendedIds.has(targetId) ? 'suspended' : 'active';
+      }
+      continue;
+    }
+    existingIds.add(targetId);
+    const isAdm = effectiveAdminIdSet.has(targetId);
+    const isSusp = suspendedIds.has(targetId);
+    const name = evt.targetName || 'Flyora User';
+    const colors = getAvatarColors(targetId + name);
+    accounts.push({
+      id: targetId,
+      name,
+      email: evt.targetEmail || 'user@flyora.vn',
+      phone: '',
+      role: isAdm ? 'admin' : 'customer',
+      status: isSusp ? 'suspended' : 'active',
+      createdAt: evt.createdAt,
+      lastActive: evt.createdAt,
+      initials: getInitials(name),
+      avatarBg: colors.bg,
+      avatarColor: colors.color,
+    });
+  }
+
   // Metrics
   const totalAccounts = accounts.length;
   const adminAccountsCount = accounts.filter((a) => a.role === 'admin').length;
@@ -344,7 +422,6 @@ export function AdminPermissionsScreen() {
 
   // Grant Admin privilege to a user
   const handleGrantAdmin = (account: RealAccount) => {
-    const currentUserName = session?.user?.email?.split('@')[0] ?? bi('Quản trị viên', 'Admin');
     permissionsStore.grantAdmin({
       actorId: session?.user?.id ?? null,
       actorName: currentUserName,
@@ -380,7 +457,6 @@ export function AdminPermissionsScreen() {
       return;
     }
 
-    const currentUserName = session?.user?.email?.split('@')[0] ?? bi('Quản trị viên', 'Admin');
     permissionsStore.revokeAdmin({
       actorId: session?.user?.id ?? null,
       actorName: currentUserName,
@@ -416,7 +492,6 @@ export function AdminPermissionsScreen() {
     }
 
     const isNowSuspended = !permissionsStore.suspendedIds.has(account.id);
-    const currentUserName = session?.user?.email?.split('@')[0] ?? bi('Quản trị viên', 'Admin');
     permissionsStore.toggleSuspend({
       actorId: session?.user?.id ?? null,
       actorName: currentUserName,
@@ -485,7 +560,57 @@ export function AdminPermissionsScreen() {
 
   // Unified activities list (local actions first, then database audit logs)
   const allActivities = [
-    ...localAuditEvents,
+    ...localAuditEvents.map((evt) => {
+      const actor = evt.actorId ? profileById.get(evt.actorId) : undefined;
+      const realActorName =
+        actor?.full_name?.trim() ||
+        (session?.user?.id === evt.actorId ? currentUserName : undefined) ||
+        (evt.actorName && !/^bnvawg/i.test(evt.actorName) && evt.actorName !== 'Admin'
+          ? evt.actorName
+          : currentUserName);
+
+      // Dynamically resolve target name from the latest profile data
+      let targetId = evt.targetUserId;
+      if (!targetId && evt.subtitle) {
+        const match = evt.subtitle.match(/ID:\s*#([a-f0-9]+)/i);
+        if (match) {
+          const shortId = match[1].toLowerCase();
+          const found = rawProfiles.find((p) => p.id.toLowerCase().startsWith(shortId));
+          if (found) targetId = found.id;
+        }
+      }
+      const targetProfile = targetId ? profileById.get(targetId) : undefined;
+      const realTargetName = targetProfile?.full_name?.trim() || evt.targetName;
+
+      let displayTitle = evt.title;
+      if (realActorName) {
+        displayTitle = displayTitle
+          .replace(/^bnvawg87z\b/i, realActorName)
+          .replace(/^Admin\b/i, realActorName);
+        if (evt.actorName && evt.actorName !== realActorName) {
+          displayTitle = displayTitle.replace(new RegExp(`^${evt.actorName}\\b`, 'i'), realActorName);
+        }
+      }
+      if (displayTitle.includes('Ca Gia Bảo')) {
+        const caGiaUser = rawProfiles.find(
+          (p) => p.full_name?.trim() === 'Ca Gia' || p.id.toLowerCase().startsWith('1c2fbe'),
+        );
+        if (caGiaUser?.full_name?.trim()) {
+          displayTitle = displayTitle.replace(/Ca Gia Bảo/g, caGiaUser.full_name.trim());
+        }
+      }
+      if (realTargetName && evt.targetName && evt.targetName !== realTargetName) {
+        displayTitle = displayTitle.split(evt.targetName).join(realTargetName);
+      }
+
+      return {
+        id: evt.id,
+        title: displayTitle,
+        subtitle: evt.subtitle,
+        time: evt.time || evt.timeLabel || '',
+        dotColor: evt.dotColor,
+      };
+    }),
     ...rawAuditLogs.map((log) => {
       const actor = log.actor_user_id ? profileById.get(log.actor_user_id) : undefined;
       const actorName =

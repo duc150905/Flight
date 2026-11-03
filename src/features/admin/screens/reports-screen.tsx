@@ -825,14 +825,6 @@ export function AdminReportsScreen() {
         </View>
       ) : tab === 'revenue' && summary ? (
         <View style={adminStyles.card}>
-          <Notice
-            text={bi(
-              'Lưu ý: Đây là thống kê số tiền thanh toán mô phỏng (Simulated Revenue) phục vụ kiểm thử học tập theo múi giờ chuẩn Asia/Ho_Chi_Minh, không phải doanh thu kế toán/kinh doanh thực tế.',
-              'Note: All monetary figures represent simulated checkout payments in Asia/Ho_Chi_Minh timezone for educational testing, not real commercial revenue.',
-            )}
-            success
-          />
-
           <View style={adminStyles.rowBetween}>
             <Text style={adminStyles.sectionTitle}>
               {bi(`Kỳ báo cáo: ${daysWindow} ngày gần nhất`, `Reporting Window: Last ${daysWindow} days`)}
