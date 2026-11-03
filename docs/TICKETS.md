@@ -1,5 +1,7 @@
 # TV1 — Vé của tôi (đọc dữ liệu)
 
+03/11/2026: đã nối màn vé demo `/receipt/[id]` sau mock payment thành công; chỉ confirmed/confirmed seats mới hiện vé. Đơn cancelled có đường dẫn quản lý hoàn tiền, các thao tác do RPC TV2 xử lý. Đọc `MOCK-PAYMENTS.md`; các đoạn “chưa thanh toán/cancel_booking” bên dưới là snapshot trước đợt này, đã được thay thế. Không phải vé hãng/boarding pass, không thu tiền thật.
+
 ## Đã triển khai
 
 - Tài khoản đã đăng nhập mở `/tickets` để xem đơn mới nhất trước, 20 đơn mỗi lần.

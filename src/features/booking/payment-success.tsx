@@ -13,9 +13,11 @@ export function PaymentSuccessView({booking}:{booking:PendingBooking}){
  return <SafeAreaView style={{flex:1,backgroundColor:c.background}}><ScrollView contentContainerStyle={{paddingBottom:28}}>
   <View style={styles.hero}><Image source={require('../../../assets/images/booking-success-reference.png')} style={{width:'100%',aspectRatio:390/844}} contentFit="cover" accessibilityLabel={t('mock.success')}/></View>
   <View style={[styles.card,{backgroundColor:c.surface,borderColor:c.border}]}>
-   <SymbolView name={{ios:'checkmark.circle',android:'check_circle',web:'check_circle'}} size={34} tintColor={c.primary}/>
-   <CheckoutText title message="mock.success"/><CheckoutText muted message="mock.noMoney"/>
-   <CheckoutText>{t('Booking reference')}: {booking.bookingCode}</CheckoutText>
+   <View style={{alignItems:'center',gap:16}}>
+    <SymbolView name={{ios:'checkmark.circle',android:'check_circle',web:'check_circle'}} size={34} tintColor={c.primary}/>
+    <CheckoutText title message="mock.success"/><CheckoutText muted message="mock.noMoney"/>
+    <CheckoutText>{t('Booking reference')}: {booking.bookingCode}</CheckoutText>
+   </View>
    <View style={styles.route}><View style={{flex:1,gap:8}}><CheckoutText title>{first.departure_iata}</CheckoutText><CheckoutText muted>{formatDateTime(first.departure_at,first.departure_timezone,language)}</CheckoutText></View>
     <SymbolView name={{ios:'airplane',android:'flight',web:'flight'}} size={26} tintColor={c.muted}/>
     <View style={{flex:1,gap:8}}><CheckoutText title>{last.arrival_iata}</CheckoutText><CheckoutText muted>{formatDateTime(last.arrival_at,last.arrival_timezone,language)}</CheckoutText></View></View>

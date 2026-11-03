@@ -14,5 +14,13 @@ do $$declare bid uuid:=pg_temp.mock_booking();state jsonb;pid uuid;rid uuid:=gen
  state:=public.resolve_mock_payment(pid,gen_random_uuid(),'succeeded');actual:=null;
  begin perform public.cancel_booking(bid,gen_random_uuid(),0);exception when others then actual:=sqlerrm;end;
  if actual is distinct from 'mock.ineligible' then raise exception 'Standard cancellation allowed';end if;
+ bid:=pg_temp.mock_booking();state:=public.start_mock_payment(bid,gen_random_uuid());pid:=(state->'payments'->0->>'id')::uuid;
+ state:=public.resolve_mock_payment(pid,gen_random_uuid(),'succeeded');
+ update public.booking_passenger_segments set cancellation_rules_snapshot=jsonb_set(cancellation_rules_snapshot,'{cutoff_minutes}','10000000') where booking_id=bid;
+ state:=public.get_mock_payment_state(bid);
+ if state->'cancellation'->>'reason'<>'cutoff' then raise exception 'Cutoff not enforced';end if;
+ update public.booking_passenger_segments set cancellation_rules_snapshot=jsonb_set(jsonb_set(cancellation_rules_snapshot,'{cutoff_minutes}','60'),'{fee_amount}','999999999') where booking_id=bid;
+ state:=public.get_mock_payment_state(bid);
+ if (state->'cancellation'->>'fee')::bigint<>(state->'booking'->>'total')::bigint or (state->'cancellation'->>'refundAmount')::bigint<>0 then raise exception 'Fee cap failed';end if;
  if has_function_privilege('anon','public.cancel_booking(uuid,uuid,bigint)','execute') then raise exception 'Anon cancel';end if;
 end $$;

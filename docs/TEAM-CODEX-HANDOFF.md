@@ -1,5 +1,7 @@
 # Cập nhật TV2 — 03/11/2026
 
+**Mới nhất:** đọc `MOCK-PAYMENTS.md` và `ANDROID-CHECKOUT-ACCEPTANCE.md`. Đã có payment mock nội bộ, màn thành công/vé demo, cancel theo snapshot và refund giả. Không kết nối cổng ngoài, không thu tiền/nhập thẻ. Các RPC start_mock_payment, get_mock_payment_state, resolve_mock_payment, cancel_booking, refund_mock_booking đã chạy trên flight-dev cùng cron hết hạn mỗi phút. Năm migration 20261103143605/09/12/14/17 có history; hai migration admin/profile cũ vẫn chưa chạy. App code cần kiểm tra Git để biết local/push/merge. Android thật chưa nghiệm thu.
+
 Đọc `BOOKING-CREATION.md`: đã có `create_booking(uuid,jsonb)`,
 `get_pending_booking(uuid)`, `find_booking_request(uuid)`, giữ ghế tối đa 15 phút,
 phân ghế miễn phí và `/pending/[id]`. Hai migration `20261103065922` và

@@ -41,7 +41,7 @@ export function useMockCheckout(bookingId:string,enabled:boolean,changed:()=>voi
   });}catch(cause){if(current())setError(mockError(cause));}
   finally{lock.current=false;setBusy(false);}
  }
- return {state:query.data,busy,error:error||(query.isError?'mock.network':''),outcome,setOutcome,refundOutcome,setRefundOutcome,
+ return {state:query.data,busy,error:error||(query.isError?'mock.network':''),outcome,setOutcome,refundOutcome,setRefundOutcome,sync:refetch,
   refresh:()=>{setError('');void refetch();},
   pay:()=>run(async perform=>{
    let state=query.data;if(!state||state.booking.status!=='pending_payment')throw Error('mock.state');

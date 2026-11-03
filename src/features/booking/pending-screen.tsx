@@ -9,7 +9,7 @@ import { ActionButton, AuthShell } from '../auth/ui';
 import { MoneyText } from '../currency/ui';
 import { useLanguage } from '../i18n/provider';
 import { formatDateTime, bookingStatusLabel } from '../tickets/presentation';
-import { loadPendingBooking, holdSecondsRemaining,demoTicketReady, type PendingBooking } from './pending-booking';
+import { loadPendingBooking, holdSecondsRemaining,demoTicketReady,withLatestReceipt, type PendingBooking } from './pending-booking';
 import { CheckoutButton, CheckoutCard, CheckoutError, CheckoutShell, CheckoutText, useCheckoutColors } from './ui';
 import {useMockCheckout,type MockCheckout} from './use-mock-checkout';
 import {MockPaymentPanel} from './mock-payment-panel';
@@ -30,6 +30,7 @@ export function PendingBookingScreen({receipt=false}:{receipt?:boolean}={}) {
     } });
   const refetch = query.refetch; const expiredCheck = useRef<number | null>(null);
   const mock=useMockCheckout(id,enabled,()=>{void refetch();});
+  const syncMock=mock.sync;
   useFocusEffect(useCallback(() => { if (enabled) void refetch(); }, [enabled, refetch]));
   useEffect(() => {
     if (!enabled) return;
@@ -41,16 +42,16 @@ export function PendingBookingScreen({receipt=false}:{receipt?:boolean}={}) {
   const seconds = data ? holdSecondsRemaining(data.booking, clockNow - data.receivedAt) : 0;
   useEffect(() => {
     if (data && data.booking.status === 'pending_payment' && seconds === 0 && !query.isFetching && expiredCheck.current !== data.receivedAt) {
-      expiredCheck.current = data.receivedAt; void refetch();
+      expiredCheck.current = data.receivedAt; void refetch();void syncMock();
     }
-  }, [seconds, data, query.isFetching, refetch]);
+  }, [seconds, data, query.isFetching, refetch,syncMock]);
   if (status === 'loading') return <AuthShell><ActivityIndicator accessibilityLabel={t('Restoring session')} /></AuthShell>;
   if (!session || status !== 'ready') return <AuthShell><CheckoutText message="Sign in to resume your booking." /><ActionButton title={t('Sign in')} onPress={() => router.replace('/account')} /></AuthShell>;
   if (!validId) return <AuthShell><CheckoutError message="booking.notFound" /><ActionButton title={t('My bookings')} onPress={() => router.replace('/tickets')} /></AuthShell>;
   if (!data) return <CheckoutShell title="Payment" step={4} back={() => router.replace('/tickets')}>
     {query.isFetching ? <ActivityIndicator accessibilityLabel={t('Loading')} /> : <><CheckoutError message={query.error?.message ?? 'booking.loadError'} /><CheckoutButton title="Retry" onPress={() => { void refetch(); }} /></>}
   </CheckoutShell>;
-  const booking=mock.state?{...data.booking,...mock.state.booking}:data.booking;
+  const booking=withLatestReceipt(data.booking,mock.state?.booking);
   if(booking.status==='confirmed'&&!demoTicketReady(booking))return <CheckoutShell title="mock.demoTicket" back={()=>router.replace('/tickets')}><CheckoutText message="mock.refreshTicket"/><CheckoutButton title="Refresh booking" onPress={()=>{void refetch();}}/></CheckoutShell>;
   if(receipt&&booking.status!=='confirmed')return <CheckoutShell title="mock.demoTicket" back={()=>router.replace('/tickets')}><CheckoutError message="mock.state"/><CheckoutButton title="mock.details" onPress={()=>router.replace({pathname:'/pending/[id]',params:{id:booking.id}})}/></CheckoutShell>;
   if(booking.status==='confirmed'&&!receipt)return <PaymentSuccessView booking={booking}/>;

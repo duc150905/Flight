@@ -16,7 +16,7 @@ export function MockPaymentPanel({mock}:{mock:MockCheckout}){
    {mockOutcomes.map(value=><Option key={value} title={t(`mock.outcome.${value}`)} selected={mock.outcome===value} disabled={mock.busy} onPress={()=>mock.setOutcome(value)}/>)}</>}
   {current&&<CheckoutText>{t('mock.latest')}: {t(`mock.outcome.${current.status}`)}</CheckoutText>}
   <CheckoutError message={mock.error}/>
-  {mock.error&&<CheckoutButton title="mock.recover" secondary disabled={mock.busy} onPress={()=>{void mock.recover();}}/>}
+  {!!mock.error&&<CheckoutButton title="mock.recover" secondary disabled={mock.busy} onPress={()=>{void mock.recover();}}/>}
   {!mock.state&&<CheckoutButton title="Retry" secondary onPress={mock.refresh}/>}
  </View>;
 }

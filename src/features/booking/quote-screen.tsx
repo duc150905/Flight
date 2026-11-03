@@ -41,7 +41,7 @@ export function QuoteScreen() {
     <CheckoutText muted message="Review the price, then create your booking to hold seats. No payment is taken yet." />
     {creation.busy && <ActivityIndicator accessibilityLabel={t('Creating booking')} />}
     <CheckoutError message={creation.error} />
-    {creation.error && <CheckoutButton title="Check saved booking" secondary disabled={creation.busy} onPress={() => { void creation.recover(); }} />}
+    {!!creation.error && <CheckoutButton title="Check saved booking" secondary disabled={creation.busy} onPress={() => { void creation.recover(); }} />}
     {query.isFetching && <ActivityIndicator accessibilityLabel={t('Loading')} />}
     {query.isError && <CheckoutError message={query.error.message} />}
     {expired && <CheckoutError message="quote.expired" />}

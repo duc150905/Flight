@@ -23,3 +23,9 @@ test('recovery without a saved action never starts a payment',async()=>{
  let called=false;const j=createMockActionJournal({getItem:async()=>null,setItem:async()=>{}},()=> 'id');
  assert.equal(await j.recover('a','b',async()=>{called=true;}),null);assert.equal(called,false);
 });
+test('simultaneous presses replay one action ID, while accounts have separate journals',async()=>{
+ const map=new Map();let seq=0;const j=createMockActionJournal({getItem:async k=>map.get(k)??null,setItem:async(k,v)=>map.set(k,v)},()=>String(++seq));const calls=[];
+ const send=async(_a,id)=>{calls.push(id);return id;};
+ await Promise.all([j.run('a','b','one',{kind:'start'},send),j.run('a','b','one',{kind:'start'},send)]);
+ assert.deepEqual(calls,['1','1']);await j.run('other','b','one',{kind:'start'},send);assert.equal(calls.at(-1),'2');
+});

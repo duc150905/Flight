@@ -10,7 +10,7 @@ export function BookingManagementPanel({mock}:{mock:MockCheckout}){
  const policy=mock.state?.cancellation;const status=mock.state?.booking.status;
  return <CheckoutCard>
   <CheckoutError message={mock.error}/>
-  {mock.error&&<CheckoutButton title="mock.recover" secondary disabled={mock.busy} onPress={()=>{void mock.recover();}}/>}
+  {!!mock.error&&<CheckoutButton title="mock.recover" secondary disabled={mock.busy} onPress={()=>{void mock.recover();}}/>}
   {policy?.allowed?<>
    <CheckoutText title message="mock.cancel"/><CheckoutText muted message="mock.cancelWarning"/>
    <CheckoutText message="mock.cancelFee"/><MoneyText amount={policy.fee}/>

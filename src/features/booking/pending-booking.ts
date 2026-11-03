@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database.generated';
 import { databaseIdSchema } from '../../lib/database-id.ts';
-import { parseBookingReceipt } from './create-booking.ts';
+import { parseBookingReceipt,type BookingReceipt } from './create-booking.ts';
 
 const uuid = databaseIdSchema(); const money = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const schema = z.object({
@@ -26,6 +26,9 @@ export function parsePendingBooking(raw: unknown) {
   return { ...receipt, ...details };
 }
 export type PendingBooking = ReturnType<typeof parsePendingBooking>;
+export function withLatestReceipt(booking:PendingBooking,receipt?:BookingReceipt):PendingBooking{
+ return receipt&&receipt.id===booking.id&&Date.parse(receipt.serverNow)>=Date.parse(booking.serverNow)?{...booking,...receipt}:booking;
+}
 export function demoTicketReady(booking:PendingBooking){
  return booking.status==='confirmed'&&booking.passengerSegments.every(ps=>!ps.requiresSeat||booking.seats.some(s=>s.passengerSegmentId===ps.id&&s.flightId===ps.flightId&&s.status==='confirmed'));
 }

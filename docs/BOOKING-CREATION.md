@@ -1,5 +1,7 @@
 # TV2 — saved pending booking and temporary seats
 
+Update 03/11/2026: internal mock payment, confirmation, cancellation/refunds and scheduled expiry are now implemented; see `MOCK-PAYMENTS.md`. The sections below record the original booking/hold delivery. Physical Android acceptance remains pending.
+
 `create_booking(p_request_id uuid,p_request jsonb)` is authenticated. Request contains `checkout` (same IDs/DOB/companions used for quote), `expectedQuote`, normalized `contact`, and `travellers` (`{id,values}` from checkoutReview). Names/documents are sent only here, never to quote or URL. VND amounts are recomputed; the expected quote is a consent comparison, not a trusted price source.
 
 Private definer authenticates, takes account/request advisory lock, returns same booking for same SHA-256 request hash, and rejects hash mismatch. All flight rows are locked in UUID order before catalogue share locks and another server quote. It inserts bookings, segments, passengers, passenger-segments, baggage snapshots, seat reservations and a safe created event in one transaction. Any exception rolls back all inserts. No client write grants/RLS relaxation.

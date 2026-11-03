@@ -19,4 +19,11 @@ do $$ declare bid uuid:=pg_temp.mock_booking(); state jsonb; pid uuid; rid uuid:
  state:=public.resolve_mock_payment(pid,gen_random_uuid(),'succeeded');
  if state->'booking'->>'status'<>'expired' or state->'payments'->0->>'status'<>'cancelled' then raise exception 'Late result state: %, payments: %',state->'booking'->>'status',state->'payments';end if;
  if has_function_privilege('anon','public.resolve_mock_payment(uuid,uuid,text)','execute') then raise exception 'Anon resolution';end if;
+ bid:=pg_temp.mock_booking();state:=public.start_mock_payment(bid,gen_random_uuid());pid:=(state->'payments'->0->>'id')::uuid;
+ state:=public.resolve_mock_payment(pid,gen_random_uuid(),'cancelled');
+ if state->'booking'->>'status'<>'pending_payment' or state->'payments'->0->>'status'<>'cancelled' then raise exception 'Cancelling attempt cancelled order';end if;
+ state:=public.start_mock_payment(bid,gen_random_uuid());pid:=(state->'payments'->0->>'id')::uuid;
+ update public.payments set amount=amount+1 where id=pid;actual:=null;
+ begin perform public.resolve_mock_payment(pid,gen_random_uuid(),'succeeded');exception when others then actual:=sqlerrm;end;
+ if actual is distinct from 'mock.invalid' then raise exception 'Wrong amount confirmed';end if;
 end $$;
