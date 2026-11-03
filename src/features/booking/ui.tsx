@@ -46,7 +46,7 @@ export function CheckoutProgress({ step = 1 }: { step?: number }) {
   </View>;
 }
 type FooterAction = { title: string; onPress(): void; disabled?: boolean };
-export function CheckoutShell({ title, step, children, back, footer, footerDetail, savedTotal }: PropsWithChildren<{ title: string; step?: number; back?: () => void; footer?: FooterAction; footerDetail?: ReactNode; savedTotal?: { amount: number; count: number } }>) {
+export function CheckoutShell({ title, step, children, back, footer, footerDetail, savedTotal }: PropsWithChildren<{ title: string; step?: number; back?: () => void; footer?: FooterAction; footerDetail?: ReactNode; savedTotal?: { amount: number; count: number;caption?:string } }>) {
   const draft = useCheckout(); const [discard, setDiscard] = useState(false); const { t } = useLanguage();
   const estimate = checkoutEstimate(draft);
   return <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -78,7 +78,7 @@ export function CheckoutShell({ title, step, children, back, footer, footerDetai
           </View>
           <View style={{ flex: 1, minWidth: 140 }}><CheckoutButton {...footer} /></View>
         </View>
-        <Text style={checkoutStyles.caption}>{t(savedTotal ? 'No payment has been taken.' : 'Final price is checked when booking.')}</Text>
+        <Text style={checkoutStyles.caption}>{t(savedTotal ? savedTotal.caption??'No payment has been taken.' : 'Final price is checked when booking.')}</Text>
       </View>}
     </KeyboardAvoidingView>
     <Modal visible={discard} transparent animationType="none" onRequestClose={() => setDiscard(false)}>

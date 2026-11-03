@@ -16,7 +16,7 @@ export type MockState=ReturnType<typeof parseMockState>;
 export const mockOutcomes=['succeeded','failed','pending','cancelled'] as const;
 export type MockOutcome=typeof mockOutcomes[number];
 type Client=Pick<SupabaseClient<Database>,'rpc'>;
-const safe=new Set(['mock.invalid','mock.state','mock.conflict','mock.ineligible','mock.priceChanged','booking.authRequired','booking.notFound']);
+const safe=new Set(['mock.invalid','mock.state','mock.conflict','mock.ineligible','mock.priceChanged','mock.storage','booking.authRequired','booking.notFound']);
 export function mockError(error:unknown){const message=error instanceof Error?error.message:(error as {message?:string})?.message;return message&&safe.has(message)?message:'mock.network';}
 export async function loadMockPaymentState(client:Client,bookingId:string){
  const {data,error}=await client.rpc('get_mock_payment_state',{p_booking_id:id.parse(bookingId)});
