@@ -1,15 +1,14 @@
 import {View} from 'react-native';
-import {SymbolView} from 'expo-symbols';
 import {useLanguage} from '../i18n/provider';
 import {mockOutcomes} from './mock-payment';
 import type {MockCheckout} from './use-mock-checkout';
 import {Option} from './options-ui';
-import {CheckoutText,CheckoutButton,CheckoutError,useCheckoutColors} from './ui';
+import {CheckoutText,CheckoutButton,CheckoutError,CheckoutSymbol,useCheckoutColors} from './ui';
 export function MockPaymentPanel({mock}:{mock:MockCheckout}){
  const {t}=useLanguage();const c=useCheckoutColors();const current=mock.state?.payments[0];
  return <View style={{gap:16}}>
   <View style={{flexDirection:'row',gap:16,alignItems:'center',padding:16,borderWidth:1,borderColor:c.border,borderRadius:12}}>
-   <SymbolView name={{ios:'creditcard',android:'credit_card',web:'credit_card'}} size={30} tintColor={c.muted}/>
+   <CheckoutSymbol name={{ios:'creditcard',android:'credit_card',web:'credit_card'}} size={30} tintColor={c.muted}/>
    <View style={{flex:1,gap:6}}><CheckoutText message="mock.card"/><CheckoutText muted message="mock.noMoney"/></View>
   </View>
   {mock.state?.booking.status==='pending_payment'&&<><CheckoutText title message="mock.scenario"/>

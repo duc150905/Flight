@@ -60,29 +60,31 @@ export function HomeScreen() {
 
   return (
     <SafeAreaView style={home.safe} edges={['top', 'left', 'right']}>
+      {/* Pinned Top Header */}
+      <View style={[home.stickyHeaderWrapper, isDesktop && home.headerWrapperDesktop]}>
+        <View style={[home.header, isDesktop && home.headerDesktop]}>
+          <View style={home.heading}>
+            <AppBrand />
+            <Text style={home.headingSub}>{t('Hành trình tiếp theo bắt đầu từ đây.')}</Text>
+          </View>
+          <View style={home.headerActions}>
+            {isDesktop && <LanguagePicker />}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t(session ? 'Tài khoản' : 'Đăng nhập')}
+              onPress={() => router.push('/account')}
+              style={home.avatar}
+            >
+              <Text style={home.avatarText}>
+                {session?.user?.email?.charAt(0).toUpperCase() || 'A'}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+
       <ScrollView contentContainerStyle={[home.scroll, isDesktop && home.scrollDesktop]}>
         <View style={[home.container, isDesktop && home.containerDesktop]}>
-          {/* Top Header */}
-          <View style={home.header}>
-            <View style={home.heading}>
-              <AppBrand />
-              <Text style={home.headingSub}>{t('Hành trình tiếp theo bắt đầu từ đây.')}</Text>
-            </View>
-            <View style={home.headerActions}>
-              {isDesktop && <LanguagePicker />}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t(session ? 'Tài khoản' : 'Đăng nhập')}
-                onPress={() => router.push('/account')}
-                style={home.avatar}
-              >
-                <Text style={home.avatarText}>
-                  {session?.user?.email?.charAt(0).toUpperCase() || 'A'}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-
           {/* Search Button / Hero CTA */}
           <Pressable
             accessibilityRole="button"
@@ -263,6 +265,23 @@ const home = StyleSheet.create({
   },
   containerDesktop: {
     gap: 26,
+  },
+  stickyHeaderWrapper: {
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    zIndex: 10,
+  },
+  headerWrapperDesktop: {
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+  },
+  headerDesktop: {
+    width: '100%',
+    maxWidth: 1140,
+    alignSelf: 'center',
   },
   header: {
     flexDirection: 'row',

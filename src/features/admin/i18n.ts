@@ -5,11 +5,11 @@ import type { Language } from '@/features/i18n/language';
 const viMessages: Record<string, string> = {
   'admin.title': 'Quản trị hệ thống Flyora',
   'admin.subtitle':
-    'Quản lý Bookings, Khách hàng, Thanh toán, Lịch bay, Tàu bay, Danh mục & Báo cáo.',
+    'Quản lý Đơn đặt chỗ, Khách hàng, Thanh toán, Lịch bay, Tàu bay, Danh mục & Báo cáo.',
   'admin.backToAccount': '← Tài khoản',
   'admin.backToHome': '← Tổng quan Quản trị',
   'admin.nav.home': 'Tổng quan',
-  'admin.nav.bookings': 'Bookings',
+  'admin.nav.bookings': 'Đơn đặt chỗ',
   'admin.nav.customers': 'Khách hàng',
   'admin.nav.payments': 'Thanh toán',
   'admin.nav.reports': 'Báo cáo & Nhật ký',

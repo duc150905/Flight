@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { useEffect, useRef, useState, type ElementRef, type PropsWithChildren, type ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -149,6 +150,49 @@ export function AdminShell({
   const [signingOut, setSigningOut] = useState(false);
   const [topSearchText, setTopSearchText] = useState('');
 
+  const drawerWidth = Math.min(320, Math.round(width * 0.82));
+  const drawerAnim = useRef(new Animated.Value(-drawerWidth)).current;
+  const backdropAnim = useRef(new Animated.Value(0)).current;
+  const [drawerVisible, setDrawerVisible] = useState(false);
+
+  useEffect(() => {
+    if (isDesktop) {
+      setMobileMenuOpen(false);
+      setDrawerVisible(false);
+      return;
+    }
+    if (mobileMenuOpen) {
+      setDrawerVisible(true);
+      Animated.parallel([
+        Animated.timing(drawerAnim, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+        Animated.timing(backdropAnim, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(drawerAnim, {
+          toValue: -drawerWidth,
+          duration: 200,
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+        Animated.timing(backdropAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+      ]).start(({ finished }) => {
+        if (finished) setDrawerVisible(false);
+      });
+    }
+  }, [mobileMenuOpen, isDesktop, drawerWidth, drawerAnim, backdropAnim]);
+
   const userEmail = session?.user?.email ?? 'admin@flyora.vn';
   const [displayName, setDisplayName] = useState<string>('');
   const tabsScrollRef = useRef<ElementRef<typeof ScrollView>>(null);
@@ -271,7 +315,7 @@ export function AdminShell({
     </View>
   );
 
-  const renderSidebarContent = (onAfterSelect?: () => void) => (
+  const renderSidebarContent = (onAfterSelect?: () => void, isDrawer?: boolean) => (
     <View style={adminStyles.sidebarInner}>
       {/* Brand Logo */}
       <View style={adminStyles.brandRow}>
@@ -288,6 +332,16 @@ export function AdminShell({
           </Text>
           <Text style={adminStyles.brandSubtitle}>ADMIN CONSOLE</Text>
         </View>
+        {isDrawer && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={bi('Đóng menu', 'Close menu')}
+            onPress={() => setMobileMenuOpen(false)}
+            style={adminStyles.drawerCloseBtn}
+          >
+            <Text style={adminStyles.drawerCloseText}>✕</Text>
+          </Pressable>
+        )}
       </View>
 
       {/* WORKSPACE Nav Group */}
@@ -454,14 +508,9 @@ export function AdminShell({
               </View>
             </View>
 
-            {/* Mobile Slide-down Drawer + Quick Horizontal Tabs */}
+            {/* Mobile Horizontal Quick Tabs */}
             {!isDesktop && (
               <>
-                {mobileMenuOpen && (
-                  <View style={adminStyles.mobileDrawerCard}>
-                    {renderSidebarContent(() => setMobileMenuOpen(false))}
-                  </View>
-                )}
                 <View style={adminStyles.mobileTabsWrapper}>
                   <Pressable
                     accessibilityRole="button"
@@ -669,6 +718,36 @@ export function AdminShell({
             )}
           </View>
         </View>
+
+        {/* Mobile Slide-over Drawer (Overlays on top without pushing content down) */}
+        {!isDesktop && drawerVisible && (
+          <View style={adminStyles.drawerOverlay} pointerEvents="box-none">
+            <Animated.View style={[adminStyles.drawerBackdrop, { opacity: backdropAnim }]}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={bi('Đóng menu', 'Close menu')}
+                onPress={() => setMobileMenuOpen(false)}
+                style={StyleSheet.absoluteFill}
+              />
+            </Animated.View>
+            <Animated.View
+              style={[
+                adminStyles.drawerSlidePanel,
+                {
+                  width: drawerWidth,
+                  transform: [{ translateX: drawerAnim }],
+                },
+              ]}
+            >
+              <ScrollView
+                contentContainerStyle={adminStyles.drawerScrollContent}
+                showsVerticalScrollIndicator={false}
+              >
+                {renderSidebarContent(() => setMobileMenuOpen(false), true)}
+              </ScrollView>
+            </Animated.View>
+          </View>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -1463,6 +1542,48 @@ export const adminStyles = StyleSheet.create({
   },
   mobileMenuBtnLabelActive: {
     color: consolePalette.brandTealDark,
+  },
+  drawerOverlay: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 9999,
+  },
+  drawerBackdrop: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+  },
+  drawerSlidePanel: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: '#FFFFFF',
+    borderRightWidth: 1,
+    borderRightColor: consolePalette.cardBorder,
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 0 },
+    shadowOpacity: 0.16,
+    shadowRadius: 16,
+    elevation: 20,
+    zIndex: 10000,
+  },
+  drawerScrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 40,
+  },
+  drawerCloseBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  drawerCloseText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#475569',
   },
   mobileDrawerCard: {
     backgroundColor: '#FFFFFF',

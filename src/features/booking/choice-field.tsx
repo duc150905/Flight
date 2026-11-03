@@ -1,9 +1,8 @@
 import { Controller, type Control, type FieldPath, type FieldValues } from 'react-hook-form';
 import { useState } from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
-import { SymbolView } from 'expo-symbols';
 import { useLanguage } from '../i18n/provider';
-import { CheckoutButton, CheckoutError, CheckoutText, checkoutStyles, useCheckoutColors } from './ui';
+import { CheckoutButton, CheckoutError, CheckoutSymbol, CheckoutText, checkoutStyles, useCheckoutColors } from './ui';
 
 export function CheckoutChoice<T extends FieldValues>({ control, name, label, options, onRawChange }: {
   control: Control<T>; name: FieldPath<T>; label: string; options: readonly string[]; onRawChange(value: string): void;
@@ -14,7 +13,7 @@ export function CheckoutChoice<T extends FieldValues>({ control, name, label, op
     <Pressable accessibilityRole="button" accessibilityLabel={`${t(label)}: ${t(field.value || 'Select gender')}`} accessibilityState={{ expanded: open }}
       onPress={() => setOpen(true)} style={{ borderRadius: 8, borderWidth: 1, borderColor: fieldState.error ? c.error : c.border, padding: 12, minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
       <Text style={{ color: field.value ? c.text : c.muted, fontSize: 16 }}>{t(field.value || 'Select gender')}</Text>
-      <SymbolView name={{ ios: 'chevron.down', android: 'expand_more', web: 'expand_more' }} size={20} tintColor={c.text} />
+      <CheckoutSymbol name={{ ios: 'chevron.down', android: 'expand_more', web: 'expand_more' }} size={20} tintColor={c.text} />
     </Pressable>
     <CheckoutError message={fieldState.error?.message} />
     <Modal visible={open} transparent onRequestClose={() => { setOpen(false); field.onBlur(); }}>
