@@ -140,7 +140,7 @@ begin
  insert into public.booking_events(booking_id,actor_user_id,event_type,to_status,safe_message) values(bid,uid,'created','pending_payment','Booking created; awaiting payment.');
  return private.booking_receipt(bid);
 exception when others then
- if sqlerrm like 'quote.%' or sqlerrm in ('booking.authRequired','booking.invalid','booking.requestConflict','booking.priceChanged','booking.quoteExpired','booking.seatRequired') then raise; end if;
+ if sqlerrm like 'quote.%' or sqlerrm in ('booking.authRequired','booking.invalid','booking.requestConflict','booking.requestClosed','booking.priceChanged','booking.quoteExpired','booking.seatRequired') then raise; end if;
  if sqlstate in ('23505','40001','40P01','55P03') then raise exception using message='booking.inventoryChanged'; end if;
  raise exception using message='booking.invalid';
 end $$;

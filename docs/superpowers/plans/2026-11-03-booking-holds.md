@@ -37,3 +37,4 @@
 ## Execution ledger
 - Baseline: 187 tests passed. Existing five copy-only edits retained. Working in current checkout on a new feature branch to preserve those edits.
 - Task 1: observed SQL RED (create_booking absent), then rollback tests GREEN. Client adapter RED (module absent), then 3 tests GREEN. First allocator requires explicit seats; task 2 replaces it before cloud deployment/UI exposure. Fixed booking-code length against existing 32-character constraint during rollback verification.
+- Task 2: observed RED booking.seatRequired for automatic seats; replacement allocator and owner read/recovery RPCs then passed rollback tests. Explicit seats allocated first; restricted travellers next. Due holds reused safely; owner detail expires status once. Global scheduler remains outside scope.
