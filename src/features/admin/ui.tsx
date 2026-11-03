@@ -1,6 +1,6 @@
 import { router, type Href } from 'expo-router';
 import { Image } from 'expo-image';
-import { useEffect, useRef, useState, type ElementRef, type PropsWithChildren, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ElementRef, type PropsWithChildren, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -151,47 +151,49 @@ export function AdminShell({
   const [topSearchText, setTopSearchText] = useState('');
 
   const drawerWidth = Math.min(320, Math.round(width * 0.82));
-  const drawerAnim = useRef(new Animated.Value(-drawerWidth)).current;
-  const backdropAnim = useRef(new Animated.Value(0)).current;
+  const [drawerAnim] = useState(() => new Animated.Value(-320));
+  const [backdropAnim] = useState(() => new Animated.Value(0));
   const [drawerVisible, setDrawerVisible] = useState(false);
 
-  useEffect(() => {
-    if (isDesktop) {
-      setMobileMenuOpen(false);
-      setDrawerVisible(false);
-      return;
-    }
-    if (mobileMenuOpen) {
-      setDrawerVisible(true);
-      Animated.parallel([
-        Animated.timing(drawerAnim, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: Platform.OS !== 'web',
-        }),
-        Animated.timing(backdropAnim, {
-          toValue: 1,
-          duration: 250,
-          useNativeDriver: Platform.OS !== 'web',
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(drawerAnim, {
-          toValue: -drawerWidth,
-          duration: 200,
-          useNativeDriver: Platform.OS !== 'web',
-        }),
-        Animated.timing(backdropAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: Platform.OS !== 'web',
-        }),
-      ]).start(({ finished }) => {
-        if (finished) setDrawerVisible(false);
-      });
-    }
-  }, [mobileMenuOpen, isDesktop, drawerWidth, drawerAnim, backdropAnim]);
+  const openDrawer = useCallback(() => {
+    drawerAnim.setValue(-drawerWidth);
+    backdropAnim.setValue(0);
+    setDrawerVisible(true);
+    setMobileMenuOpen(true);
+    Animated.parallel([
+      Animated.timing(drawerAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+      Animated.timing(backdropAnim, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+    ]).start();
+  }, [drawerAnim, backdropAnim, drawerWidth]);
+
+  const closeDrawer = useCallback((callback?: () => void) => {
+    Animated.parallel([
+      Animated.timing(drawerAnim, {
+        toValue: -drawerWidth,
+        duration: 200,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+      Animated.timing(backdropAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+    ]).start(({ finished }) => {
+      if (finished) {
+        setDrawerVisible(false);
+        setMobileMenuOpen(false);
+        callback?.();
+      }
+    });
+  }, [drawerAnim, backdropAnim, drawerWidth]);
 
   const userEmail = session?.user?.email ?? 'admin@flyora.vn';
   const [displayName, setDisplayName] = useState<string>('');
@@ -336,7 +338,7 @@ export function AdminShell({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={bi('Đóng menu', 'Close menu')}
-            onPress={() => setMobileMenuOpen(false)}
+            onPress={() => closeDrawer()}
             style={adminStyles.drawerCloseBtn}
           >
             <Text style={adminStyles.drawerCloseText}>✕</Text>
@@ -402,7 +404,13 @@ export function AdminShell({
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={bi('Mở danh mục quản trị', 'Open admin navigation')}
-                    onPress={() => setMobileMenuOpen((v) => !v)}
+                    onPress={() => {
+                      if (mobileMenuOpen) {
+                        closeDrawer();
+                      } else {
+                        openDrawer();
+                      }
+                    }}
                     style={[
                       adminStyles.mobileMenuBtn,
                       mobileMenuOpen && adminStyles.mobileMenuBtnActive,
@@ -726,7 +734,7 @@ export function AdminShell({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={bi('Đóng menu', 'Close menu')}
-                onPress={() => setMobileMenuOpen(false)}
+                onPress={() => closeDrawer()}
                 style={StyleSheet.absoluteFill}
               />
             </Animated.View>
@@ -743,7 +751,7 @@ export function AdminShell({
                 contentContainerStyle={adminStyles.drawerScrollContent}
                 showsVerticalScrollIndicator={false}
               >
-                {renderSidebarContent(() => setMobileMenuOpen(false), true)}
+                {renderSidebarContent(() => closeDrawer(), true)}
               </ScrollView>
             </Animated.View>
           </View>
