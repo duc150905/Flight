@@ -88,8 +88,12 @@ export function TicketsListScreen() {
         onPress={() => router.push({ pathname: '/tickets/[id]', params: { id: item.id } })}
         style={({ pressed }) => [ticketStyles.card, pressed && { opacity: 0.8 }]}>
         <View style={ticketStyles.row}>
-          <Text style={ticketStyles.cardTitle}>{item.booking_code}</Text>
-          <Text style={ticketStyles.status}>{t(bookingStatusLabel(item.status))}</Text>
+          <Text style={[ticketStyles.cardTitle, { flex: 1, minWidth: 0 }]} numberOfLines={2}>
+            {item.booking_code}
+          </Text>
+          <View style={ticketStyles.statusBadge}>
+            <Text style={ticketStyles.status}>{t(bookingStatusLabel(item.status))}</Text>
+          </View>
         </View>
         <Text style={ticketStyles.label}>{t(tripTypeLabel(item.trip_type))} · {t('Đặt lúc')} {formatDateTime(item.created_at, null, language)}</Text>
         <Text style={ticketStyles.strong}>{formatMoney(item.total_amount, item.currency, language)}</Text>

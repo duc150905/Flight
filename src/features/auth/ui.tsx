@@ -91,12 +91,9 @@ export function AuthShell({ children }: PropsWithChildren) {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.content}>
-            {/* Top Bar with Brand on left and 3-line hamburger menu on right */}
+        {/* Pinned Top Header */}
+        <View style={styles.stickyHeaderWrapper}>
+          <View style={styles.stickyHeaderContent}>
             <View style={styles.headerRow}>
               <Pressable
                 accessibilityRole="button"
@@ -114,8 +111,15 @@ export function AuthShell({ children }: PropsWithChildren) {
                 <Text style={styles.menuButtonIcon}>☰</Text>
               </Pressable>
             </View>
-
             <Text style={styles.tagline}>{t('Hành trình tiếp theo bắt đầu từ đây.')}</Text>
+          </View>
+        </View>
+
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.content}>
             <View style={styles.card}>{children}</View>
             <Text style={styles.footer}>{t('Lên kế hoạch gọn gàng cho mỗi chuyến đi.')}</Text>
           </View>
@@ -307,8 +311,24 @@ export function Notice({ text, success = false }: { text: string; success?: bool
 }
 
 export const styles = StyleSheet.create({
-  flex: { flex: 1 }, safe: { flex: 1, backgroundColor: colors.background },
-  scroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 32 },
+  flex: { flex: 1 },
+  safe: { flex: 1, backgroundColor: colors.background },
+  stickyHeaderWrapper: {
+    backgroundColor: colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: '#DCECEF',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 10,
+    zIndex: 10,
+  },
+  stickyHeaderContent: {
+    width: '100%',
+    maxWidth: 460,
+    alignSelf: 'center',
+    gap: 2,
+  },
+  scroll: { flexGrow: 1, justifyContent: 'flex-start', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32 },
   content: { width: '100%', maxWidth: 460, alignSelf: 'center', gap: 12 },
   headerRow: {
     flexDirection: 'row',

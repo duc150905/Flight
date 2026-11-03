@@ -154,7 +154,7 @@ export function AdminHomeScreen() {
       icon: '🎫',
       iconBg: '#ECFEFF',
       iconColor: '#0891B2',
-      label: bi('Tổng booking', 'Total Bookings'),
+      label: bi('Tổng đơn đặt chỗ', 'Total Bookings'),
       value: metrics ? `${metrics.totalBookings}` : '—',
       badge: metrics
         ? bi(`${metrics.confirmedCount} đã xác nhận`, `${metrics.confirmedCount} confirmed`)
@@ -208,7 +208,7 @@ export function AdminHomeScreen() {
         ? bi(`${data.flightsPublished} chuyến mở bán`, `${data.flightsPublished} open flights`)
         : 'Active',
       badgePositive: (metrics?.pendingCount ?? 0) === 0,
-      sub: bi('booking đang chờ thanh toán', 'bookings awaiting payment'),
+      sub: bi('đơn đang chờ thanh toán', 'bookings awaiting payment'),
       href: '/admin/bookings' as const,
     },
   ];
@@ -218,7 +218,7 @@ export function AdminHomeScreen() {
       href: '/admin/bookings' as const,
       icon: '🎫',
       iconBg: '#ECFEFF',
-      title: bi('Tra cứu & Quản lý Booking', 'Search & Manage Bookings'),
+      title: bi('Tra cứu & Quản lý Đơn đặt chỗ', 'Search & Manage Bookings'),
       desc: bi(
         'Tìm theo mã PNR, tên hành khách, email hoặc trạng thái',
         'Filter by PNR code, passenger, email, or status',
@@ -265,31 +265,9 @@ export function AdminHomeScreen() {
       activeSection="home"
       title={bi(`Chào buổi sáng, ${adminName} ✦`, `Good morning, ${adminName} ✦`)}
       subtitle={bi(
-        'Đây là tình hình vận hành Booking, Doanh thu mô phỏng, Khách hàng và Lịch bay của hệ thống hôm nay.',
+        'Đây là tình hình vận hành Đơn đặt chỗ, Doanh thu mô phỏng, Khách hàng và Lịch bay của hệ thống hôm nay.',
         'Here is your booking, simulated revenue, customer, and flight operations overview today.',
       )}
-      rightAction={
-        <View style={adminStyles.rowGap}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push('/admin/reports' as Href)}
-            style={adminStyles.secondaryBtnSmall}
-          >
-            <Text style={adminStyles.secondaryBtnText}>
-              ⬇ {bi('Xem báo cáo', 'View Reports')}
-            </Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push('/admin/flights' as Href)}
-            style={adminStyles.primaryBtnSmall}
-          >
-            <Text style={adminStyles.primaryBtnText}>
-              + {bi('Tạo chuyến bay', 'Create Flight')}
-            </Text>
-          </Pressable>
-        </View>
-      }
     >
       {overviewQuery.isPending && <AdminLoadingState />}
       {overviewQuery.isError && (

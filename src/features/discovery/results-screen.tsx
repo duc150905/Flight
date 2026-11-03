@@ -146,9 +146,13 @@ function FlightCard({ offer, criteria }: { offer: FlightOffer; criteria: SearchC
       <View style={r.timeEnd}><Text style={r.time}>{timeAt(offer.flight.arrival_at, offer.destination.timezone, localeFor(language))}</Text>
         <Text style={r.airportCode}>{offer.destination.iata_code}</Text></View>
     </View>
-    <View style={r.cardBottom}><Text style={r.fareName}>{t(offer.fare.name)}</Text>
-      <MoneyText amount={offer.total} currency={offer.fare.currency} style={r.price} /></View>
-    <Text style={r.fareName}>{t('Fare including taxes and fees')}</Text>
+    <View style={r.cardBottom}>
+      <View style={r.cardBottomLeft}>
+        <Text style={r.fareName}>{t(offer.fare.name)}</Text>
+        <Text style={r.taxNotice}>{t('Fare including taxes and fees')}</Text>
+      </View>
+      <MoneyText amount={offer.total} currency={offer.fare.currency} style={r.price} />
+    </View>
   </Pressable>;
 }
 
@@ -184,7 +188,9 @@ const r = StyleSheet.create({
   direct: { color: '#8B95A5', fontSize: 11 }, timeEnd: { alignItems: 'flex-end' },
   cardBottom: { borderTopWidth: 1, borderTopColor: '#E9EDF1', padding: 16, flexDirection: 'row',
     alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  fareName: { color: '#536570', fontSize: 13, flex: 1 },
+  cardBottomLeft: { flex: 1, gap: 4 },
+  fareName: { color: '#536570', fontSize: 13 },
+  taxNotice: { color: '#8B95A5', fontSize: 12 },
   price: { color: '#253540', fontSize: 20, fontWeight: '800' },
   helper: { color: '#758294', fontSize: 13, lineHeight: 19 },
   emptyCard: { padding: 20, borderRadius: 12, borderWidth: 1, borderColor: '#E9EDF1', gap: 8 },
