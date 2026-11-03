@@ -69,7 +69,7 @@ export function TicketsListScreen() {
   if (current.status === 'error') return <TicketState title={t('Vé của tôi')} description={t(current.error)}
     action={t('Thử lại')} onAction={refresh} />;
 
-  return <SafeAreaView style={ticketStyles.safe}>
+  return <SafeAreaView style={ticketStyles.safe} edges={['top', 'left', 'right']}>
     <FlatList data={current.bookings} keyExtractor={item => item.id}
       contentContainerStyle={ticketStyles.content}
       ListHeaderComponent={<View style={{ gap: 6 }}>
