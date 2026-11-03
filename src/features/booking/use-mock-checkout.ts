@@ -8,7 +8,7 @@ import {useAuth} from '../auth/auth-provider';
 import {createOwnerRpcClient} from './owner-rpc';
 import {createMockActionJournal,type MockAction} from './mock-action-journal';
 import {createStepRequestGuard} from './step-request';
-import {loadMockPaymentState,startMockPayment,resolveMockPayment,mockError,type MockOutcome,type MockState} from './mock-payment';
+import {loadMockPaymentState,startMockPayment,resolveMockPayment,cancelMockBooking,mockError,type MockOutcome,type MockState} from './mock-payment';
 const journal=createMockActionJournal(AsyncStorage,randomUUID);
 export function useMockCheckout(bookingId:string,enabled:boolean,changed:()=>void){
  const {session}=useAuth();const ownerId=session?.user.id;const cache=useQueryClient();const focused=useRef(false);const lock=useRef(false);
@@ -25,13 +25,14 @@ export function useMockCheckout(bookingId:string,enabled:boolean,changed:()=>voi
   if(!current())throw Error('booking.authRequired');
   if(action.kind==='start')return startMockPayment(rpc,bookingId,id);
   if(action.kind==='resolve'&&action.target&&action.outcome)return resolveMockPayment(rpc,action.target,id,action.outcome as MockOutcome);
+  if(action.kind==='cancel'&&action.expectedFee!==undefined)return cancelMockBooking(rpc,bookingId,id,action.expectedFee);
   throw Error('mock.invalid');
  }
  async function run(action:(perform:(a:MockAction,signature:string)=>Promise<{value:MockState;recovered:boolean}>)=>Promise<void>){
   if(lock.current||!session||!enabled)return;lock.current=true;setBusy(true);setError('');
   const ticket=guard.begin();const current=()=>focused.current&&guard.isCurrent(ticket);
-  const rpc=client();const owner=session.user.id;
-  try{await action(async(a,sig)=>{
+  const owner=session.user.id;
+  try{const rpc=client();await action(async(a,sig)=>{
    const result=await journal.run(owner,bookingId,sig,a,(stored,id)=>send(stored,id,rpc,current));
    if(current()){cache.setQueryData(key,result.value);changed();}return result;
   });}catch(cause){if(current())setError(mockError(cause));}
@@ -46,6 +47,7 @@ export function useMockCheckout(bookingId:string,enabled:boolean,changed:()=>voi
    if(payment&&state.booking.status==='pending_payment')await perform({kind:'resolve',target:payment.id,outcome},`resolve:${payment.id}:${outcome}`);
   }),
   recover:()=>run(async perform=>{await perform({kind:'start'},`recover:${bookingId}`);}),
+  cancel:(expectedFee:number)=>run(async perform=>{await perform({kind:'cancel',expectedFee},`cancel:${bookingId}:${query.data?.booking.status}:${expectedFee}`);}),
  };
 }
 export type MockCheckout=ReturnType<typeof useMockCheckout>;

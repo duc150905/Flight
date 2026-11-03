@@ -14,6 +14,7 @@ import { CheckoutButton, CheckoutCard, CheckoutError, CheckoutShell, CheckoutTex
 import {useMockCheckout,type MockCheckout} from './use-mock-checkout';
 import {MockPaymentPanel} from './mock-payment-panel';
 import {PaymentSuccessView} from './payment-success';
+import {BookingManagementPanel} from './booking-management-panel';
 
 export function PendingBookingScreen({receipt=false}:{receipt?:boolean}={}) {
   const { id } = useLocalSearchParams<{ id: string }>(); const { session, status } = useAuth(); const { t } = useLanguage();
@@ -119,6 +120,7 @@ export function PendingBookingView({ booking, seconds, refreshing = false, error
       </View>)}
     </CheckoutCard>
     {!active && booking.status === 'expired' && <CheckoutButton title="Search flights again" onPress={() => router.replace('/')} />}
+    {mock&&<BookingManagementPanel mock={mock}/>}
   </CheckoutShell>;
 }
 const styles = StyleSheet.create({

@@ -15,7 +15,13 @@ export function createMockActionJournal(storage:Storage,uuid:()=>string){
    const recovered=!!old&&old.phase==='sent';
    const entry:Entry=old&&(recovered||old.signature===signature)?old:{id:uuid(),bookingId,signature,action,phase:'sent'};
    try{await storage.setItem(key,JSON.stringify({...entry,phase:'sent'}));}catch{throw Error('mock.storage');}
-   const value=await send(entry.action,entry.id);
+   let value:T;
+   try{value=await send(entry.action,entry.id);}catch(cause){
+    if(cause instanceof Error&&['mock.invalid','mock.state','mock.conflict','mock.ineligible','mock.priceChanged','booking.notFound','booking.authRequired'].includes(cause.message)){
+     try{await storage.setItem(key,JSON.stringify({...entry,phase:'complete'}));}catch{/* retain sent if storage is unavailable */}
+    }
+    throw cause;
+   }
    try{await storage.setItem(key,JSON.stringify({...entry,phase:'complete'}));}catch{/* replaying the same UUID remains safe */}
    return {value,recovered};
   });

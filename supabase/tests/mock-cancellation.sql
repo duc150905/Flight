@@ -1,0 +1,18 @@
+do $$declare bid uuid:=pg_temp.mock_booking();state jsonb;pid uuid;rid uuid:=gen_random_uuid();fee bigint;actual text;begin
+ state:=public.get_mock_payment_state(bid);if not (state->'cancellation'->>'allowed')::boolean then raise exception 'Cannot cancel pending';end if;
+ state:=public.cancel_booking(bid,rid,0);perform public.cancel_booking(bid,rid,0);
+ if state->'booking'->>'status'<>'cancelled' or exists(select 1 from public.seat_reservations where booking_id=bid and status in ('held','confirmed')) then raise exception 'Cancellation failed';end if;
+ if (select count(*) from public.booking_events where booking_id=bid and event_type='cancelled')<>1 then raise exception 'Duplicate cancel';end if;
+ bid:=pg_temp.mock_booking();state:=public.start_mock_payment(bid,gen_random_uuid());pid:=(state->'payments'->0->>'id')::uuid;
+ state:=public.resolve_mock_payment(pid,gen_random_uuid(),'succeeded');fee:=(state->'cancellation'->>'fee')::bigint;
+ if fee<>200000 then raise exception 'Wrong Flex cancellation fee: %',fee;end if;
+ begin perform public.cancel_booking(bid,gen_random_uuid(),fee+1);exception when others then actual:=sqlerrm;end;
+ if actual is distinct from 'mock.priceChanged' then raise exception 'Fee consent bypass';end if;
+ state:=public.cancel_booking(bid,gen_random_uuid(),fee);
+ if (state->'cancellation'->>'refundAmount')::bigint<>(state->'booking'->>'total')::bigint-fee then raise exception 'Refund due mismatch';end if;
+ bid:=pg_temp.mock_booking(false);state:=public.start_mock_payment(bid,gen_random_uuid());pid:=(state->'payments'->0->>'id')::uuid;
+ state:=public.resolve_mock_payment(pid,gen_random_uuid(),'succeeded');actual:=null;
+ begin perform public.cancel_booking(bid,gen_random_uuid(),0);exception when others then actual:=sqlerrm;end;
+ if actual is distinct from 'mock.ineligible' then raise exception 'Standard cancellation allowed';end if;
+ if has_function_privilege('anon','public.cancel_booking(uuid,uuid,bigint)','execute') then raise exception 'Anon cancel';end if;
+end $$;

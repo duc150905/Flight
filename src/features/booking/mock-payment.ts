@@ -30,3 +30,7 @@ export async function resolveMockPayment(client:Client,paymentId:string,requestI
  const {data,error}=await client.rpc('resolve_mock_payment',{p_payment_id:id.parse(paymentId),p_request_id:id.parse(requestId),p_outcome:z.enum(mockOutcomes).parse(outcome)});
  if(error)throw Error(mockError(error));return parseMockState(data);
 }
+export async function cancelMockBooking(client:Client,bookingId:string,requestId:string,expectedFee:number){
+ const {data,error}=await client.rpc('cancel_booking',{p_booking_id:id.parse(bookingId),p_request_id:id.parse(requestId),p_expected_fee:money.parse(expectedFee)});
+ if(error)throw Error(mockError(error));const parsed=parseMockState(data);if(parsed.booking.id!==bookingId)throw Error('mock.invalid');return parsed;
+}

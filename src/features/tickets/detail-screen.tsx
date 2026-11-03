@@ -65,6 +65,7 @@ export function TicketDetailScreen() {
       {booking.status === 'pending_payment' && <ActionButton title={t('Resume pending booking')}
         onPress={() => router.push({ pathname: '/pending/[id]', params: { id: booking.id } })} />}
       {booking.status==='confirmed'&&<ActionButton title={t('mock.ticket')} onPress={()=>router.push({pathname:'/receipt/[id]',params:{id:booking.id}})}/>}
+      {booking.status==='cancelled'&&<ActionButton title={t('mock.details')} onPress={()=>router.push({pathname:'/pending/[id]',params:{id:booking.id}})}/>}
       <View style={ticketStyles.card}>
         <Text style={ticketStyles.cardTitle}>{t('Thông tin đơn')}</Text>
         <Info label={t('Hành trình')} value={t(tripTypeLabel(booking.trip_type))} />
