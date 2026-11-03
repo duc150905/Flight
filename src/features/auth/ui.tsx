@@ -1,14 +1,16 @@
 import { useState, type PropsWithChildren, type ReactNode } from 'react';
+import { router } from 'expo-router';
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { Controller, type Control, type FieldPath, type FieldValues } from 'react-hook-form';
 import {
-  ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView,
-  StyleSheet, Text, TextInput, View, type TextInputProps,
+  ActivityIndicator, Animated, Easing, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView,
+  StyleSheet, Text, TextInput, useWindowDimensions, View, type TextInputProps,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LanguagePicker, useLanguage } from '@/features/i18n/provider';
+import { useLanguage } from '@/features/i18n/provider';
 import { AppBrand } from '@/components/app-brand';
+import { triggerOpenSearch } from '@/features/discovery/search-state';
 
 export const colors = {
   background: '#F2FBFC', surface: '#FFFFFF', text: '#253540', muted: '#536570',
@@ -17,20 +19,237 @@ export const colors = {
 };
 
 export function AuthShell({ children }: PropsWithChildren) {
-  const { t } = useLanguage();
-  return <SafeAreaView style={styles.safe}>
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <View style={styles.content}>
-          <AppBrand />
-          <LanguagePicker />
-          <Text style={styles.tagline}>{t('Hành trình tiếp theo bắt đầu từ đây.')}</Text>
-          <View style={styles.card}>{children}</View>
-          <Text style={styles.footer}>{t('Lên kế hoạch gọn gàng cho mỗi chuyến đi.')}</Text>
+  const { t, language, setLanguage } = useLanguage();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [langExpanded, setLangExpanded] = useState(false);
+  const { width: windowWidth } = useWindowDimensions();
+  const drawerWidth = Math.min(Math.max(windowWidth * 0.78, 280), 320);
+
+  const [slideAnim] = useState(() => new Animated.Value(320));
+  const [fadeAnim] = useState(() => new Animated.Value(0));
+
+  const openMenu = () => {
+    slideAnim.setValue(drawerWidth);
+    fadeAnim.setValue(0);
+    setMenuOpen(true);
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 250,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const closeMenu = (callback?: () => void) => {
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: drawerWidth,
+        duration: 200,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setMenuOpen(false);
+      callback?.();
+    });
+  };
+
+  const goHome = () => {
+    setMenuOpen(false);
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/');
+    }
+  };
+
+  const goSearch = () => {
+    setMenuOpen(false);
+    triggerOpenSearch();
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/?search=1' as any);
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.content}>
+            {/* Top Bar with Brand on left and 3-line hamburger menu on right */}
+            <View style={styles.headerRow}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('Trang chủ')}
+                onPress={goHome}
+              >
+                <AppBrand />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('Mở menu')}
+                onPress={openMenu}
+                style={styles.menuButton}
+              >
+                <Text style={styles.menuButtonIcon}>☰</Text>
+              </Pressable>
+            </View>
+
+            <Text style={styles.tagline}>{t('Hành trình tiếp theo bắt đầu từ đây.')}</Text>
+            <View style={styles.card}>{children}</View>
+            <Text style={styles.footer}>{t('Lên kế hoạch gọn gàng cho mỗi chuyến đi.')}</Text>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      {/* Side Drawer sliding in from right */}
+      <Modal
+        visible={menuOpen}
+        transparent
+        animationType="none"
+        onRequestClose={() => closeMenu()}
+      >
+        <View style={styles.drawerOverlay}>
+          <Animated.View style={[styles.drawerBackdrop, { opacity: fadeAnim }]}>
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              accessibilityLabel={t('Đóng menu')}
+              onPress={() => closeMenu()}
+            />
+          </Animated.View>
+          <Animated.View
+            style={[
+              styles.drawerPanel,
+              {
+                width: drawerWidth,
+                transform: [{ translateX: slideAnim }],
+              },
+            ]}
+          >
+            {/* Drawer Top Header */}
+            <View style={styles.drawerHeader}>
+              <Text style={styles.drawerHeaderTitle}>{t('Menu')}</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('Đóng menu')}
+                onPress={() => closeMenu()}
+                style={styles.drawerCloseBtn}
+              >
+                <Text style={styles.drawerCloseBtnText}>✕</Text>
+              </Pressable>
+            </View>
+
+            {/* Navigation Options */}
+            <View style={styles.drawerNavList}>
+              {/* Trang chủ */}
+              <Pressable
+                accessibilityRole="button"
+                onPress={goHome}
+                style={styles.drawerItem}
+              >
+                <Text style={styles.drawerItemIcon}>🏠</Text>
+                <Text style={styles.drawerItemText}>{t('Trang chủ')}</Text>
+              </Pressable>
+
+              {/* Tìm chuyến bay */}
+              <Pressable
+                accessibilityRole="button"
+                onPress={goSearch}
+                style={styles.drawerItem}
+              >
+                <Text style={styles.drawerItemIcon}>🔍</Text>
+                <Text style={styles.drawerItemText}>{t('Tìm chuyến bay')}</Text>
+              </Pressable>
+
+              <View style={styles.drawerDivider} />
+
+              {/* Chọn ngôn ngữ */}
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setLangExpanded((v) => !v)}
+                style={[styles.drawerItem, styles.drawerItemBetween]}
+              >
+                <View style={styles.drawerItemLeft}>
+                  <Text style={styles.drawerItemIcon}>🌐</Text>
+                  <Text style={styles.drawerItemText}>{t('Chọn ngôn ngữ')}</Text>
+                </View>
+                <Text style={styles.drawerArrow}>{langExpanded ? '▲' : '▼'}</Text>
+              </Pressable>
+
+              {/* Expandable Languages: Tiếng Việt and English */}
+              {langExpanded && (
+                <View style={styles.drawerLangList}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: language === 'vi' }}
+                    onPress={() => {
+                      void setLanguage('vi');
+                    }}
+                    style={[
+                      styles.drawerLangItem,
+                      language === 'vi' && styles.drawerLangItemActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.drawerLangText,
+                        language === 'vi' && styles.drawerLangTextActive,
+                      ]}
+                    >
+                      Tiếng Việt
+                    </Text>
+                    {language === 'vi' && <Text style={styles.drawerCheck}>✓</Text>}
+                  </Pressable>
+
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: language === 'en' }}
+                    onPress={() => {
+                      void setLanguage('en');
+                    }}
+                    style={[
+                      styles.drawerLangItem,
+                      language === 'en' && styles.drawerLangItemActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.drawerLangText,
+                        language === 'en' && styles.drawerLangTextActive,
+                      ]}
+                    >
+                      English
+                    </Text>
+                    {language === 'en' && <Text style={styles.drawerCheck}>✓</Text>}
+                  </Pressable>
+                </View>
+              )}
+            </View>
+          </Animated.View>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
-  </SafeAreaView>;
+      </Modal>
+    </SafeAreaView>
+  );
 }
 
 export function FormField<T extends FieldValues>({ control, name, label, password, ...props }: {
@@ -91,6 +310,162 @@ export const styles = StyleSheet.create({
   flex: { flex: 1 }, safe: { flex: 1, backgroundColor: colors.background },
   scroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 32 },
   content: { width: '100%', maxWidth: 460, alignSelf: 'center', gap: 12 },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 4,
+  },
+  menuButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  menuButtonIcon: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.text,
+    lineHeight: 22,
+  },
+  drawerOverlay: {
+    flex: 1,
+    position: 'relative',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  drawerBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+  },
+  drawerPanel: {
+    height: '100%',
+    backgroundColor: '#FFFFFF',
+    paddingTop: Platform.OS === 'ios' ? 56 : 24,
+    paddingHorizontal: 20,
+    paddingBottom: 32,
+    gap: 16,
+    shadowColor: '#000000',
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    shadowOffset: { width: -6, height: 0 },
+    elevation: 20,
+  },
+  drawerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  drawerHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  drawerCloseBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  drawerCloseBtnText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#475569',
+  },
+  drawerNavList: {
+    gap: 8,
+  },
+  drawerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#F8FAFC',
+  },
+  drawerItemBetween: {
+    justifyContent: 'space-between',
+  },
+  drawerItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  drawerItemIcon: {
+    fontSize: 18,
+    width: 24,
+    textAlign: 'center',
+  },
+  drawerItemText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  drawerArrow: {
+    fontSize: 11,
+    color: '#64748B',
+    marginRight: 4,
+  },
+  drawerDivider: {
+    height: 1,
+    backgroundColor: '#E2E8F0',
+    marginVertical: 4,
+  },
+  drawerLangList: {
+    gap: 8,
+    marginTop: 4,
+    paddingLeft: 8,
+  },
+  drawerLangItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderRadius: 10,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  drawerLangItemActive: {
+    backgroundColor: '#E0F7FA',
+    borderColor: '#007E91',
+  },
+  drawerLangText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#334155',
+  },
+  drawerLangTextActive: {
+    color: '#007E91',
+    fontWeight: '700',
+  },
+  drawerCheck: {
+    color: '#007E91',
+    fontSize: 15,
+    fontWeight: '800',
+  },
   brand: { color: colors.text, fontSize: 30, fontWeight: '900', letterSpacing: 3 },
   brandDot: { color: colors.primary }, tagline: { color: colors.muted, fontSize: 16, marginBottom: 16 },
   card: { backgroundColor: colors.surface, padding: 24, borderRadius: 24, gap: 16, borderWidth: 1, borderColor: '#D6ECEF' },

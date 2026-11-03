@@ -118,7 +118,7 @@ export function SearchFlow({ airports, loading, error, onRetry, onClose, initial
     ? t(`Chặng {number}: ${indexedError[2]}`, { number: indexedError[1] })
     : t(validationError);
 
-  return <SafeAreaView style={s.safe}>
+  return <SafeAreaView style={s.safe} edges={['top', 'left', 'right']}>
     <View style={s.header}>
       <Pressable accessibilityRole="button" accessibilityLabel={t('Đóng')} onPress={onClose} style={s.headerAction}>
         <Text style={s.close}>×</Text></Pressable>

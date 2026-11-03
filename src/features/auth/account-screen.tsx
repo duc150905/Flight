@@ -94,7 +94,10 @@ export function AccountScreen() {
       <ActionButton title="Vé của tôi" secondary disabled={busy} onPress={() => router.push('/tickets')} />
       <ActionButton title="Đổi mật khẩu" secondary disabled={busy} onPress={() => { setMessage(''); setMode('password'); }} />
       <ActionButton title="Đăng xuất" busy={busy} secondary onPress={() => void logout()} />
-      <ActionButton title="Về trang chủ" secondary disabled={busy} onPress={() => router.push('/')} />
+      <ActionButton title="Về trang chủ" secondary disabled={busy} onPress={() => {
+        if (router.canGoBack()) router.back();
+        else router.replace('/');
+      }} />
     </>}
   </AuthShell>;
 }

@@ -1,4 +1,7 @@
 export const authEnglish = {
+  'Menu': 'Menu', 'Trang chủ': 'Home', 'Khám phá': 'Explore', 'Hồ sơ': 'Profile',
+  'Chọn ngôn ngữ': 'Choose language',
+  'Đóng menu': 'Close menu', 'Mở menu': 'Open menu',
   'Hành trình tiếp theo bắt đầu từ đây.': 'Your next journey starts here.',
   'Đang khôi phục phiên đăng nhập…': 'Restoring your session…', 'Chưa thể mở tài khoản': 'Could not open account',
   'Lên kế hoạch gọn gàng cho mỗi chuyến đi.': 'Plan each trip with ease.',
@@ -30,7 +33,8 @@ export const authEnglish = {
   'Vai trò': 'Role', 'Đang kiểm tra…': 'Checking…', 'Quản trị viên (Admin)': 'Administrator',
   'Khách hàng': 'Customer', 'Đang tải hồ sơ': 'Loading profile',
   'Thử tải lại hồ sơ': 'Retry loading profile', 'Chưa cập nhật': 'Not provided',
-  'Số điện thoại liên hệ': 'Contact phone', 'Sửa hồ sơ': 'Edit profile',
+  'Số điện thoại liên hệ': 'Contact phone', 'Bảng điều khiển Quản trị': 'Admin Dashboard',
+  'Sửa hồ sơ': 'Edit profile',
   'Vé của tôi': 'My tickets', 'Đổi mật khẩu': 'Change password',
   'Đăng xuất': 'Sign out', 'Về trang chủ': 'Back to home',
   'Hồ sơ của bạn': 'Your profile',
