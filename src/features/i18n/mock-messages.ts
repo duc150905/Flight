@@ -1,4 +1,5 @@
 export const mockEnglish={
+ 'mock.refreshTicket':'Refreshing confirmed seats. Reload the booking to view your demo ticket.',
  'mock.card':'Demo card •••• 4242','mock.noMoney':'Simulation only. No real money is charged.',
  'mock.scenario':'Choose a simulation result','mock.latest':'Latest payment','mock.recover':'Retry previous action',
  'mock.hold':'Seats are held until the countdown ends. This is a simulated payment.',
@@ -22,6 +23,7 @@ export const mockEnglish={
  'mock.paymentHistory':'Payment history','mock.refundHistory':'Refund history',
 } as const;
 export const mockVietnamese:Record<keyof typeof mockEnglish,string>={
+ 'mock.refreshTicket':'Đang cập nhật ghế đã xác nhận. Hãy tải lại đơn để xem vé mô phỏng.',
  'mock.card':'Thẻ mô phỏng •••• 4242','mock.noMoney':'Chỉ mô phỏng, không thu tiền thật.',
  'mock.scenario':'Chọn kết quả mô phỏng','mock.latest':'Lần thanh toán gần nhất','mock.recover':'Thử lại thao tác trước',
  'mock.hold':'Chỗ được giữ đến khi hết thời gian đếm ngược. Đây là thanh toán mô phỏng.',

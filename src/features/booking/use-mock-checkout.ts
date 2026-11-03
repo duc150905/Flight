@@ -11,7 +11,7 @@ import {createStepRequestGuard} from './step-request';
 import {loadMockPaymentState,startMockPayment,resolveMockPayment,mockError,type MockOutcome,type MockState} from './mock-payment';
 const journal=createMockActionJournal(AsyncStorage,randomUUID);
 export function useMockCheckout(bookingId:string,enabled:boolean,changed:()=>void){
- const {session}=useAuth();const cache=useQueryClient();const focused=useRef(false);const lock=useRef(false);
+ const {session}=useAuth();const ownerId=session?.user.id;const cache=useQueryClient();const focused=useRef(false);const lock=useRef(false);
  const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [outcome,setOutcome]=useState<MockOutcome>('succeeded');
  const [guard]=useState(createStepRequestGuard);
  const key=['mock-payment',session?.user.id,bookingId];
@@ -19,7 +19,7 @@ export function useMockCheckout(bookingId:string,enabled:boolean,changed:()=>voi
   if(!session||!url||!publicKey)throw Error('booking.authRequired');return createOwnerRpcClient({url,key:publicKey,accessToken:session.access_token});}
  const query=useQuery({queryKey:key,enabled,retry:false,staleTime:0,gcTime:0,queryFn:()=>loadMockPaymentState(client(),bookingId)});
  const refetch=query.refetch;
- useFocusEffect(useCallback(()=>{focused.current=true;if(enabled)void refetch();return()=>{focused.current=false;guard.cancel();};},[enabled,refetch,guard,session?.user.id]));
+ useFocusEffect(useCallback(()=>{focused.current=true;if(enabled&&ownerId)void refetch();return()=>{focused.current=false;guard.cancel();};},[enabled,refetch,guard,ownerId]));
  useEffect(()=>{if(!enabled)return;const sub=AppState.addEventListener('change',s=>{if(s==='active')void refetch();});return()=>sub.remove();},[enabled,refetch]);
  async function send(action:MockAction,id:string,rpc:ReturnType<typeof client>,current:()=>boolean){
   if(!current())throw Error('booking.authRequired');

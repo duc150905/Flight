@@ -26,6 +26,9 @@ export function parsePendingBooking(raw: unknown) {
   return { ...receipt, ...details };
 }
 export type PendingBooking = ReturnType<typeof parsePendingBooking>;
+export function demoTicketReady(booking:PendingBooking){
+ return booking.status==='confirmed'&&booking.passengerSegments.every(ps=>!ps.requiresSeat||booking.seats.some(s=>s.passengerSegmentId===ps.id&&s.flightId===ps.flightId&&s.status==='confirmed'));
+}
 export function holdSecondsRemaining(booking: { status: string; expiresAt: string; serverNow: string }, elapsedMs: number) {
   return booking.status === 'pending_payment' ? Math.max(0, Math.ceil((Date.parse(booking.expiresAt) - Date.parse(booking.serverNow) - Math.max(0, elapsedMs)) / 1000)) : 0;
 }
