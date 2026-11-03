@@ -1,6 +1,6 @@
 import { router, usePathname } from 'expo-router';
 import { useStore } from 'zustand';
-import { Image } from 'expo-image';
+import { SymbolView } from 'expo-symbols';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '@/features/i18n/provider';
@@ -9,26 +9,21 @@ import { searchStore } from '@/features/discovery/search-state';
 const ACTIVE_COLOR = '#007E91';
 const INACTIVE_COLOR = '#64748B';
 
-function createSvgUri(svgString: string): string {
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svgString)}`;
-}
+type TabIconName = 'home' | 'explore' | 'profile';
 
-function HomeIcon({ active, size = 24 }: { active: boolean; size?: number }) {
-  const color = active ? ACTIVE_COLOR : INACTIVE_COLOR;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1V9.5z"/></svg>`;
-  return <Image source={{ uri: createSvgUri(svg) }} style={{ width: size, height: size }} contentFit="contain" accessible={false} alt="" />;
-}
+const tabSymbols = {
+  home: { ios: 'house', android: 'home', web: 'home' },
+  explore: { ios: 'globe.americas.fill', android: 'public', web: 'public' },
+  profile: { ios: 'person', android: 'person', web: 'person' },
+} as const;
 
-function ExploreIcon({ active, size = 24 }: { active: boolean; size?: number }) {
-  const color = active ? ACTIVE_COLOR : INACTIVE_COLOR;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="${color}"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>`;
-  return <Image source={{ uri: createSvgUri(svg) }} style={{ width: size, height: size }} contentFit="contain" accessible={false} alt="" />;
-}
-
-function ProfileIcon({ active, size = 24 }: { active: boolean; size?: number }) {
-  const color = active ? ACTIVE_COLOR : INACTIVE_COLOR;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-1.5a4.5 4.5 0 0 0-4.5-4.5h-7A4.5 4.5 0 0 0 4 19.5V21"/><circle cx="12" cy="7.5" r="4"/></svg>`;
-  return <Image source={{ uri: createSvgUri(svg) }} style={{ width: size, height: size }} contentFit="contain" accessible={false} alt="" />;
+function TabIcon({ name, active }: { name: TabIconName; active: boolean }) {
+  return <SymbolView
+    name={tabSymbols[name]}
+    size={24}
+    tintColor={active ? ACTIVE_COLOR : INACTIVE_COLOR}
+    accessible={false}
+  />;
 }
 
 export function BottomTabBar() {
@@ -73,7 +68,7 @@ export function BottomTabBar() {
           onPress={handlePressHome}
           style={styles.tabButton}
         >
-          <HomeIcon active={isHomeActive} />
+          <TabIcon name="home" active={isHomeActive} />
           <Text style={[styles.tabLabel, isHomeActive && styles.tabLabelActive]}>
             {t('Trang chủ')}
           </Text>
@@ -87,7 +82,7 @@ export function BottomTabBar() {
           onPress={handlePressExplore}
           style={styles.tabButton}
         >
-          <ExploreIcon active={isExploreActive} />
+          <TabIcon name="explore" active={isExploreActive} />
           <Text style={[styles.tabLabel, isExploreActive && styles.tabLabelActive]}>
             {t('Khám phá')}
           </Text>
@@ -101,7 +96,7 @@ export function BottomTabBar() {
           onPress={handlePressProfile}
           style={styles.tabButton}
         >
-          <ProfileIcon active={isProfileActive} />
+          <TabIcon name="profile" active={isProfileActive} />
           <Text style={[styles.tabLabel, isProfileActive && styles.tabLabelActive]}>
             {t('Hồ sơ')}
           </Text>
