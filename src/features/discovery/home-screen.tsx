@@ -1,22 +1,21 @@
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
+import { Image } from 'expo-image';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppBrand } from '@/components/app-brand';
 import { useAuth } from '@/features/auth/auth-provider';
 import { Notice } from '@/features/auth/ui';
-import { LanguagePicker, useLanguage } from '@/features/i18n/provider';
 import { CurrencyControls } from '@/features/currency/ui';
+import { LanguagePicker, useLanguage } from '@/features/i18n/provider';
 import { listAirports, listDestinations } from './data';
-import { cabinLabels, localDate, type Airport, type CabinClass, type Destination } from './model';
-import { validateTripSearch, type TripLeg, type TripSearch } from './trip-search';
-import { Brand, FlightButton, flightColors, Page, styles } from './ui';
+import type { Airport, Destination } from './model';
+import { SearchFlow } from './search-flow';
+import { flightColors } from './ui';
 
 const emptyAirports: Airport[] = [];
 const emptyDestinations: Destination[] = [];
-
-function todayOnDevice() {
-  return localDate(new Date(), Intl.DateTimeFormat().resolvedOptions().timeZone);
-}
 
 export function HomeScreen() {
   const { session } = useAuth();
@@ -25,213 +24,96 @@ export function HomeScreen() {
   const destinationsQuery = useQuery({ queryKey: ['featured-destinations'], queryFn: listDestinations });
   const airports = airportsQuery.data ?? emptyAirports;
   const destinations = destinationsQuery.data ?? emptyDestinations;
-  const loading = airportsQuery.isPending;
-  const error = airportsQuery.isError
-    ? 'Không thể tải sân bay. Hãy kiểm tra kết nối hoặc cấu hình Supabase.' : '';
-  const [tripType, setTripType] = useState<TripSearch['tripType']>('one_way');
-  const [legs, setLegs] = useState<TripLeg[]>([{ originId: '', destinationId: '', departureDate: todayOnDevice() }]);
-  const [adults, setAdults] = useState(1);
-  const [children, setChildren] = useState(0);
-  const [infants, setInfants] = useState(0);
-  const [cabinClass, setCabinClass] = useState<CabinClass>('economy');
-  const [showOptions, setShowOptions] = useState(false);
-  const [choosing, setChoosing] = useState<{ index: number; field: 'originId' | 'destinationId' } | null>(null);
-  const [query, setQuery] = useState('');
-  const [validationError, setValidationError] = useState('');
-
   const airportById = useMemo(() => new Map(airports.map(airport => [airport.id, airport])), [airports]);
-  const matches = airports.filter(airport => {
-    const text = `${airport.city} ${airport.name} ${airport.iata_code}`.toLocaleLowerCase('vi-VN');
-    return text.includes(query.trim().toLocaleLowerCase('vi-VN'));
-  }).slice(0, 8);
-  const updateLeg = (index: number, field: keyof TripLeg, value: string) => {
-    setLegs(previous => {
-      const next = previous.map(leg => ({ ...leg }));
-      next[index][field] = value;
-      if (tripType === 'round_trip' && index === 0 && field !== 'departureDate') {
-        next[1].originId = next[0].destinationId;
-        next[1].destinationId = next[0].originId;
-      }
-      return next;
-    });
-    setValidationError('');
-  };
-  const changeTripType = (value: TripSearch['tripType']) => {
-    const first = legs[0];
-    setTripType(value);
-    setLegs(value === 'one_way' ? [first] : [first, {
-      originId: first.destinationId, destinationId: value === 'round_trip' ? first.originId : '',
-      departureDate: first.departureDate,
-    }]);
-    setChoosing(null); setValidationError('');
-  };
-  const chooseAirport = (airport: Airport) => {
-    if (choosing) updateLeg(choosing.index, choosing.field, airport.id);
-    setChoosing(null); setQuery(''); setValidationError('');
-  };
-  const search = () => {
-    try {
-      const trip = validateTripSearch({ tripType, legs, adults, children, infants, cabinClass },
-        new Map(airports.map(airport => [airport.id, airport.timezone])));
-      setValidationError('');
-      if (trip.tripType === 'one_way') {
-        const leg = trip.legs[0];
-        router.push({ pathname: '/results', params: {
-          ...leg, adults: String(trip.adults), children: String(trip.children),
-          infants: String(trip.infants), cabinClass: trip.cabinClass,
-        } });
-      } else router.push({ pathname: '/itinerary-results', params: { search: JSON.stringify(trip) } });
-    } catch (cause) {
-      setValidationError(cause instanceof Error && 'issues' in cause
-        ? (cause as { issues: { message: string }[] }).issues[0]?.message ?? 'Kiểm tra lại thông tin tìm kiếm.'
-        : cause instanceof Error ? cause.message : 'Kiểm tra lại thông tin tìm kiếm.');
-    }
-  };
-  const airportLabel = (id: string) => {
-    const airport = airportById.get(id);
-    return airport ? `${airport.city} (${airport.iata_code})` : t('Chọn sân bay');
-  };
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [initialDestinationId, setInitialDestinationId] = useState('');
 
-  return <Page>
-    <View style={styles.row}>
-      <Brand />
-      <Pressable accessibilityRole="button" onPress={() => router.push('/account')}>
-        <Text style={styles.link}>{t(session ? 'Tài khoản' : 'Đăng nhập')}</Text>
-      </Pressable>
-    </View>
-    <LanguagePicker />
-    <CurrencyControls />
-    <View>
-      <Text accessibilityRole="header" style={styles.title}>{t('Bạn muốn bay tới đâu?')}</Text>
-      <Text style={styles.subtitle}>{t('Tìm chuyến bay và so sánh giá vé theo từng hạng.')}</Text>
-    </View>
+  if (searchOpen) return <SearchFlow airports={airports} loading={airportsQuery.isPending}
+    error={airportsQuery.isError} onRetry={() => void airportsQuery.refetch()}
+    onClose={() => setSearchOpen(false)} initialDestinationId={initialDestinationId} />;
 
-    <View style={styles.card}>
-      <Text style={styles.sectionTitle}>{t('Tìm chuyến bay')}</Text>
-      <View style={styles.chipRow}>{([
-        ['round_trip', 'Khứ hồi'], ['one_way', 'Một chiều'], ['multi_city', 'Nhiều chặng'],
-      ] as [TripSearch['tripType'], string][]).map(([value, label]) => <Pressable key={value}
-        accessibilityRole="button" accessibilityState={{ selected: tripType === value }}
-        onPress={() => changeTripType(value)} style={[styles.chip, tripType === value && styles.selectedChip]}>
-        <Text style={styles.chipText}>{t(label)}</Text>
-      </Pressable>)}</View>
-      {legs.map((leg, index) => <View key={index} style={{ gap: 10 }}>
-        {tripType !== 'one_way' && <Text style={styles.sectionTitle}>
-          {tripType === 'round_trip' ? t(index === 0 ? 'Chiều đi' : 'Chiều về') : t('Chặng {number}', { number: index + 1 })}
-        </Text>}
-        <Text style={styles.label}>{t('Sân bay đi')}</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel={t('Chọn sân bay đi chặng {number}', { number: index + 1 })}
-          disabled={tripType === 'round_trip' && index > 0} style={styles.picker}
-          onPress={() => { setChoosing({ index, field: 'originId' }); setQuery(''); }}>
-          <Text style={styles.pickerText}>{airportLabel(leg.originId)}</Text>
+  return <SafeAreaView style={home.safe}>
+    <ScrollView contentContainerStyle={home.scroll}>
+      <View style={home.header}>
+        <View style={home.heading}><AppBrand />
+          <Text style={home.headingSub}>{t('Hành trình tiếp theo bắt đầu từ đây.')}</Text></View>
+        <Pressable accessibilityRole="button" accessibilityLabel={t(session ? 'Tài khoản' : 'Đăng nhập')}
+          onPress={() => router.push('/account')} style={home.avatar}>
+          <Text style={home.avatarText}>{session?.user?.email?.charAt(0).toUpperCase() || 'A'}</Text>
         </Pressable>
-        {index === 0 && <Pressable accessibilityRole="button" style={styles.picker} onPress={() => {
-          setLegs(previous => {
-            const [first, ...rest] = previous;
-            const swapped = { ...first, originId: first.destinationId, destinationId: first.originId };
-            if (tripType === 'round_trip' && rest[0]) {
-              rest[0] = { ...rest[0], originId: swapped.destinationId, destinationId: swapped.originId };
-            }
-            return [swapped, ...rest];
-          });
-          setValidationError('');
-        }}><Text style={styles.link}>⇄ {t('Hoán đổi sân bay')}</Text></Pressable>}
-        <Text style={styles.label}>{t('Sân bay đến')}</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel={t('Chọn sân bay đến chặng {number}', { number: index + 1 })}
-          disabled={tripType === 'round_trip' && index === 1} style={styles.picker}
-          onPress={() => { setChoosing({ index, field: 'destinationId' }); setQuery(''); }}>
-          <Text style={styles.pickerText}>{airportLabel(leg.destinationId)}</Text>
-        </Pressable>
-        <Text style={styles.label}>{t(tripType === 'round_trip' && index === 1 ? 'Ngày về' : 'Ngày khởi hành')}</Text>
-        <TextInput value={leg.departureDate} onChangeText={value => updateLeg(index, 'departureDate', value)}
-          accessibilityLabel={t('Ngày khởi hành chặng {number}', { number: index + 1 })} placeholder="YYYY-MM-DD"
-          keyboardType="numbers-and-punctuation" placeholderTextColor={flightColors.muted} style={styles.input} />
-      </View>)}
-      {tripType === 'multi_city' && <View style={styles.chipRow}>
-        {legs.length < 12 && <Pressable accessibilityRole="button" style={styles.picker} onPress={() => {
-          const last = legs.at(-1)!;
-          setLegs(previous => [...previous, { originId: last.destinationId, destinationId: '', departureDate: last.departureDate }]);
-        }}><Text style={styles.link}>+ {t('Thêm chặng')}</Text></Pressable>}
-        {legs.length > 2 && <Pressable accessibilityRole="button" style={styles.picker}
-          onPress={() => setLegs(previous => previous.slice(0, -1))}><Text style={styles.link}>{t('Bớt chặng cuối')}</Text></Pressable>}
-      </View>}
-      {choosing && <View style={styles.card}>
-        <Text style={styles.label}>{t(choosing.field === 'originId' ? 'Tìm sân bay đi chặng {number}' : 'Tìm sân bay đến chặng {number}', { number: choosing.index + 1 })}</Text>
-        <TextInput value={query} onChangeText={setQuery} autoFocus autoCapitalize="none"
-          accessibilityLabel={t('Tìm theo thành phố, tên sân bay hoặc mã IATA')}
-          placeholder={t('Thành phố, sân bay hoặc mã IATA')} placeholderTextColor={flightColors.muted} style={styles.input} />
-        {matches.length === 0 && <Text style={styles.muted}>{t('Không tìm thấy sân bay phù hợp.')}</Text>}
-        {matches.map(airport => <Pressable key={airport.id} accessibilityRole="button"
-          onPress={() => chooseAirport(airport)} style={styles.picker}>
-          <Text style={styles.pickerText}>{airport.city} ({airport.iata_code})</Text>
-          <Text style={styles.muted}>{airport.name}</Text>
-        </Pressable>)}
-        <Pressable accessibilityRole="button" onPress={() => setChoosing(null)}><Text style={styles.link}>{t('Đóng')}</Text></Pressable>
-      </View>}
-      <Pressable accessibilityRole="button" accessibilityState={{ expanded: showOptions }} style={styles.picker}
-        onPress={() => setShowOptions(value => !value)}>
-        <Text style={styles.pickerText}>
-          {t('{count} hành khách', { count: adults + children + infants })} · {t(cabinLabels[cabinClass])} {showOptions ? '⌃' : '⌄'}
-        </Text>
+      </View>
+      <Pressable accessibilityRole="button" onPress={() => { setInitialDestinationId(''); setSearchOpen(true); }}
+        style={home.searchButton}>
+        <Text style={home.searchIcon}>⌕</Text><Text style={home.searchLabel}>{t('Tìm chuyến bay')}</Text>
       </Pressable>
-      {showOptions && <View style={{ gap: 12 }}>
-        <Text style={styles.label}>{t('Hành khách')}</Text>
-        <PassengerCount label={t('Người lớn')} value={adults} minimum={1} maximum={9} onChange={setAdults} />
-        <PassengerCount label={t('Trẻ em')} value={children} minimum={0} maximum={8} onChange={setChildren} />
-        <PassengerCount label={t('Em bé')} value={infants} minimum={0} maximum={9} onChange={setInfants} />
-        <Text style={styles.label}>{t('Hạng ghế')}</Text>
-        <View style={styles.chipRow}>{(Object.keys(cabinLabels) as CabinClass[]).map(value =>
-          <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected: cabinClass === value }}
-            onPress={() => setCabinClass(value)} style={[styles.chip, cabinClass === value && styles.selectedChip]}>
-            <Text style={styles.chipText}>{t(cabinLabels[value])}</Text>
-          </Pressable>)}</View>
-      </View>}
-      <Notice text={t(error)} />
-      {!!error && <FlightButton title={t('Thử tải sân bay')} secondary onPress={() => void airportsQuery.refetch()} />}
-      {!loading && !error && airports.length === 0 && <Text style={styles.muted}>{t('Chưa có sân bay để tìm chuyến.')}</Text>}
-      <Notice text={(() => {
-        const indexed = /^Chặng (\d+): (.+)$/.exec(validationError);
-        return indexed ? t(`Chặng {number}: ${indexed[2]}`, { number: indexed[1] }) : t(validationError);
-      })()} />
-      <FlightButton title={t('Tìm chuyến bay')} disabled={loading || !!error || airports.length === 0} onPress={search} />
-    </View>
+      <View style={home.controls}><LanguagePicker /><View style={home.currency}><CurrencyControls /></View></View>
 
-    <View style={styles.card}>
-      <Text style={styles.sectionTitle}>{t('Điểm đến gợi ý')}</Text>
-      {destinationsQuery.isPending && <ActivityIndicator color={flightColors.primary} accessibilityLabel={t('Đang tải điểm đến')} />}
+      <Text accessibilityRole="header" style={home.sectionTitle}>{t('Điểm đến dành cho bạn')}</Text>
+      {destinationsQuery.isPending && <ActivityIndicator color={flightColors.primary} />}
       <Notice text={destinationsQuery.isError ? t('Không thể tải điểm đến gợi ý.') : ''} />
-      {destinationsQuery.isError && <FlightButton title={t('Thử tải lại')} secondary
-        onPress={() => void destinationsQuery.refetch()} />}
-      {!destinationsQuery.isPending && !destinationsQuery.isError && destinations.length === 0
-        && <Text style={styles.muted}>{t('Chưa có điểm đến gợi ý.')}</Text>}
-      {destinations.map(destination => {
-        const airport = airportById.get(destination.airport_id);
-        return airport && <Pressable key={destination.id} accessibilityRole="button" style={styles.picker}
-          onPress={() => updateLeg(0, 'destinationId', airport.id)}>
-          <Text style={styles.pickerText}>{destination.title} · {airport.iata_code}</Text>
-          {!!destination.description && <Text style={styles.muted}>{destination.description}</Text>}
-        </Pressable>;
-      })}
-    </View>
-  </Page>;
+      {destinationsQuery.isError && <Pressable accessibilityRole="button" onPress={() => void destinationsQuery.refetch()}>
+        <Text style={home.link}>{t('Thử tải lại')}</Text></Pressable>}
+      {!destinationsQuery.isPending && !destinationsQuery.isError && destinations.length === 0 &&
+        <Text style={home.empty}>{t('Chưa có điểm đến gợi ý.')}</Text>}
+      <View style={home.destinations}>
+        {destinations.map(destination => {
+          const airport = airportById.get(destination.airport_id);
+          if (!airport) return null;
+          return <DestinationCard key={destination.id} destination={destination} airport={airport}
+            onPress={() => { setInitialDestinationId(airport.id); setSearchOpen(true); }} />;
+        })}
+      </View>
+      <Text style={home.sectionTitle}>{t('Khám phá hành trình')}</Text>
+      <Pressable accessibilityRole="button" onPress={() => { setInitialDestinationId(''); setSearchOpen(true); }}
+        style={home.exploreCard}>
+        <Text style={home.exploreSymbol}>↗</Text>
+        <View><Text style={home.exploreTitle}>{t('Chọn nơi bạn muốn đến')}</Text>
+          <Text style={home.exploreSub}>{t('Tìm chuyến phù hợp với kế hoạch của bạn')}</Text></View>
+      </Pressable>
+    </ScrollView>
+  </SafeAreaView>;
 }
 
-function PassengerCount({ label, value, minimum, maximum, onChange }: {
-  label: string; value: number; minimum: number; maximum: number; onChange: (value: number) => void;
+function DestinationCard({ destination, airport, onPress }: {
+  destination: Destination; airport: Airport; onPress: () => void;
 }) {
-  const { t } = useLanguage();
-  return <View style={styles.row}>
-    <Text style={styles.label}>{label}</Text>
-    <View style={[styles.row, { justifyContent: 'flex-end' }]}>
-      <Pressable accessibilityRole="button" accessibilityLabel={t('Giảm {label}', { label: label.toLowerCase() })}
-        disabled={value <= minimum} onPress={() => onChange(value - 1)} style={styles.chip}>
-        <Text style={styles.chipText}>−</Text>
-      </Pressable>
-      <Text style={styles.pickerText}>{value}</Text>
-      <Pressable accessibilityRole="button" accessibilityLabel={t('Tăng {label}', { label: label.toLowerCase() })}
-        disabled={value >= maximum} onPress={() => onChange(value + 1)} style={styles.chip}>
-        <Text style={styles.chipText}>+</Text>
-      </Pressable>
+  const imageUri = destination.image_path && /^https:\/\//i.test(destination.image_path)
+    ? destination.image_path : null;
+  return <Pressable accessibilityRole="button" onPress={onPress} style={home.destinationCard}>
+    <View style={home.destinationArt}>
+      {imageUri && <Image source={{ uri: imageUri }} contentFit="cover" style={StyleSheet.absoluteFill}
+        accessible={false} alt="" />}
+      {!imageUri && <Text style={home.destinationCode}>{airport.iata_code}</Text>}
     </View>
-  </View>;
+    <Text numberOfLines={2} style={home.destinationTitle}>{destination.title}</Text>
+    <Text style={home.destinationCity}>{airport.city}</Text>
+  </Pressable>;
 }
+
+const home = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
+  scroll: { paddingHorizontal: 20, paddingTop: 28, paddingBottom: 56, gap: 22 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  heading: { flex: 1 },
+  headingSub: { color: '#8B95A5', fontSize: 12, marginTop: 4 },
+  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#4169E1', alignItems: 'center', justifyContent: 'center' },
+  avatarText: { color: '#FFFFFF', fontSize: 20 },
+  searchButton: { minHeight: 52, borderRadius: 8, backgroundColor: '#F2F3F5', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, gap: 12 },
+  searchIcon: { color: '#8B95A5', fontSize: 25 },
+  searchLabel: { color: '#8B95A5', fontSize: 17 },
+  controls: { width: '100%', gap: 8 },
+  currency: { width: '100%' },
+  sectionTitle: { color: '#353B46', fontSize: 20, fontWeight: '700', marginTop: 10 },
+  destinations: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
+  destinationCard: { width: '47%', minWidth: 145, gap: 5 },
+  destinationArt: { height: 145, borderRadius: 10, backgroundColor: '#D4F0F5', justifyContent: 'flex-end', padding: 15 },
+  destinationCode: { color: '#007E91', fontSize: 30, fontWeight: '800' },
+  destinationTitle: { color: '#353B46', fontSize: 14, fontWeight: '700' },
+  destinationCity: { color: '#8B95A5', fontSize: 13 },
+  exploreCard: { minHeight: 180, borderRadius: 10, padding: 24, backgroundColor: '#BCE9F3', justifyContent: 'flex-end', gap: 8 },
+  exploreSymbol: { color: '#007E91', fontSize: 48 },
+  exploreTitle: { color: '#253540', fontSize: 18, fontWeight: '700' },
+  exploreSub: { color: '#536570', fontSize: 13 },
+  link: { color: '#007E91', fontSize: 15, fontWeight: '700' },
+  empty: { color: '#536570', fontSize: 14 },
+});
