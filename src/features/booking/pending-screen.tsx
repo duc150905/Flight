@@ -1,5 +1,4 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, StyleSheet, View } from 'react-native';
@@ -10,10 +9,14 @@ import { ActionButton, AuthShell } from '../auth/ui';
 import { MoneyText } from '../currency/ui';
 import { useLanguage } from '../i18n/provider';
 import { formatDateTime, bookingStatusLabel } from '../tickets/presentation';
-import { loadPendingBooking, holdSecondsRemaining, type PendingBooking } from './pending-booking';
+import { loadPendingBooking, holdSecondsRemaining,demoTicketReady,withLatestReceipt, type PendingBooking } from './pending-booking';
 import { CheckoutButton, CheckoutCard, CheckoutError, CheckoutShell, CheckoutText, useCheckoutColors } from './ui';
+import {useMockCheckout,type MockCheckout} from './use-mock-checkout';
+import {MockPaymentPanel} from './mock-payment-panel';
+import {PaymentSuccessView} from './payment-success';
+import {BookingManagementPanel} from './booking-management-panel';
 
-export function PendingBookingScreen() {
+export function PendingBookingScreen({receipt=false}:{receipt?:boolean}={}) {
   const { id } = useLocalSearchParams<{ id: string }>(); const { session, status } = useAuth(); const { t } = useLanguage();
   const validId = databaseIdSchema().safeParse(id).success;
   const enabled = !!session && status === 'ready' && validId;
@@ -26,6 +29,8 @@ export function PendingBookingScreen() {
       return { booking, receivedAt };
     } });
   const refetch = query.refetch; const expiredCheck = useRef<number | null>(null);
+  const mock=useMockCheckout(id,enabled,()=>{void refetch();});
+  const syncMock=mock.sync;
   useFocusEffect(useCallback(() => { if (enabled) void refetch(); }, [enabled, refetch]));
   useEffect(() => {
     if (!enabled) return;
@@ -37,47 +42,49 @@ export function PendingBookingScreen() {
   const seconds = data ? holdSecondsRemaining(data.booking, clockNow - data.receivedAt) : 0;
   useEffect(() => {
     if (data && data.booking.status === 'pending_payment' && seconds === 0 && !query.isFetching && expiredCheck.current !== data.receivedAt) {
-      expiredCheck.current = data.receivedAt; void refetch();
+      expiredCheck.current = data.receivedAt; void refetch();void syncMock();
     }
-  }, [seconds, data, query.isFetching, refetch]);
+  }, [seconds, data, query.isFetching, refetch,syncMock]);
   if (status === 'loading') return <AuthShell><ActivityIndicator accessibilityLabel={t('Restoring session')} /></AuthShell>;
   if (!session || status !== 'ready') return <AuthShell><CheckoutText message="Sign in to resume your booking." /><ActionButton title={t('Sign in')} onPress={() => router.replace('/account')} /></AuthShell>;
   if (!validId) return <AuthShell><CheckoutError message="booking.notFound" /><ActionButton title={t('My bookings')} onPress={() => router.replace('/tickets')} /></AuthShell>;
   if (!data) return <CheckoutShell title="Payment" step={4} back={() => router.replace('/tickets')}>
     {query.isFetching ? <ActivityIndicator accessibilityLabel={t('Loading')} /> : <><CheckoutError message={query.error?.message ?? 'booking.loadError'} /><CheckoutButton title="Retry" onPress={() => { void refetch(); }} /></>}
   </CheckoutShell>;
-  return <PendingBookingView booking={data.booking} seconds={seconds} refreshing={query.isFetching} error={query.error?.message} refresh={() => { void refetch(); }} />;
+  const booking=withLatestReceipt(data.booking,mock.state?.booking);
+  if(booking.status==='confirmed'&&!demoTicketReady(booking))return <CheckoutShell title="mock.demoTicket" back={()=>router.replace('/tickets')}><CheckoutText message="mock.refreshTicket"/><CheckoutButton title="Refresh booking" onPress={()=>{void refetch();}}/></CheckoutShell>;
+  if(receipt&&booking.status!=='confirmed')return <CheckoutShell title="mock.demoTicket" back={()=>router.replace('/tickets')}><CheckoutError message="mock.state"/><CheckoutButton title="mock.details" onPress={()=>router.replace({pathname:'/pending/[id]',params:{id:booking.id}})}/></CheckoutShell>;
+  if(booking.status==='confirmed'&&!receipt)return <PaymentSuccessView booking={booking}/>;
+  return <PendingBookingView booking={booking} mock={mock} receipt={receipt} seconds={seconds} refreshing={query.isFetching} error={query.error?.message} refresh={() => { void refetch();mock.refresh(); }} />;
 }
 
 /** Pure PDF-based presentation, also used for visual QA with synthetic data. */
-export function PendingBookingView({ booking, seconds, refreshing = false, error, refresh }: {
-  booking: PendingBooking; seconds: number; refreshing?: boolean; error?: string; refresh(): void;
+export function PendingBookingView({ booking, seconds, refreshing = false, error, refresh,mock,receipt=false }: {
+  booking: PendingBooking; seconds: number; refreshing?: boolean; error?: string; refresh(): void;mock?:MockCheckout;receipt?:boolean;
 }) {
   const { t, language } = useLanguage(); const c = useCheckoutColors();
   const active = booking.status === 'pending_payment' && seconds > 0;
   const clock = `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
-  return <CheckoutShell title="Payment" step={4} back={() => router.replace('/tickets')}
-    savedTotal={{ amount: booking.total, count: booking.passengers.length }}
-    footer={{ title: active ? 'Payment coming soon' : 'View booking details', disabled: active,
-      onPress: () => router.replace({ pathname: '/tickets/[id]', params: { id: booking.id } }) }}>
+  return <CheckoutShell title={receipt?'mock.demoTicket':'Payment'} step={4} back={() => router.replace('/tickets')}
+    savedTotal={{ amount: booking.total, count: booking.passengers.length,caption:'mock.noMoney' }}
+    footer={{ title: active ? mock?.busy?'mock.processing':'mock.pay' : 'View booking details', disabled: active&&(!mock?.state||mock.busy||!!mock.error||mock.state.booking.status!=='pending_payment'),
+      onPress: () => active?void mock?.pay():router.replace({ pathname: '/tickets/[id]', params: { id: booking.id } }) }}>
     <View style={[styles.notice, { backgroundColor: c.tint }]}>
+      {receipt&&<CheckoutText muted message="mock.notBoardingPass"/>}
       <CheckoutText title>{t(bookingStatusLabel(booking.status))}</CheckoutText>
       <CheckoutText>{t('Booking reference')}: {booking.bookingCode}</CheckoutText>
       {active ? <>
         <CheckoutText title>{t('Time remaining')}: {clock}</CheckoutText>
-        <CheckoutText muted message="Your seats are temporarily held. This version does not support payment yet; the hold will expire automatically." />
+        <CheckoutText muted message="mock.hold" />
       </> : <CheckoutText muted message={booking.status === 'pending_payment' ? 'Checking hold status. Refresh to confirm availability.' : booking.status === 'expired' ? 'Your hold expired. Search again to get current fares and seats.' : 'Open booking details to view the latest status.'} />}
       {refreshing && <ActivityIndicator accessibilityLabel={t('Refreshing booking')} />}
       <CheckoutError message={error} />
       <CheckoutButton title="Refresh booking" secondary disabled={refreshing} onPress={refresh} />
     </View>
-    <CheckoutCard>
+    {!receipt&&<CheckoutCard>
       <CheckoutText title message="Payment method" />
-      <View style={[styles.method, { borderColor: c.border }]}>
-        <SymbolView name={{ ios: 'creditcard', android: 'credit_card', web: 'credit_card' }} size={30} tintColor={c.muted} />
-        <View style={{ flex: 1, gap: 8 }}><CheckoutText message="Payment is not available yet" /><CheckoutText muted message="Your booking is saved. Card payments will be added in a later task." /></View>
-      </View>
-    </CheckoutCard>
+      {mock?<MockPaymentPanel mock={mock}/>:<CheckoutText muted message="mock.noMoney"/>}
+    </CheckoutCard>}
     <CheckoutCard><CheckoutText title message="Your flights" />
       {booking.segments.map(segment => <View key={segment.id} style={styles.group}>
         <CheckoutText title>{segment.snapshot.departure_iata} → {segment.snapshot.arrival_iata}</CheckoutText>
@@ -114,6 +121,7 @@ export function PendingBookingView({ booking, seconds, refreshing = false, error
       </View>)}
     </CheckoutCard>
     {!active && booking.status === 'expired' && <CheckoutButton title="Search flights again" onPress={() => router.replace('/')} />}
+    {mock&&<BookingManagementPanel mock={mock}/>}
   </CheckoutShell>;
 }
 const styles = StyleSheet.create({

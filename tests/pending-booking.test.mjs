@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { holdSecondsRemaining, parsePendingBooking } from '../src/features/booking/pending-booking.ts';
+import { holdSecondsRemaining, parsePendingBooking,demoTicketReady,withLatestReceipt } from '../src/features/booking/pending-booking.ts';
 import { pendingBookingFixture } from './fixtures/pending-booking.mjs';
 import { translate } from '../src/features/i18n/translate.ts';
 import { bookingVietnamese } from '../src/features/i18n/booking-messages.ts';
@@ -24,4 +24,16 @@ test('all pending checkout labels/errors have Vietnamese and English translation
 test('saved baggage weights may be fractional, matching existing catalogue allowances',()=>{
  const data=structuredClone(pendingBookingFixture);data.passengerSegments[0].allowance.cabin_kg=7.5;
  assert.equal(parsePendingBooking(data).passengerSegments[0].allowance.cabin_kg,7.5);
+});
+test('demo ticket requires confirmed order and every required seat confirmed',()=>{
+ const data=structuredClone(pendingBookingFixture);assert.equal(demoTicketReady(data),false);
+ data.status='confirmed';assert.equal(demoTicketReady(data),false);
+ data.seats[0].status='confirmed';assert.equal(demoTicketReady(data),true);
+ data.seats=[];assert.equal(demoTicketReady(data),false);
+});
+test('an older mock cache cannot turn a freshly expired booking back into pending',()=>{
+ const expired={...pendingBookingFixture,status:'expired',serverNow:'2026-11-03T10:16:00Z'};
+ assert.equal(withLatestReceipt(expired,pendingBookingFixture).status,'expired');
+ const confirmed={...pendingBookingFixture,status:'confirmed',serverNow:'2026-11-03T10:17:00Z'};
+ assert.equal(withLatestReceipt(expired,confirmed).status,'confirmed');
 });

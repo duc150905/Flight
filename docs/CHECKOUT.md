@@ -1,5 +1,7 @@
 # Checkout information (TV2)
 
+Latest 2026-11-03: `MOCK-PAYMENTS.md` documents internal payment simulation, confirmed demo receipts, fare-policy cancellation/refunds and scheduled expiry. Payment is deliberately mock, not an external gateway. See the Android acceptance checklist for unverified physical-device work.
+
 Update 2026-11-03: quote now leads to authenticated atomic `create_booking`,
 15-minute seat holds/free auto assignment, then `/pending/[id]`. Saved orders
 resume through Tickets. Read `BOOKING-CREATION.md` for contracts, ownership,
