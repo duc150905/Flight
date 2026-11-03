@@ -47,8 +47,8 @@ begin
  b:=private.lock_mock_booking(p_booking_id);
  if b.status<>'pending_payment' then return private.mock_booking_state(b.id); end if;
  if exists(select 1 from public.payments where booking_id=b.id and (idempotency_key=p_request_id or status in ('pending','succeeded'))) then return private.mock_booking_state(b.id); end if;
- insert into public.payments(booking_id,idempotency_key,request_hash,booking_version,amount,provider_reference)
- values(b.id,p_request_id,encode(sha256(convert_to(b.id::text||':mock_card','UTF8')),'hex'),b.version,b.total_amount,'mock_'||gen_random_uuid()::text) returning id into pid;
+ insert into public.payments(booking_id,idempotency_key,request_hash,booking_version,amount,provider_reference,created_at)
+ values(b.id,p_request_id,encode(sha256(convert_to(b.id::text||':mock_card','UTF8')),'hex'),b.version,b.total_amount,'mock_'||gen_random_uuid()::text,clock_timestamp()) returning id into pid;
  insert into public.booking_events(booking_id,actor_user_id,event_type,safe_message,metadata)
  values(b.id,auth.uid(),'payment_started','Mock payment started.',jsonb_build_object('payment_id',pid));
  return private.mock_booking_state(b.id);

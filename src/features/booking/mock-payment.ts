@@ -13,6 +13,8 @@ export function parseMockState(raw:unknown){
  return {booking,...data};
 }
 export type MockState=ReturnType<typeof parseMockState>;
+export const mockOutcomes=['succeeded','failed','pending','cancelled'] as const;
+export type MockOutcome=typeof mockOutcomes[number];
 type Client=Pick<SupabaseClient<Database>,'rpc'>;
 const safe=new Set(['mock.invalid','mock.state','mock.conflict','mock.ineligible','mock.priceChanged','booking.authRequired','booking.notFound']);
 export function mockError(error:unknown){const message=error instanceof Error?error.message:(error as {message?:string})?.message;return message&&safe.has(message)?message:'mock.network';}
@@ -23,4 +25,8 @@ export async function loadMockPaymentState(client:Client,bookingId:string){
 export async function startMockPayment(client:Client,bookingId:string,requestId:string){
  const {data,error}=await client.rpc('start_mock_payment',{p_booking_id:id.parse(bookingId),p_request_id:id.parse(requestId)});
  if(error)throw Error(mockError(error));const parsed=parseMockState(data);if(parsed.booking.id!==bookingId)throw Error('mock.invalid');return parsed;
+}
+export async function resolveMockPayment(client:Client,paymentId:string,requestId:string,outcome:MockOutcome){
+ const {data,error}=await client.rpc('resolve_mock_payment',{p_payment_id:id.parse(paymentId),p_request_id:id.parse(requestId),p_outcome:z.enum(mockOutcomes).parse(outcome)});
+ if(error)throw Error(mockError(error));return parseMockState(data);
 }
