@@ -126,6 +126,7 @@ Files: supabase/config.toml; docs/VNPAY-SANDBOX.md; Android acceptance checklist
 - [ ] Verify merchant test card/QR and refund capability from actual sandbox responses; document any provider restriction rather than replacing missing functionality with mock success.
 - [ ] Full tests + lint/typecheck + exports/advisors; real sandbox success/failure/cancel, unknown/duplicate/late results, full/net refund and both languages. Build APK matching final commit, then physical Android acceptance. Never mark physical checks passed from an export alone.
 - [ ] Final review, document evidence and limitations, commit `test: verify VNPAY payment and refund lifecycle`. Push/merge according to the user's integration instruction at execution time.
+- [ ] User addition: send confirmation email to saved booking contact email only after booking confirmed. Add durable outbox unique per booking/event, provider email idempotency key, bounded retries, HTML escaping, server-only Resend API key, verified flyora.site sender, and no mail failure rollback of booking/payment. Apply to mock confirmations too. Never email a late-paid expired/unconfirmed booking as confirmed. Include booking code, itinerary, travellers, seat/baggage and saved total; no real airline ticket claim. If retry exceeds provider idempotency retention, leave unknown result for review instead of risking duplicates. Verify actual delivery separately from unit tests.
 
 ## Current handoff
 
