@@ -4,6 +4,8 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Notice } from '@/features/auth/ui';
 import { useLanguage } from '@/features/i18n/provider';
+import { PendingBookingCard } from '@/features/booking/pending-booking-card';
+import { RecentSearchCard } from './recent-search-card';
 import { monthAfter, monthGrid } from './search-calendar';
 import { cabinLabels, localDate, type Airport, type CabinClass } from './model';
 import { validateTripSearch, type TripLeg, type TripSearch } from './trip-search';
@@ -133,6 +135,8 @@ export function SearchFlow({ airports, loading, error, onRetry, onClose, initial
       <Text style={[s.tabText, tripType === value && s.activeTabText]}>{t(label)}</Text>
     </Pressable>)}</View>
     <ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
+      <PendingBookingCard />
+      <RecentSearchCard />
       {legs.map((leg, index) => <View key={index} style={s.leg}>
         {tripType !== 'one_way' && <Text style={s.legTitle}>{tripType === 'multi_city'
           ? t('Chặng {number}', { number: index + 1 }) : t(index === 0 ? 'Chiều đi' : 'Chiều về')}</Text>}

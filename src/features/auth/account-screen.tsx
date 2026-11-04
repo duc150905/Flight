@@ -2,9 +2,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { ActivityIndicator, Text } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLanguage } from '@/features/i18n/provider';
+import { PendingBookingCard } from '@/features/booking/pending-booking-card';
 
 import { supabase } from '@/lib/supabase';
 import { createProfileService, profileErrorMessage, profileSchema, type Profile, type ProfileInput } from '@/features/profile/model';
@@ -33,6 +34,7 @@ export function AccountScreen() {
   const [message, setMessage] = useState('');
   const [reload, setReload] = useState(0);
   const [profileState, setProfileState] = useState<ProfileState>({ ownerId: '', status: 'loading', profile: null, error: '' });
+
   useEffect(() => {
     let active = true;
     if (!profileService || !userId) return;
@@ -73,6 +75,7 @@ export function AccountScreen() {
       </Text>
       <Text accessibilityRole="header" style={styles.title}>{t('Xin chào, {name}', { name: fullName || t('bạn') })}</Text>
       <Text style={styles.description}>{t('Cập nhật thông tin liên hệ để nhận tin về các đơn vé sau này.')}</Text>
+      <PendingBookingCard />
       <Text style={styles.label}>{t('Vai trò')}</Text>
       <Text style={styles.description}>{t(adminLoading ? 'Đang kiểm tra…' : (isAdmin ? 'Quản trị viên (Admin)' : 'Khách hàng'))}</Text>
       <Text style={styles.label}>Email</Text>
@@ -94,10 +97,14 @@ export function AccountScreen() {
       <ActionButton title="Vé của tôi" secondary disabled={busy} onPress={() => router.push('/tickets')} />
       <ActionButton title="Đổi mật khẩu" secondary disabled={busy} onPress={() => { setMessage(''); setMode('password'); }} />
       <ActionButton title="Đăng xuất" busy={busy} secondary onPress={() => void logout()} />
-      <ActionButton title="Về trang chủ" secondary disabled={busy} onPress={() => {
-        if (router.canGoBack()) router.back();
-        else router.replace('/');
-      }} />
+      {router.canGoBack() && (
+        <ActionButton
+          title={t('Quay lại trang trước')}
+          disabled={busy}
+          onPress={() => router.back()}
+        />
+      )}
+      <ActionButton title="Về trang chủ" secondary disabled={busy} onPress={() => router.replace('/')} />
     </>}
   </AuthShell>;
 }

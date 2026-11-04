@@ -1,7 +1,7 @@
 import { router, usePathname } from 'expo-router';
 import { useStore } from 'zustand';
 import { SymbolView } from 'expo-symbols';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '@/features/i18n/provider';
 import { searchStore } from '@/features/discovery/search-state';
@@ -35,25 +35,58 @@ export function BottomTabBar() {
   const isProfileActive = pathname === '/account' || pathname.startsWith('/account');
   const isHomeActive = !isProfileActive && (pathname === '/' || pathname === '') && !searchOpen;
   const isExploreActive = !isProfileActive && (searchOpen || pathname.includes('search'));
+  const isFlightSelectionActive = pathname === '/results' || pathname === '/itinerary-results' || pathname === '/detail';
 
-  const handlePressHome = () => {
-    closeSearch();
-    if (pathname !== '/' && pathname !== '') {
-      router.replace('/');
+  const confirmIfInSearch = (onConfirm: () => void) => {
+    if (isFlightSelectionActive) {
+      const title = t('Rời khỏi kết quả tìm kiếm?');
+      const message = t('Bạn đang xem danh sách chuyến bay. Bạn có thể quay lại xem tiếp từ Trang chủ hoặc Khám phá bất cứ lúc nào.');
+      if (typeof Platform !== 'undefined' && Platform?.OS === 'web') {
+        if (typeof window !== 'undefined' && window.confirm?.(`${title}\n${message}`)) {
+          onConfirm();
+        }
+      } else if (typeof Alert !== 'undefined' && Alert?.alert) {
+        Alert.alert(
+          title,
+          message,
+          [
+            { text: t('Ở lại'), style: 'cancel' },
+            { text: t('Rời đi'), style: 'default', onPress: onConfirm },
+          ],
+          { cancelable: true }
+        );
+      } else {
+        onConfirm();
+      }
+    } else {
+      onConfirm();
     }
   };
 
+  const handlePressHome = () => {
+    confirmIfInSearch(() => {
+      closeSearch();
+      if (pathname !== '/' && pathname !== '') {
+        router.replace('/');
+      }
+    });
+  };
+
   const handlePressExplore = () => {
-    openSearch();
-    if (pathname !== '/' && pathname !== '') {
-      router.replace({ pathname: '/', params: { search: '1' } });
-    }
+    confirmIfInSearch(() => {
+      openSearch();
+      if (pathname !== '/' && pathname !== '') {
+        router.replace({ pathname: '/', params: { search: '1' } });
+      }
+    });
   };
 
   const handlePressProfile = () => {
     if (!isProfileActive) {
-      closeSearch();
-      router.push('/account');
+      confirmIfInSearch(() => {
+        closeSearch();
+        router.push('/account');
+      });
     }
   };
 
