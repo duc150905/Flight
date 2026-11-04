@@ -11,3 +11,4 @@ Plan: 2026-11-04-vnpay-sandbox.md. Baseline main 7c67814, 214 tests passed. In-p
 - Task 5: return-ID/checkout-host RED missing module -> GREEN; APK uses owner-bound token and persisted request ID, signed return only redirects. Generic payment state selects legacy mock bookings; new bookings use VNPAY. Device acceptance pending.
 - Task 6: QueryDR RED missing module -> GREEN classifier and 4 SQL rollback suites. Backoff persisted before HTTP, no DB lock across gateway network call. Unknown/refund/acceptance codes never confirm or fail a booking.
 - Task 7: cancellation SQL RED no intent -> GREEN 5 rollback suites; confirmed VNPAY cancellation captures net refund once, keeps existing fare/cutoff and whole-booking semantics.
+- Task 8: refund classifier RED missing module -> GREEN; service refund claim RED missing RPC -> GREEN 6 rollback suites. Outbox is submitted before network call, unknown results cannot resubmit, terminal refund cannot reverse.
