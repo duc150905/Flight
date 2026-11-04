@@ -20,7 +20,7 @@ export function useVnpayCheckout(bookingId:string,enabled:boolean,changed:()=>vo
   const raw=data as {provider?:string;settlement?:string;refundState?:string};return {...parseMockState(data),provider:raw.provider??null,settlement:raw.settlement??null,refundState:raw.refundState??null};
  }});
  const refetch=query.refetch;
- useFocusEffect(useCallback(()=>{focused.current=true;if(enabled)void refetch();return()=>{focused.current=false;guard.cancel();};},[enabled,ownerId,refetch,guard]));
+ useFocusEffect(useCallback(()=>{focused.current=true;if(enabled&&ownerId)void refetch();return()=>{focused.current=false;guard.cancel();};},[enabled,ownerId,refetch,guard]));
  useEffect(()=>{if(!enabled)return;const sub=AppState.addEventListener('change',s=>{if(s==='active')void refetch();});return()=>sub.remove();},[enabled,refetch]);
  async function run(action:(c:ReturnType<typeof client>,current:()=>boolean)=>Promise<void>){
   if(lock.current||!enabled||!session)return;lock.current=true;setBusy(true);setError('');const ticket=guard.begin(),current=()=>focused.current&&guard.isCurrent(ticket);
