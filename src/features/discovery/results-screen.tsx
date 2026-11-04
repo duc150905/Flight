@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Notice } from '@/features/auth/ui';
 import { CurrencyRateNote, MoneyText } from '@/features/currency/ui';
@@ -10,15 +10,11 @@ import { localeFor } from '@/features/i18n/translate';
 import { searchOneWay } from './data';
 import { cabinLabels, searchSchema, type FlightOffer, type SearchCriteria } from './model';
 import { saveLastSearch } from './last-search-storage';
+import { formatFlightTime } from './time-format';
 import { FlightButton, flightColors, Page, styles } from './ui';
 
 type Sort = 'price' | 'departure' | 'duration';
 const emptyOffers: FlightOffer[] = [];
-
-function timeAt(iso: string, timezone: string, locale: string) {
-  return new Intl.DateTimeFormat(locale, { timeZone: timezone, hour: '2-digit', minute: '2-digit' })
-    .format(new Date(iso));
-}
 
 function durationMinutes(offer: FlightOffer) {
   return Math.round((Date.parse(offer.flight.arrival_at) - Date.parse(offer.flight.departure_at)) / 60_000);
@@ -26,16 +22,21 @@ function durationMinutes(offer: FlightOffer) {
 
 export function ResultsScreen({ input }: { input: Record<string, string | string[] | undefined> }) {
   const { t } = useLanguage();
-  const searchKey = [input.originId, input.destinationId, input.departureDate, input.adults,
-    input.children, input.infants, input.cabinClass].join('|');
-  const parsed = searchSchema.safeParse(input);
-  const criteria = parsed.success ? parsed.data : null;
+  const { originId, destinationId, departureDate, adults, children, infants, cabinClass } = input;
+  const searchKey = [originId, destinationId, departureDate, adults,
+    children, infants, cabinClass].join('|');
+  const criteria = useMemo(() => {
+    const parsed = searchSchema.safeParse({
+      originId, destinationId, departureDate, adults, children, infants, cabinClass,
+    });
+    return parsed.success ? parsed.data : null;
+  }, [originId, destinationId, departureDate, adults, children, infants, cabinClass]);
 
   useEffect(() => {
     if (criteria) {
       void saveLastSearch({
         type: 'one_way',
-        params: input,
+        params: criteria,
       });
     }
   }, [criteria]);
@@ -64,7 +65,15 @@ export function ResultsScreen({ input }: { input: Record<string, string | string
   const origin = offers[0]?.origin.iata_code ?? t('Sân bay đi');
   const destination = offers[0]?.destination.iata_code ?? t('Sân bay đến');
   return <SafeAreaView style={r.safe}>
-    <ScrollView contentContainerStyle={r.scroll}>
+    <FlatList
+      data={!loading && !error ? visible : emptyOffers}
+      keyExtractor={offer => offer.fare.id}
+      renderItem={({ item }) => <FlightCard offer={item} criteria={criteria} />}
+      initialNumToRender={6}
+      maxToRenderPerBatch={8}
+      windowSize={5}
+      contentContainerStyle={r.scroll}
+      ListHeaderComponent={<View style={r.section}>
       <Pressable accessibilityRole="button" accessibilityLabel={t('Sửa tìm kiếm')}
         onPress={() => router.back()} style={r.routeHeader}>
         <Text style={r.backArrow}>←</Text>
@@ -89,14 +98,17 @@ export function ResultsScreen({ input }: { input: Record<string, string | string
         <Text style={r.emptyTitle}>{t('Chưa có chuyến bay phù hợp')}</Text>
         <Text style={r.helper}>{t('Hãy thử ngày khác, hạng ghế khác hoặc tuyến khác.')}</Text>
       </View>}
-      {!loading && !error && offers.length > 0 && <>
-        <Text style={r.resultCount}>{t('{count} lựa chọn', { count: visible.length })}</Text>
-        {visible.map(offer => <FlightCard key={offer.fare.id} offer={offer} criteria={criteria} />)}
-        {visible.length === 0 && <Text style={r.helper}>{t('Chưa có chuyến bay phù hợp')}</Text>}
-        <Text style={r.helper}>{t('Giá hiển thị là ước tính cho nhóm hành khách. Giá cuối cùng được kiểm tra lại khi đặt vé.')}</Text>
-      </>}
-      <CurrencyRateNote />
-    </ScrollView>
+      {!loading && !error && offers.length > 0 &&
+        <Text style={r.resultCount}>{t('{count} lựa chọn', { count: visible.length })}</Text>}
+      </View>}
+      ListFooterComponent={<View style={r.section}>
+        {!loading && !error && offers.length > 0 && visible.length === 0 &&
+          <Text style={r.helper}>{t('Chưa có chuyến bay phù hợp')}</Text>}
+        {!loading && !error && offers.length > 0 &&
+          <Text style={r.helper}>{t('Giá hiển thị là ước tính cho nhóm hành khách. Giá cuối cùng được kiểm tra lại khi đặt vé.')}</Text>}
+        <CurrencyRateNote />
+      </View>}
+    />
     <Modal visible={filtersOpen} animationType="slide" onRequestClose={() => setFiltersOpen(false)}>
       <SafeAreaView style={r.safe}>
         <View style={r.modalHeader}>
@@ -133,7 +145,7 @@ export function ResultsScreen({ input }: { input: Record<string, string | string
   </SafeAreaView>;
 }
 
-function FlightCard({ offer, criteria }: { offer: FlightOffer; criteria: SearchCriteria }) {
+const FlightCard = memo(function FlightCard({ offer, criteria }: { offer: FlightOffer; criteria: SearchCriteria }) {
   const { t, language } = useLanguage();
   const minutes = durationMinutes(offer);
   return <Pressable accessibilityRole="button" style={r.flightCard} onPress={() => router.push({
@@ -151,10 +163,10 @@ function FlightCard({ offer, criteria }: { offer: FlightOffer; criteria: SearchC
       <Text style={r.duration}>{t('{hours}g {minutes}p', { hours: Math.floor(minutes / 60), minutes: minutes % 60 })}</Text>
     </View>
     <View style={r.flightTimes}>
-      <View><Text style={r.time}>{timeAt(offer.flight.departure_at, offer.origin.timezone, localeFor(language))}</Text>
+      <View><Text style={r.time}>{formatFlightTime(offer.flight.departure_at, offer.origin.timezone, localeFor(language))}</Text>
         <Text style={r.airportCode}>{offer.origin.iata_code}</Text></View>
       <View style={r.routeLine}><View style={r.line} /><Text style={r.direct}>{t('Bay thẳng')}</Text></View>
-      <View style={r.timeEnd}><Text style={r.time}>{timeAt(offer.flight.arrival_at, offer.destination.timezone, localeFor(language))}</Text>
+      <View style={r.timeEnd}><Text style={r.time}>{formatFlightTime(offer.flight.arrival_at, offer.destination.timezone, localeFor(language))}</Text>
         <Text style={r.airportCode}>{offer.destination.iata_code}</Text></View>
     </View>
     <View style={r.cardBottom}>
@@ -165,11 +177,12 @@ function FlightCard({ offer, criteria }: { offer: FlightOffer; criteria: SearchC
       <MoneyText amount={offer.total} currency={offer.fare.currency} style={r.price} />
     </View>
   </Pressable>;
-}
+});
 
 const r = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },
   scroll: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 46, gap: 18 },
+  section: { gap: 18 },
   routeHeader: { minHeight: 76, borderRadius: 9, backgroundColor: '#F2F3F5', paddingHorizontal: 16,
     flexDirection: 'row', alignItems: 'center', gap: 18 },
   backArrow: { color: '#536570', fontSize: 24 },
