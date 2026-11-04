@@ -3,7 +3,7 @@ begin;
 do $$
 declare airline uuid; flights integer; fares integer; seats integer; offers integer;
 begin
-  select id into airline from public.airlines where iata_code='F0' and name='Flight Checkout Demo';
+  select id into airline from public.airlines where iata_code='F0' and name='Flyora Airways';
   select count(*) into flights from public.flight_instances where airline_id=airline
     and flight_number in ('F0101','F0102','F0103')
     and (departure_at at time zone 'Asia/Ho_Chi_Minh')::date in

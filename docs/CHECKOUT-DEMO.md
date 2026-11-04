@@ -1,11 +1,13 @@
 # Dữ liệu demo checkout dùng chung TV1–TV2–TV3
 
+**Cập nhật 04/11/2026:** tên hiển thị đã chuẩn hóa thành Flyora Airways, Flyora Regional 24, Phổ thông Tiết kiệm/Linh hoạt. ID và giá cũ giữ nguyên. Đã có bộ danh mục mở rộng 1.440 chuyến mới; xem [CATALOGUE-DATA.md](CATALOGUE-DATA.md). Các ghi chú bên dưới về màn hình/chức năng chưa làm là snapshot cũ; trạng thái hiện tại đọc CHECKOUT.md và VNPAY-SANDBOX.md.
+
 Đã nạp vào **flight-dev** (`qisvuxiuwsqtkcrfpiwu`) ngày 02/11/2026.
 Đây là dữ liệu giả, không phải chuyến bay/hãng/giá thương mại.
 
 ## Có gì để thử?
 
-- Hãng `F0 — Flight Checkout Demo`; máy bay `DEMO-TV2-24`, 24 ghế Economy.
+- Hãng `F0 — Flyora Airways`; máy bay `FLY-TV2-24`, 24 ghế Economy.
 - `F0101`: SGN → SIN, **16/11/2026 09:00**, giờ Việt Nam.
 - `F0102`: SIN → SGN, **20/11/2026 09:00**, giờ Singapore.
 - `F0103`: SGN → HAN, **23/11/2026 09:00**, giờ Việt Nam.

@@ -1,5 +1,5 @@
 export const mockEnglish={
- 'mock.refreshTicket':'Refreshing confirmed seats. Reload the booking to view your demo ticket.',
+ 'mock.refreshTicket':'Refreshing confirmed seats. Reload the booking to view your ticket.',
  'mock.card':'Demo card •••• 4242','mock.noMoney':'Simulation only. No real money is charged.',
  'mock.scenario':'Choose a simulation result','mock.latest':'Latest payment','mock.recover':'Retry previous action',
  'mock.hold':'Seats are held until the countdown ends. This is a simulated payment.',
@@ -11,7 +11,7 @@ export const mockEnglish={
  'mock.priceChanged':'The cancellation fee changed. Review the updated amount before confirming.',
  'mock.storage':'Unable to save the action safely on this device. No new action was sent.',
  'mock.network':'The outcome could not be confirmed. Retry the previous action before starting another.',
- 'mock.success':'Booking successful','mock.ticket':'View demo ticket','mock.home':'Home','mock.demoTicket':'Demo e-ticket',
+ 'mock.success':'Booking successful','mock.ticket':'View ticket','mock.home':'Home','mock.demoTicket':'E-ticket',
  'mock.notBoardingPass':'For learning and demonstration only. This is not an airline-issued ticket or boarding pass.',
  'mock.cancel':'Cancel booking','mock.cancelConfirm':'Confirm cancellation','mock.keep':'Keep booking',
  'mock.cancelWarning':'This cancels the whole booking for every traveller and flight.',
@@ -23,7 +23,7 @@ export const mockEnglish={
  'mock.paymentHistory':'Payment history','mock.refundHistory':'Refund history',
 } as const;
 export const mockVietnamese:Record<keyof typeof mockEnglish,string>={
- 'mock.refreshTicket':'Đang cập nhật ghế đã xác nhận. Hãy tải lại đơn để xem vé mô phỏng.',
+ 'mock.refreshTicket':'Đang cập nhật ghế đã xác nhận. Hãy tải lại đơn để xem vé.',
  'mock.card':'Thẻ mô phỏng •••• 4242','mock.noMoney':'Chỉ mô phỏng, không thu tiền thật.',
  'mock.scenario':'Chọn kết quả mô phỏng','mock.latest':'Lần thanh toán gần nhất','mock.recover':'Thử lại thao tác trước',
  'mock.hold':'Chỗ được giữ đến khi hết thời gian đếm ngược. Đây là thanh toán mô phỏng.',
@@ -35,7 +35,7 @@ export const mockVietnamese:Record<keyof typeof mockEnglish,string>={
  'mock.priceChanged':'Phí hủy đã thay đổi. Hãy xem lại số tiền trước khi xác nhận.',
  'mock.storage':'Không thể lưu mã thao tác an toàn trên thiết bị. Chưa gửi thao tác mới.',
  'mock.network':'Chưa xác định được kết quả. Hãy thử lại thao tác trước để tránh gửi trùng.',
- 'mock.success':'Đặt vé thành công','mock.ticket':'Xem vé mô phỏng','mock.home':'Trang chủ','mock.demoTicket':'Vé điện tử mô phỏng',
+ 'mock.success':'Đặt vé thành công','mock.ticket':'Xem vé','mock.home':'Trang chủ','mock.demoTicket':'Vé điện tử',
  'mock.notBoardingPass':'Chỉ dùng để học và trình diễn. Đây không phải vé do hãng phát hành hoặc thẻ lên máy bay.',
  'mock.cancel':'Hủy đơn đặt vé','mock.cancelConfirm':'Xác nhận hủy','mock.keep':'Giữ lại đơn',
  'mock.cancelWarning':'Hủy toàn bộ đơn, áp dụng cho tất cả hành khách và chặng bay.',

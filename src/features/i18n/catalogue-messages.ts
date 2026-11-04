@@ -1,5 +1,8 @@
+import { expandedCatalogueEnglish } from './expanded-catalogue.ts';
+
 // Shared catalogue copy is translated at display time; database identifiers and prices stay intact.
 export const catalogueEnglish = {
+  ...expandedCatalogueEnglish,
   'Hà Nội ngàn năm văn hiến': 'Hanoi, a thousand years of heritage',
   'Đà Nẵng — Thành phố đáng sống': 'Da Nang, where coast meets city',
   'Đảo ngọc Phú Quốc': 'Phu Quoc, the pearl island',
@@ -27,6 +30,12 @@ export const catalogueEnglish = {
   'Phổ thông Đặc biệt': 'Premium Economy', 'Thương gia Linh hoạt': 'Business Flex',
   'Demo checked baggage 15 kg': '15 kg checked baggage',
   'Demo checked baggage 25 kg': '25 kg checked baggage',
+  'Hành lý ký gửi 15 kg': '15 kg checked baggage', 'Hành lý ký gửi 25 kg': '25 kg checked baggage',
+  'Hành lý ký gửi 15kg': '15 kg checked baggage', 'Hành lý ký gửi 23kg': '23 kg checked baggage',
+  'Hành lý ký gửi 32kg': '32 kg checked baggage',
+  'Bảo vệ hành trình Cơ bản': 'Basic journey protection', 'Bảo vệ hành trình Nâng cao': 'Enhanced journey protection',
+  'Hành lý ký gửi mua thêm cho từng hành khách và chặng bay.': 'Additional checked baggage for each passenger and flight.',
+  'Suất ăn đặt trước cho từng hành khách và chặng bay.': 'Pre-ordered meals for each passenger and flight.',
 } as const;
 
 export const catalogueVietnamese = {
