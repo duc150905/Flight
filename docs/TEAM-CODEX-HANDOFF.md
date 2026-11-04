@@ -1,3 +1,9 @@
+# Cập nhật danh mục — 04/11/2026
+
+Đã nạp bộ mở rộng vào **flight-dev**: thêm 10 sân bay, 4 hãng, 14 điểm đến, 24 máy bay với 2.964 ghế mẫu; 1.440 chuyến bay (24 cặp đường bay hai chiều) từ 05/11 đến 04/12/2026, 4.620 gói giá, 177.840 ghế theo chuyến, 5 sản phẩm và 7.200 offer. Đọc [CATALOGUE-DATA.md](CATALOGUE-DATA.md) trước khi seed: chỉ dùng generator riêng, không chạy toàn bộ seed gốc vì có cấp admin. Không sửa booking/payment/refund/profile/role; bảo vệ bằng fingerprint trong giao dịch. Tên hiển thị Demo đã chuẩn hóa, giữ mã enum/code cũ để tương thích; có bản dịch Việt–Anh. VNPAY Sandbox giữ nguyên. Lịch, giá và sơ đồ ghế là dữ liệu học tập, không phải inventory thương mại. Chưa build APK mới.
+
+Thanh toán VNPAY/email đã có: [VNPAY-SANDBOX.md](VNPAY-SANDBOX.md) thay thế các ghi chú “chưa kết nối cổng ngoài” ở snapshot cũ bên dưới. Phần UI hiện tự báo giá khi mở bước báo giá, nhãn vé/tổng tiền đã rút gọn, giờ bay hiển thị theo sân bay và nút payment status được thay bằng polling có giới hạn. Kiểm tra Git để biết thay đổi đang ở local hay đã push/merge.
+
 # Cập nhật TV2 — 03/11/2026
 
 **Mới nhất:** đọc `MOCK-PAYMENTS.md` và `ANDROID-CHECKOUT-ACCEPTANCE.md`. Đã có payment mock nội bộ, màn thành công/vé demo, cancel theo snapshot và refund giả. Không kết nối cổng ngoài, không thu tiền/nhập thẻ. Các RPC start_mock_payment, get_mock_payment_state, resolve_mock_payment, cancel_booking, refund_mock_booking đã chạy trên flight-dev cùng cron hết hạn mỗi phút. Năm migration 20261103143605/09/12/14/17 có history; hai migration admin/profile cũ vẫn chưa chạy. App code cần kiểm tra Git để biết local/push/merge. Android thật chưa nghiệm thu.

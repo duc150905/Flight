@@ -287,18 +287,18 @@ values
   (
     pg_temp.seed_uuid('addon:INS_BASIC_DEMO'),
     'INS_BASIC_DEMO',
-    'Bảo hiểm trễ chuyến & hành lý (Demo)',
+    'Bảo vệ hành trình Cơ bản',
     'insurance_demo',
-    'Gói bảo hiểm mô phỏng phục vụ demo học tập; không phát hành hợp đồng bảo hiểm thật.',
+    'Quyền lợi bảo vệ hành trình theo gói đã chọn.',
     null,
     true
   ),
   (
     pg_temp.seed_uuid('addon:INS_PLUS_DEMO'),
     'INS_PLUS_DEMO',
-    'Bảo hiểm du lịch toàn diện (Demo)',
+    'Bảo vệ hành trình Nâng cao',
     'insurance_demo',
-    'Gói bảo hiểm mô phỏng mở rộng cho chuyến đi; không phát hành hợp đồng bảo hiểm thật.',
+    'Quyền lợi bảo vệ hành trình theo gói đã chọn.',
     null,
     true
   )
