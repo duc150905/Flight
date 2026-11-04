@@ -1166,6 +1166,8 @@ export type Database = {
     }
     Functions: {
       get_mock_payment_state: { Args: { p_booking_id: string }; Returns: Json }
+      get_payment_state: { Args: { p_booking_id: string }; Returns: Json }
+      admin_vnpay_review: { Args: Record<PropertyKey, never>; Returns: Json }
       start_mock_payment: { Args: { p_booking_id: string; p_request_id: string }; Returns: Json }
       resolve_mock_payment: { Args: { p_payment_id: string; p_request_id: string; p_outcome: string }; Returns: Json }
       cancel_booking: { Args: { p_booking_id: string; p_request_id: string; p_expected_fee: number }; Returns: Json }

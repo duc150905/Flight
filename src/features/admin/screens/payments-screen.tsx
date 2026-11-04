@@ -1,4 +1,5 @@
 import { loadAllRows } from '../complete-data';
+import {AdminVnpayReview} from '../vnpay-review';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -104,6 +105,7 @@ export function AdminPaymentsScreen() {
         setPage(1);
       }}
     >
+      <AdminVnpayReview />
       <View style={adminStyles.chipRow}>
         <Pressable
           accessibilityRole="button"

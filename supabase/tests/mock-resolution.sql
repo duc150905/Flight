@@ -23,7 +23,12 @@ do $$ declare bid uuid:=pg_temp.mock_booking(); state jsonb; pid uuid; rid uuid:
  state:=public.resolve_mock_payment(pid,gen_random_uuid(),'cancelled');
  if state->'booking'->>'status'<>'pending_payment' or state->'payments'->0->>'status'<>'cancelled' then raise exception 'Cancelling attempt cancelled order';end if;
  state:=public.start_mock_payment(bid,gen_random_uuid());pid:=(state->'payments'->0->>'id')::uuid;
- update public.payments set amount=amount+1 where id=pid;actual:=null;
+ actual:=null;begin update public.payments set amount=amount+1 where id=pid;exception when check_violation then actual:=sqlerrm;end;
+ if actual is distinct from 'payment.immutable' then raise exception 'Payment amount mutable';end if;
+ bid:=pg_temp.mock_booking();
+ insert into public.payments(booking_id,idempotency_key,request_hash,booking_version,amount,provider_reference)
+ select id,gen_random_uuid(),'corrupt-fixture',version,total_amount+1,'mock_corrupt_'||gen_random_uuid()::text from public.bookings where id=bid returning id into pid;
+ actual:=null;
  begin perform public.resolve_mock_payment(pid,gen_random_uuid(),'succeeded');exception when others then actual:=sqlerrm;end;
  if actual is distinct from 'mock.invalid' then raise exception 'Wrong amount confirmed';end if;
 end $$;

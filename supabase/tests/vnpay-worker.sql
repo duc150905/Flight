@@ -1,0 +1,24 @@
+do $$declare b uuid;r jsonb;c jsonb;begin
+ b:=pg_temp.mock_booking();r:=public.begin_vnpay_payment(b,'00000000-0000-4000-8000-000000000081',gen_random_uuid(),'127.0.0.1');
+ update public.bookings set expires_at=now()-interval '1 hour' where id=b;
+ perform public.apply_vnpay_result(r->>'ref',(r->>'amount')::bigint,true,'123456','20261104120000','00');
+ c:=public.claim_vnpay_refund(b,'00000000-0000-4000-8000-000000000081');
+ if c->>'type'<>'02' or c->>'amount'<>r->>'amount' then raise exception 'Late full refund missing';end if;
+ if public.claim_vnpay_refund(b,null) is not null then raise exception 'Worker resent refund';end if;
+ if has_function_privilege('authenticated','public.vnpay_worker_batch()','execute') then raise exception 'Worker exposed';end if;
+ begin perform public.admin_vnpay_review();raise exception 'Customer can review others';exception when others then if sqlerrm<>'Forbidden' then raise;end if;end;
+ b:=pg_temp.mock_booking();r:=public.begin_vnpay_payment(b,'00000000-0000-4000-8000-000000000081',gen_random_uuid(),'127.0.0.1');
+ perform public.apply_vnpay_result(r->>'ref',(r->>'amount')::bigint,true,'123457','20261104120000','00');
+ update public.booking_passenger_segments set cancellation_rules_snapshot=jsonb_set(cancellation_rules_snapshot,'{fee_amount}','999999999') where booking_id=b;
+ c:=public.get_payment_state(b);perform public.cancel_booking(b,gen_random_uuid(),(c->'cancellation'->>'fee')::bigint);
+ if public.vnpay_worker_batch() @> jsonb_build_array(b::text) then raise exception 'Zero refund starves queue';end if;
+ b:=pg_temp.mock_booking();r:=public.begin_vnpay_payment(b,'00000000-0000-4000-8000-000000000081',gen_random_uuid(),'127.0.0.1');
+ perform public.apply_vnpay_result(r->>'ref',(r->>'amount')::bigint,false,'','','24');
+ c:=public.begin_vnpay_payment(b,'00000000-0000-4000-8000-000000000081',gen_random_uuid(),'127.0.0.1');
+ perform public.apply_vnpay_result(c->>'ref',(c->>'amount')::bigint,true,'123458','20261104120000','00');
+ perform public.apply_vnpay_result(r->>'ref',(r->>'amount')::bigint,true,'123459','20261104120000','00');
+ perform public.claim_vnpay_refund(b,null);
+ c:=public.get_payment_state(b);perform public.cancel_booking(b,gen_random_uuid(),(c->'cancellation'->>'fee')::bigint);
+ c:=public.get_payment_state(b);
+ if c->>'refundState' is null or jsonb_array_length(c->'refundJobs')<>2 then raise exception 'Missing per-refund states';end if;
+end $$;

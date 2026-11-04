@@ -414,3 +414,15 @@ enabled = true
 # formatted with uppercase keywords, indent 2, max width 180, trailing commas,
 # and column/key alignment. Set to "null" to emit raw, unformatted SQL.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":180,\"commaStyle\":\"trailing\"}"
+[functions.vnpay-create]
+verify_jwt = false # handler verifies the user JWT with Auth API
+[functions.vnpay-ipn]
+verify_jwt = false # public callback, mandatory VNPAY signature verification
+[functions.vnpay-return]
+verify_jwt = false # signed callback, navigation only
+[functions.vnpay-sync]
+verify_jwt = false # handler verifies the user JWT with Auth API
+[functions.vnpay-refund]
+verify_jwt = false # handler verifies the user JWT with Auth API
+[functions.vnpay-worker]
+verify_jwt = false # dedicated server-only worker secret
