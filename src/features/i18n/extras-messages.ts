@@ -16,6 +16,7 @@ export const extrasMessages = {
   'Loading': 'Đang tải', 'Quote summary': 'Tổng hợp báo giá', 'Refresh quote': 'Lấy báo giá mới',
   'This is a quote only. Booking and payment are not completed.': 'Đây chỉ là báo giá. Đơn đặt vé và thanh toán chưa được thực hiện.',
   'Total from server': 'Tổng tiền từ server', 'No paid seat selected': 'Chưa chọn ghế trả phí',
+  'quote.total': 'Tổng tiền', 'Updating your quote…': 'Đang cập nhật báo giá…',
   'Price reviewed': 'Đã xem giá', 'I have reviewed this price': 'Tôi đã xem giá này',
   'quote.base': 'Giá vé cơ bản', 'quote.tax': 'Thuế', 'quote.fee': 'Phí vé', 'quote.baggage': 'Hành lý mua thêm', 'quote.seat': 'Phí chọn ghế',
   'quote.validUntil': 'Báo giá có hiệu lực đến {time}',

@@ -46,3 +46,9 @@
 - Final review: fixed independent deadline expiry, detailed-seat reload after receipt transitions, read-only Retry for failed provider lookup, and active per-refund-job detection. Each was covered RED to GREEN; the mixed-refund finding was treated as Important because an unresolved financial result must continue updating.
 - Browser QA used disposable synthetic data only. Verified VI/EN, 375px portrait and 812px landscape, disabled other-cabin seats, selecting economy 6A, unpaid cancellation confirmation, paid fee/refund display, no cancellation for expired/cancelled orders, no ordinary payment-status buttons, and one Retry on error. No gateway payment or database cancellation was executed.
 - Temporary QA route removed. Physical Android and the full bank-return sequence were not re-run; the existing APK does not contain this new UI until rebuilt.
+
+## Follow-up: automatic quote and neutral ticket labels
+- User requested removing the learning/not-airline banner and demo wording from ticket labels; VNPAY Sandbox remains visible.
+- Quote fetching now runs automatically on focus/return and once per expired quote. Errors expose Retry; an uncertain booking creation must be recovered before automatic expiry refresh continues.
+- Product label is Total/Tổng tiền. Price acknowledgement is visible only if the server total differs from the estimate; a refreshed quote retains its own acknowledgement identity.
+- The expiry regression was observed RED, then GREEN. Final review found that a definitive price rejection could strand an unexpired stale quote; added one-shot refresh after price/expiry rejection or recovery proving no saved booking. Regression observed RED, then GREEN. No APK build was requested or started.

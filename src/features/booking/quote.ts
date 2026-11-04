@@ -12,6 +12,22 @@ export function quoteRequest(draft: Pick<CheckoutDraftState, 'itinerary' | 'pass
     seats: draft.seats.map(s => ({ passengerId: s.passengerId, flightId: s.flightId, seatId: s.seatId })) };
 }
 export function requestKey(request: ReturnType<typeof quoteRequest>, revision = 0) { return JSON.stringify({ revision, request }); }
+export function creationQuoteRefreshKey(error: string, key: string, previous: string | null): string | null {
+  if (!key || !['booking.priceChanged', 'booking.quoteExpired', 'booking.noSavedRequest'].includes(error)) return null;
+  const identity = `${error}:${key}`;
+  return identity === previous ? null : identity;
+}
+export function expiredQuoteRefreshKey(
+  quote: Pick<CheckoutQuote, 'quotedAt' | 'expiresAt'> | undefined,
+  key: string, now: number,
+  state: { focused: boolean; valid: boolean; fetching: boolean; failed: boolean; creating: boolean; creationError: boolean },
+  previous: string | null,
+): string | null {
+  if (!quote || !key || !state.focused || !state.valid || state.fetching || state.failed || state.creating || state.creationError
+    || Date.parse(quote.expiresAt) > now) return null;
+  const identity = `${key}:${quote.quotedAt}`;
+  return identity === previous ? null : identity;
+}
 const money = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const amounts = { base: money, tax: money, fee: money, baggage: money, seat: money };
 const lineSchema = z.object({ passengerId: z.string().min(1).max(30), flightId: databaseIdSchema(),

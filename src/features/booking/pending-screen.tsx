@@ -77,7 +77,6 @@ export function PendingBookingView({ booking, seconds, refreshing = false, error
     footer={{ title: active ? gateway?gateway.busy?'mock.processing':'payment.pay':mock?.busy?'mock.processing':'mock.pay' : 'View booking details', disabled: active&&(gateway?(!gateway.state||gateway.busy||gateway.checking||!!gateway.error||gateway.state.booking.status!=='pending_payment'):(!mock?.state||mock.busy||!!mock.error||mock.state.booking.status!=='pending_payment')),
       onPress: () => active?void (gateway?gateway.pay():mock?.pay()):router.replace({ pathname: '/tickets/[id]', params: { id: booking.id } }) }}>
     <View style={[styles.notice, { backgroundColor: c.tint }]}>
-      {receipt&&<CheckoutText muted message="mock.notBoardingPass"/>}
       <CheckoutText title>{t(bookingStatusLabel(booking.status))}</CheckoutText>
       <CheckoutText>{t('Booking reference')}: {booking.bookingCode}</CheckoutText>
       {active ? <>

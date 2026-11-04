@@ -24,7 +24,6 @@ export function PaymentSuccessView({booking,gateway=false}:{booking:PendingBooki
    <MoneyText amount={booking.total} style={{fontSize:26,fontWeight:'700',textAlign:'center'}}/><CurrencyRateNote/>
    <CheckoutButton title="mock.ticket" onPress={()=>router.replace({pathname:'/receipt/[id]',params:{id:booking.id}})}/>
    <CheckoutButton title="mock.home" secondary onPress={()=>router.replace('/')}/>
-   <CheckoutText muted message="mock.notBoardingPass"/>
   </View>
  </ScrollView></SafeAreaView>;
 }

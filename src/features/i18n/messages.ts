@@ -15,6 +15,7 @@ export const en = {
   ...mockEnglish,
   ...bookingEnglish,
   ...checkoutEnglish,
+  'quote.total': 'Total',
   'seats.available': 'Available', 'seats.selected': 'Selected', 'seats.selectedOther': 'Selected for another traveller',
   'seats.held': 'Held', 'seats.booked': 'Booked', 'seats.blocked': 'Blocked',
   'seats.otherCabin': 'Other cabin',

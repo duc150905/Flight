@@ -27,3 +27,24 @@ test('same-ID fare refresh invalidates quote identity and price acknowledgement'
  store.getState().beginCheckout({...itinerary,legs:[{...itinerary.legs[0],prices:{...itinerary.legs[0].prices,adult:200}}]});
  const after=quote.requestKey(quote.quoteRequest(store.getState()),store.getState().revision);assert.notEqual(before,after);
 });
+
+test('expired quotes refresh once while focused, without retry loops on errors or booking submission',()=>{
+ const eligible={focused:true,valid:true,fetching:false,failed:false,creating:false,creationError:false};
+ assert.equal(quote.expiredQuoteRefreshKey(result,'request',now,eligible,null),null);
+ const expected=`request:${result.quotedAt}`;
+ assert.equal(quote.expiredQuoteRefreshKey(result,'request',now+300000,eligible,null),expected);
+ assert.equal(quote.expiredQuoteRefreshKey(result,'request',now+300000,eligible,expected),null);
+ for(const state of [{...eligible,focused:false},{...eligible,fetching:true},{...eligible,failed:true},{...eligible,creating:true},{...eligible,creationError:true}]){
+  assert.equal(quote.expiredQuoteRefreshKey(result,'request',now+300000,state,null),null);
+ }
+});
+
+test('definitive price rejection or recovery of no saved booking refreshes an unexpired quote once',()=>{
+ for(const error of ['booking.priceChanged','booking.quoteExpired','booking.noSavedRequest']){
+  assert.equal(quote.creationQuoteRefreshKey(error,'request',null),`${error}:request`);
+  assert.equal(quote.creationQuoteRefreshKey(error,'request',`${error}:request`),null);
+ }
+ for(const error of ['','booking.createError','booking.recoveryError','booking.inventoryChanged']){
+  assert.equal(quote.creationQuoteRefreshKey(error,'request',null),null);
+ }
+});
