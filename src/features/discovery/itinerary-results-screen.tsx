@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import { Notice } from '@/features/auth/ui';
@@ -12,6 +12,8 @@ import { inlineMoney } from '@/features/currency/presentation';
 import { searchOneWay } from './data';
 import { type FlightOffer } from './model';
 import { checkoutHrefForTrip, criteriaForLeg, parseTripSearchParameter } from './trip-search';
+import { savePendingSelection } from '../booking/pending-selection-storage';
+import { saveLastSearch } from './last-search-storage';
 import { FlightButton, flightColors, Page, styles } from './ui';
 
 type Sort = 'price' | 'departure' | 'duration';
@@ -40,6 +42,15 @@ export function ItineraryResultsScreen({ rawSearch }: { rawSearch: unknown }) {
   const parsed = useMemo(() => {
     try { return parseTripSearchParameter(rawSearch); } catch { return null; }
   }, [rawSearch]);
+
+  useEffect(() => {
+    if (parsed && typeof rawSearch === 'string') {
+      void saveLastSearch({
+        type: 'itinerary',
+        searchJson: rawSearch,
+      });
+    }
+  }, [parsed, rawSearch]);
   const [selected, setSelected] = useState<FlightOffer[]>([]);
   const [sort, setSort] = useState<Sort>('price');
   const [airlineId, setAirlineId] = useState('');
@@ -71,7 +82,9 @@ export function ItineraryResultsScreen({ rawSearch }: { rawSearch: unknown }) {
   const continueCheckout = () => {
     try {
       setSelectionError('');
-      router.push(checkoutHrefForTrip(parsed, selected));
+      const href = checkoutHrefForTrip(parsed, selected);
+      void savePendingSelection(href.params.selection);
+      router.push(href);
     } catch (error) {
       setSelectionError(error instanceof Error ? error.message : 'Hãy chọn lại chuyến bay.');
     }

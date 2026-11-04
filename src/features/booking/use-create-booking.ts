@@ -5,6 +5,7 @@ import { useCallback, useRef, useState } from 'react';
 import { useAuth } from '../auth/auth-provider';
 import { useCheckout } from './checkout-provider';
 import { bookingError, bookingPayload, createBooking, type BookingReceipt } from './create-booking';
+import { clearPendingSelection } from './pending-selection-storage';
 import { findBookingRequest } from './pending-booking';
 import { createBookingRequestJournal } from './request-journal';
 import type { CheckoutQuote } from './quote';
@@ -29,6 +30,7 @@ export function useCreateBooking() {
       if (!focused.current) return;
       if (saved) {
         draft.finish();
+        void clearPendingSelection();
         router.replace({ pathname: '/pending/[id]', params: { id: saved.id } });
       } else setError('booking.noSavedRequest');
     } catch (cause) { if (focused.current) setError(bookingError(cause)); }

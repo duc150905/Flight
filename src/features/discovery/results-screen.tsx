@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,6 +9,7 @@ import { useLanguage } from '@/features/i18n/provider';
 import { localeFor } from '@/features/i18n/translate';
 import { searchOneWay } from './data';
 import { cabinLabels, searchSchema, type FlightOffer, type SearchCriteria } from './model';
+import { saveLastSearch } from './last-search-storage';
 import { FlightButton, flightColors, Page, styles } from './ui';
 
 type Sort = 'price' | 'departure' | 'duration';
@@ -29,6 +30,16 @@ export function ResultsScreen({ input }: { input: Record<string, string | string
     input.children, input.infants, input.cabinClass].join('|');
   const parsed = searchSchema.safeParse(input);
   const criteria = parsed.success ? parsed.data : null;
+
+  useEffect(() => {
+    if (criteria) {
+      void saveLastSearch({
+        type: 'one_way',
+        params: input,
+      });
+    }
+  }, [criteria]);
+
   const searchQuery = useQuery({
     queryKey: ['flight-search', searchKey], queryFn: () => searchOneWay(criteria), enabled: !!criteria,
   });

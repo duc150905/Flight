@@ -14,6 +14,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppBrand } from '@/components/app-brand';
+import { AiFab } from '@/features/ai/ai-fab';
+import { AiChatModal } from '@/features/ai/ai-chat-modal';
 import { useAuth } from '@/features/auth/auth-provider';
 import { Notice } from '@/features/auth/ui';
 import { FlagLanguagePicker } from '@/features/i18n/flag-language-picker';
@@ -24,6 +26,8 @@ import { SearchFlow } from './search-flow';
 import { destinationImages } from './destination-images';
 import { flightColors } from './ui';
 import { consumeOpenSearch, searchStore } from './search-state';
+import { PendingBookingCard } from '@/features/booking/pending-booking-card';
+import { RecentSearchCard } from './recent-search-card';
 
 const emptyAirports: Airport[] = [];
 const emptyDestinations: Destination[] = [];
@@ -43,6 +47,7 @@ export function HomeScreen() {
   const params = useLocalSearchParams<{ search?: string }>();
   const { searchOpen, openSearch, closeSearch } = useStore(searchStore);
   const [initialDestinationId, setInitialDestinationId] = useState('');
+  const [aiChatOpen, setAiChatOpen] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -87,6 +92,8 @@ export function HomeScreen() {
       <ScrollView contentContainerStyle={[home.scroll, isDesktop && home.scrollDesktop]}>
         <View style={[home.container, isDesktop && home.containerDesktop]}>
           {storageError && <Notice text={t('common.languageStorage')} />}
+          <PendingBookingCard />
+          <RecentSearchCard />
           {/* Search Button / Hero CTA */}
           <Pressable
             accessibilityRole="button"
@@ -185,6 +192,12 @@ export function HomeScreen() {
           </View>
         </View>
       </ScrollView>
+      <AiFab onPress={() => setAiChatOpen(true)} />
+      <AiChatModal
+        visible={aiChatOpen}
+        onClose={() => setAiChatOpen(false)}
+        airports={airports}
+      />
     </SafeAreaView>
   );
 }

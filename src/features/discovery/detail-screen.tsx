@@ -10,6 +10,7 @@ import { useLanguage } from '@/features/i18n/provider';
 import { formatTime, localeFor } from '@/features/i18n/translate';
 import { loadFlightOffer } from './data';
 import { cabinLabels, checkoutHrefForOffer, searchSchema, type FlightOffer } from './model';
+import { savePendingSelection } from '../booking/pending-selection-storage';
 import { FlightButton, flightColors, Page, styles } from './ui';
 
 function baggageText(value: unknown, t: (key: string, params?: Record<string, string | number>) => string) {
@@ -117,8 +118,15 @@ export function DetailScreen({ input }: { input: Record<string, string | string[
         <Text style={d.priceCaption}>{t('{count} hành khách', {
           count: criteria.adults + criteria.children + criteria.infants,
         })}</Text><CurrencyRateNote /></View>
-      <Pressable accessibilityRole="button" onPress={() => router.push(checkoutHrefForOffer(offer, criteria))}
-        style={d.selectButton}><Text style={d.selectText}>{t('Tiếp tục đặt vé')}</Text></Pressable>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => {
+          const href = checkoutHrefForOffer(offer, criteria);
+          void savePendingSelection(href.params.selection);
+          router.push(href);
+        }}
+        style={d.selectButton}
+      ><Text style={d.selectText}>{t('Tiếp tục đặt vé')}</Text></Pressable>
     </View>}
   </SafeAreaView>;
 }
