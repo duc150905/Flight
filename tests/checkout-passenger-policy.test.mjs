@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import * as policy from '../src/features/booking/passenger-policy.ts';
-const { ageOnDate, classifyPassenger, passengerPolicySchema } = policy;
 import { createCheckoutDraftStore } from '../src/features/booking/draft.ts';
+
+const { ageOnDate, classifyPassenger, passengerPolicySchema } = policy;
 
 const values = { givenNames: 'An', familyName: 'Nguyễn', dateOfBirth: '1990-01-01' };
 const passenger = (id, patch = {}) => ({ id, values: { ...values, ...patch } });

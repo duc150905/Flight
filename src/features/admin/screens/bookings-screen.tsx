@@ -135,10 +135,161 @@ export function AdminBookingsScreen() {
     },
   ];
 
+  const formatTripType = (tripType: string) => {
+    switch (tripType) {
+      case 'one_way':
+        return bi('Một chiều', 'One-way');
+      case 'round_trip':
+        return bi('Khứ hồi', 'Round-trip');
+      case 'multi_city':
+        return bi('Nhiều chặng', 'Multi-city');
+      default:
+        return tripType;
+    }
+  };
+
+  const formatBookingStatus = (status: string) => {
+    switch (status) {
+      case 'confirmed':
+        return bi('ĐÃ XÁC NHẬN', 'CONFIRMED');
+      case 'pending_payment':
+        return bi('CHỜ THANH TOÁN', 'PENDING PAYMENT');
+      case 'cancelled':
+        return bi('ĐÃ HỦY', 'CANCELLED');
+      case 'expired':
+        return bi('HẾT HẠN', 'EXPIRED');
+      default:
+        return status.toUpperCase();
+    }
+  };
+
+  const formatGender = (gender?: string | null) => {
+    if (!gender) return '';
+    const g = gender.toLowerCase().trim();
+    if (g === 'male' || g === 'm') return bi('Nam', 'Male');
+    if (g === 'female' || g === 'f') return bi('Nữ', 'Female');
+    return bi('Khác', 'Other');
+  };
+
+  const formatEventInfo = (ev: BookingEventRow) => {
+    let icon = '📌';
+    let title = ev.event_type;
+    let desc = ev.safe_message;
+
+    switch (ev.event_type) {
+      case 'created':
+        icon = '📝';
+        title = bi('Khởi tạo đơn đặt vé', 'Booking Created');
+        desc = bi('Đơn hàng đã được tạo; đang chờ khách hàng thanh toán.', 'Booking created; awaiting payment.');
+        break;
+      case 'payment_started':
+        icon = '💳';
+        title = bi('Bắt đầu thanh toán', 'Payment Started');
+        desc = bi('Khách hàng tiến hành phiên giao dịch thanh toán.', 'Customer initiated payment session.');
+        break;
+      case 'payment_succeeded':
+        icon = '💰';
+        title = bi('Thanh toán thành công', 'Payment Succeeded');
+        desc = bi('Giao dịch thanh toán được ghi nhận thành công.', 'Payment confirmed successfully.');
+        break;
+      case 'payment_failed':
+        icon = '⚠️';
+        title = bi('Thanh toán thất bại', 'Payment Failed');
+        desc = bi('Giao dịch thanh toán không thành công hoặc bị từ chối.', 'Payment failed or declined.');
+        break;
+      case 'payment_cancelled':
+        icon = '🚫';
+        title = bi('Hủy giao dịch thanh toán', 'Payment Cancelled');
+        desc = bi('Giao dịch thanh toán đã bị hủy.', 'Payment transaction was cancelled.');
+        break;
+      case 'checkout_updated':
+        icon = '✏️';
+        title = bi('Cập nhật đơn đặt vé', 'Booking Updated');
+        desc = bi('Thông tin hành trình hoặc liên hệ đã được cập nhật.', 'Itinerary or contact details updated.');
+        break;
+      case 'seat_changed':
+        icon = '💺';
+        title = bi('Thay đổi chỗ ngồi', 'Seat Changed');
+        desc = bi('Vị trí ghế ngồi đã được cập nhật.', 'Seat selection updated.');
+        break;
+      case 'confirmed':
+        icon = '✅';
+        title = bi('Đã xác nhận đặt chỗ', 'Booking Confirmed');
+        desc = bi('Đơn đặt chỗ đã được xác nhận vé chính thức.', 'Booking officially confirmed.');
+        break;
+      case 'expired':
+        icon = '⏰';
+        title = bi('Hết hạn thanh toán', 'Hold Expired');
+        desc = bi('Hết thời gian giữ chỗ; đơn đặt vé tự động hết hạn.', 'Hold time expired; booking expired.');
+        break;
+      case 'cancelled':
+        icon = '❌';
+        title = bi('Đã hủy đơn đặt vé', 'Booking Cancelled');
+        desc = bi('Đơn đặt chỗ đã bị hủy.', 'Booking has been cancelled.');
+        break;
+      case 'refund_requested':
+      case 'refund_started':
+        icon = '🔄';
+        title = bi('Yêu cầu hoàn tiền', 'Refund Requested');
+        desc = bi('Hệ thống tiếp nhận yêu cầu hoàn tiền cho đơn.', 'Refund request submitted.');
+        break;
+      case 'refund_succeeded':
+        icon = '💵';
+        title = bi('Hoàn tiền thành công', 'Refund Succeeded');
+        desc = bi('Đã xử lý hoàn tiền thành công cho khách hàng.', 'Refund processed successfully.');
+        break;
+      case 'refund_failed':
+        icon = '⚠️';
+        title = bi('Hoàn tiền thất bại', 'Refund Failed');
+        desc = bi('Giao dịch hoàn tiền gặp sự cố hoặc bị từ chối.', 'Refund transaction failed.');
+        break;
+      default:
+        title = ev.event_type;
+        break;
+    }
+
+    if (ev.safe_message === 'Mock payment result recorded.') {
+      if (ev.event_type === 'payment_cancelled') {
+        desc = bi('Giao dịch thanh toán đã bị hủy.', 'Payment transaction was cancelled.');
+      } else if (ev.event_type === 'payment_succeeded') {
+        desc = bi('Giao dịch thanh toán được ghi nhận thành công.', 'Payment transaction recorded successfully.');
+      } else if (ev.event_type === 'payment_failed') {
+        desc = bi('Giao dịch thanh toán không thành công hoặc bị từ chối.', 'Payment failed or declined.');
+      }
+    }
+
+    const statusLabel = (s?: string | null) => {
+      if (!s || s === '—') return null;
+      switch (s) {
+        case 'pending_payment':
+          return bi('Chờ thanh toán', 'Pending');
+        case 'confirmed':
+          return bi('Đã xác nhận', 'Confirmed');
+        case 'cancelled':
+          return bi('Đã hủy', 'Cancelled');
+        case 'expired':
+          return bi('Hết hạn', 'Expired');
+        default:
+          return s;
+      }
+    };
+
+    const fromLabel = statusLabel(ev.from_status);
+    const toLabel = statusLabel(ev.to_status);
+    let transition: string | null = null;
+    if (fromLabel && toLabel && fromLabel !== toLabel) {
+      transition = `${fromLabel} → ${toLabel}`;
+    } else if (toLabel && !fromLabel) {
+      transition = `→ ${toLabel}`;
+    }
+
+    return { icon, title, desc, transition };
+  };
+
   return (
     <AdminShell
       activeSection="bookings"
-      title={bi('Quản lý Đơn đặt chỗ (Bookings)', 'Bookings Management')}
+      title={bi('Quản lý Đơn đặt chỗ', 'Bookings Management')}
       subtitle={bi(
         'Tra cứu đơn đặt vé theo mã PNR, tên hành khách, email, số điện thoại và trạng thái. Trạng thái đơn chỉ chuyển qua luồng giữ ghế & thanh toán hợp lệ của server.',
         'Search bookings by PNR, passenger, email, phone, and status. Booking states are strictly governed by server-side seat-hold & payment rules.',
@@ -211,11 +362,11 @@ export function AdminBookingsScreen() {
               <View key={bk.id} style={adminStyles.itemCard}>
                 <View style={adminStyles.rowBetween}>
                   <Text style={adminStyles.bold}>
-                    #{bk.booking_code} · {bk.contact_name} ({bk.trip_type})
+                    #{bk.booking_code} · {bk.contact_name} ({formatTripType(bk.trip_type)})
                   </Text>
                   <AdminStatusBadge
                     active={bk.status === 'confirmed'}
-                    customLabel={bk.status.toUpperCase()}
+                    customLabel={formatBookingStatus(bk.status)}
                   />
                 </View>
 
@@ -257,14 +408,6 @@ export function AdminBookingsScreen() {
 
                 {isExpanded && (
                   <View style={[adminStyles.card, { marginTop: 8, backgroundColor: '#F8FAFC' }]}>
-                    <Notice
-                      text={bi(
-                        'Lưu ý: Trạng thái đơn (pending_payment / confirmed / cancelled / expired) được đồng bộ nguyên tử với kho ghế và giao dịch thanh toán trên server; không cho phép sửa tay tùy ý.',
-                        'Note: Booking status is atomically synchronized with seat inventory and payment transactions on the server; arbitrary manual overrides are disabled.',
-                      )}
-                      success
-                    />
-
                     {/* Passengers */}
                     <Text style={adminStyles.bold}>
                       👥 {bi(`Danh sách hành khách (${paxList.length})`, `Passengers (${paxList.length})`)}
@@ -278,10 +421,10 @@ export function AdminBookingsScreen() {
                         <View key={p.id} style={adminStyles.rowBetween}>
                           <Text style={adminStyles.label}>
                             {p.ordinal}. {p.family_name} {p.given_names}
-                            {p.gender ? ` (${p.gender})` : ''}
+                            {p.gender ? ` (${formatGender(p.gender)})` : ''}
                           </Text>
                           <Text style={adminStyles.muted}>
-                            DOB: {p.date_of_birth} · {p.document_type ?? 'ID'}:{' '}
+                            {bi('Ngày sinh:', 'DOB:')} {p.date_of_birth} · {p.document_type ?? 'CCCD/Hộ chiếu'}:{' '}
                             {p.document_number ?? '—'}
                           </Text>
                         </View>
@@ -307,20 +450,74 @@ export function AdminBookingsScreen() {
                     {evtList.length > 0 && (
                       <>
                         <View style={adminStyles.divider} />
-                        <Text style={adminStyles.bold}>
+                        <Text style={[adminStyles.bold, { marginBottom: 8 }]}>
                           🕒 {bi('Lịch sử trạng thái đơn', 'Booking Event Timeline')}
                         </Text>
-                        {evtList.map((ev) => (
-                          <View key={ev.id} style={adminStyles.rowBetween}>
-                            <Text style={adminStyles.muted}>
-                              [{ev.event_type}] {ev.from_status ?? '—'} → {ev.to_status ?? '—'}:{' '}
-                              {ev.safe_message}
-                            </Text>
-                            <Text style={adminStyles.helperText}>
-                              {ev.created_at.slice(0, 19).replace('T', ' ')}
-                            </Text>
-                          </View>
-                        ))}
+                        {[...evtList]
+                          .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))
+                          .map((ev) => {
+                          const info = formatEventInfo(ev);
+                          return (
+                            <View
+                              key={ev.id}
+                              style={{
+                                backgroundColor: '#FFFFFF',
+                                borderWidth: 1,
+                                borderColor: '#E2E8F0',
+                                borderRadius: 8,
+                                padding: 10,
+                                marginBottom: 8,
+                              }}
+                            >
+                              <View style={adminStyles.rowBetween}>
+                                <View
+                                  style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                    flexWrap: 'wrap',
+                                  }}
+                                >
+                                  <Text
+                                    style={{
+                                      fontSize: 13,
+                                      fontWeight: '700',
+                                      color: '#0F172A',
+                                    }}
+                                  >
+                                    {info.icon} {info.title}
+                                  </Text>
+                                  {info.transition && (
+                                    <View
+                                      style={{
+                                        backgroundColor: '#F1F5F9',
+                                        paddingHorizontal: 8,
+                                        paddingVertical: 2,
+                                        borderRadius: 4,
+                                      }}
+                                    >
+                                      <Text
+                                        style={{
+                                          fontSize: 11,
+                                          fontWeight: '600',
+                                          color: '#475569',
+                                        }}
+                                      >
+                                        {info.transition}
+                                      </Text>
+                                    </View>
+                                  )}
+                                </View>
+                                <Text style={adminStyles.helperText}>
+                                  {airportTime(ev.created_at, 'Asia/Ho_Chi_Minh')}
+                                </Text>
+                              </View>
+                              <Text style={[adminStyles.muted, { marginTop: 4, fontSize: 12 }]}>
+                                {info.desc}
+                              </Text>
+                            </View>
+                          );
+                        })}
                       </>
                     )}
                   </View>

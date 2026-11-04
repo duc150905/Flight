@@ -5,6 +5,7 @@ import { Pressable, Text, View } from 'react-native';
 import { useCheckout, useCheckoutStore } from './checkout-provider';
 import { travellerFormOptions, restoreTravellerForm, revalidateTravellerCompanions } from './form-state';
 import { CheckoutField } from './form-field';
+import { CheckoutDateField } from './date-field';
 import { CheckoutChoice } from './choice-field';
 import { CheckoutPhoneField } from './phone-field';
 import { localCalendarDay } from './itinerary-data';
@@ -43,7 +44,7 @@ function PassengerForm() {
         onRawChange={value => draft.updatePassenger(passenger.id, { familyName: value })} />
       <CheckoutChoice control={form.control} name={`passengers.${index}.values.gender`} label="Gender (optional)" options={['male', 'female', 'unspecified']}
         onRawChange={value => draft.updatePassenger(passenger.id, { gender: value })} />
-      <CheckoutField control={form.control} name={`passengers.${index}.values.dateOfBirth`} label="Date of birth" placeholder="YYYY-MM-DD" autoCapitalize="none" autoCorrect={false}
+      <CheckoutDateField control={form.control} name={`passengers.${index}.values.dateOfBirth`} label="Date of birth" passengerType={passenger.id.split('-')[0]}
         onRawChange={value => {
           const clearCompanion = calendarDateSchema.safeParse(value.trim()).success && infantLegsForPassenger(value, draft.itinerary!.legs).length === 0;
           draft.updatePassenger(passenger.id, { dateOfBirth: value, ...(clearCompanion ? { accompanyingAdultId: '' } : {}) });

@@ -12,6 +12,8 @@ import {
 } from './model';
 import { ActionButton, AuthShell, FormField, GoogleIcon, Notice, styles } from './ui';
 
+WebBrowser.maybeCompleteAuthSession();
+
 type Mode = 'login' | 'register' | 'verify' | 'forgot' | 'reset';
 type Navigation = { change: (mode: Mode, email?: string) => void };
 export function AuthScreen({ onRecoveryChange }: { onRecoveryChange: (active: boolean) => void }) {

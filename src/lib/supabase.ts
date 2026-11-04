@@ -1,6 +1,6 @@
 import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createClient, processLock } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 import type { Database } from '../types/database.generated';
 
@@ -12,7 +12,7 @@ const isNative = Platform.OS !== 'web';
 export const supabase = url?.startsWith('https://') && key?.startsWith('sb_publishable_')
   ? createClient<Database>(url, key, {
       auth: {
-        ...(isNative ? { storage: AsyncStorage, lock: processLock } : {}),
+        ...(isNative ? { storage: AsyncStorage } : {}),
         autoRefreshToken: isNative || isBrowser,
         persistSession: isNative || isBrowser,
         detectSessionInUrl: isBrowser,
