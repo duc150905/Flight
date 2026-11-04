@@ -18,7 +18,6 @@ import {
   AdminPaginationBar,
   AdminSearchFilterBar,
   AdminShell,
-  AdminStatusBadge,
   adminStyles,
 } from '../ui';
 

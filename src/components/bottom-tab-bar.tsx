@@ -18,12 +18,16 @@ const tabSymbols = {
 } as const;
 
 function TabIcon({ name, active }: { name: TabIconName; active: boolean }) {
-  return <SymbolView
-    name={tabSymbols[name]}
-    size={24}
-    tintColor={active ? ACTIVE_COLOR : INACTIVE_COLOR}
-    accessible={false}
-  />;
+  return (
+    <View style={[styles.iconPill, active && styles.iconPillActive]}>
+      <SymbolView
+        name={tabSymbols[name]}
+        size={22}
+        tintColor={active ? ACTIVE_COLOR : INACTIVE_COLOR}
+        accessible={false}
+      />
+    </View>
+  );
 }
 
 export function BottomTabBar() {
@@ -85,7 +89,7 @@ export function BottomTabBar() {
     if (!isProfileActive) {
       confirmIfInSearch(() => {
         closeSearch();
-        router.push('/account');
+        router.replace('/account');
       });
     }
   };
@@ -99,7 +103,7 @@ export function BottomTabBar() {
           accessibilityLabel={t('Trang chủ')}
           accessibilityState={{ selected: isHomeActive }}
           onPress={handlePressHome}
-          style={styles.tabButton}
+          style={({ pressed }) => [styles.tabButton, pressed && styles.tabButtonPressed]}
         >
           <TabIcon name="home" active={isHomeActive} />
           <Text style={[styles.tabLabel, isHomeActive && styles.tabLabelActive]}>
@@ -113,7 +117,7 @@ export function BottomTabBar() {
           accessibilityLabel={t('Khám phá')}
           accessibilityState={{ selected: isExploreActive }}
           onPress={handlePressExplore}
-          style={styles.tabButton}
+          style={({ pressed }) => [styles.tabButton, pressed && styles.tabButtonPressed]}
         >
           <TabIcon name="explore" active={isExploreActive} />
           <Text style={[styles.tabLabel, isExploreActive && styles.tabLabelActive]}>
@@ -127,7 +131,7 @@ export function BottomTabBar() {
           accessibilityLabel={t('Hồ sơ')}
           accessibilityState={{ selected: isProfileActive }}
           onPress={handlePressProfile}
-          style={styles.tabButton}
+          style={({ pressed }) => [styles.tabButton, pressed && styles.tabButtonPressed]}
         >
           <TabIcon name="profile" active={isProfileActive} />
           <Text style={[styles.tabLabel, isProfileActive && styles.tabLabelActive]}>
@@ -163,12 +167,26 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 4,
+    gap: 3,
+    paddingVertical: 2,
     minHeight: 46,
   },
+  tabButtonPressed: {
+    opacity: 0.65,
+    transform: [{ scale: 0.94 }],
+  },
+  iconPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 3,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconPillActive: {
+    backgroundColor: '#E6F4F6',
+  },
   tabLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: INACTIVE_COLOR,
   },

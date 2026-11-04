@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, Text } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLanguage } from '@/features/i18n/provider';
 import { PendingBookingCard } from '@/features/booking/pending-booking-card';
