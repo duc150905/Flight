@@ -15,6 +15,8 @@ import {useMockCheckout,type MockCheckout} from './use-mock-checkout';
 import {MockPaymentPanel} from './mock-payment-panel';
 import {PaymentSuccessView} from './payment-success';
 import {BookingManagementPanel} from './booking-management-panel';
+import {useVnpayCheckout,type VnpayCheckout} from './use-vnpay-checkout';
+import {VnpayPaymentPanel} from './vnpay-payment-panel';
 
 export function PendingBookingScreen({receipt=false}:{receipt?:boolean}={}) {
   const { id } = useLocalSearchParams<{ id: string }>(); const { session, status } = useAuth(); const { t } = useLanguage();
@@ -29,7 +31,9 @@ export function PendingBookingScreen({receipt=false}:{receipt?:boolean}={}) {
       return { booking, receivedAt };
     } });
   const refetch = query.refetch; const expiredCheck = useRef<number | null>(null);
-  const mock=useMockCheckout(id,enabled,()=>{void refetch();});
+  const gateway=useVnpayCheckout(id,enabled,()=>{void refetch();});
+  const useGateway=gateway.state?.provider!=='mock';
+  const mock=useMockCheckout(id,enabled&&!useGateway,()=>{void refetch();});
   const syncMock=mock.sync;
   useFocusEffect(useCallback(() => { if (enabled) void refetch(); }, [enabled, refetch]));
   useEffect(() => {
@@ -51,24 +55,24 @@ export function PendingBookingScreen({receipt=false}:{receipt?:boolean}={}) {
   if (!data) return <CheckoutShell title="Payment" step={4} back={() => router.replace('/tickets')}>
     {query.isFetching ? <ActivityIndicator accessibilityLabel={t('Loading')} /> : <><CheckoutError message={query.error?.message ?? 'booking.loadError'} /><CheckoutButton title="Retry" onPress={() => { void refetch(); }} /></>}
   </CheckoutShell>;
-  const booking=withLatestReceipt(data.booking,mock.state?.booking);
+  const booking=withLatestReceipt(data.booking,useGateway?gateway.state?.booking:mock.state?.booking);
   if(booking.status==='confirmed'&&!demoTicketReady(booking))return <CheckoutShell title="mock.demoTicket" back={()=>router.replace('/tickets')}><CheckoutText message="mock.refreshTicket"/><CheckoutButton title="Refresh booking" onPress={()=>{void refetch();}}/></CheckoutShell>;
   if(receipt&&booking.status!=='confirmed')return <CheckoutShell title="mock.demoTicket" back={()=>router.replace('/tickets')}><CheckoutError message="mock.state"/><CheckoutButton title="mock.details" onPress={()=>router.replace({pathname:'/pending/[id]',params:{id:booking.id}})}/></CheckoutShell>;
-  if(booking.status==='confirmed'&&!receipt)return <PaymentSuccessView booking={booking}/>;
-  return <PendingBookingView booking={booking} mock={mock} receipt={receipt} seconds={seconds} refreshing={query.isFetching} error={query.error?.message} refresh={() => { void refetch();mock.refresh(); }} />;
+  if(booking.status==='confirmed'&&!receipt)return <PaymentSuccessView booking={booking} gateway={useGateway}/>;
+  return <PendingBookingView booking={booking} mock={useGateway?undefined:mock} gateway={useGateway?gateway:undefined} receipt={receipt} seconds={seconds} refreshing={query.isFetching} error={query.error?.message} refresh={() => { void refetch();void gateway.sync();mock.refresh(); }} />;
 }
 
 /** Pure PDF-based presentation, also used for visual QA with synthetic data. */
-export function PendingBookingView({ booking, seconds, refreshing = false, error, refresh,mock,receipt=false }: {
-  booking: PendingBooking; seconds: number; refreshing?: boolean; error?: string; refresh(): void;mock?:MockCheckout;receipt?:boolean;
+export function PendingBookingView({ booking, seconds, refreshing = false, error, refresh,mock,gateway,receipt=false }: {
+  booking: PendingBooking; seconds: number; refreshing?: boolean; error?: string; refresh(): void;mock?:MockCheckout;gateway?:VnpayCheckout;receipt?:boolean;
 }) {
   const { t, language } = useLanguage(); const c = useCheckoutColors();
   const active = booking.status === 'pending_payment' && seconds > 0;
   const clock = `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
   return <CheckoutShell title={receipt?'mock.demoTicket':'Payment'} step={4} back={() => router.replace('/tickets')}
-    savedTotal={{ amount: booking.total, count: booking.passengers.length,caption:'mock.noMoney' }}
-    footer={{ title: active ? mock?.busy?'mock.processing':'mock.pay' : 'View booking details', disabled: active&&(!mock?.state||mock.busy||!!mock.error||mock.state.booking.status!=='pending_payment'),
-      onPress: () => active?void mock?.pay():router.replace({ pathname: '/tickets/[id]', params: { id: booking.id } }) }}>
+    savedTotal={{ amount: booking.total, count: booking.passengers.length,caption:gateway?'payment.sandbox':'mock.noMoney' }}
+    footer={{ title: active ? gateway?'payment.pay':mock?.busy?'mock.processing':'mock.pay' : 'View booking details', disabled: active&&(gateway?(!gateway.state||gateway.busy||!!gateway.error||gateway.state.booking.status!=='pending_payment'):(!mock?.state||mock.busy||!!mock.error||mock.state.booking.status!=='pending_payment')),
+      onPress: () => active?void (gateway?gateway.pay():mock?.pay()):router.replace({ pathname: '/tickets/[id]', params: { id: booking.id } }) }}>
     <View style={[styles.notice, { backgroundColor: c.tint }]}>
       {receipt&&<CheckoutText muted message="mock.notBoardingPass"/>}
       <CheckoutText title>{t(bookingStatusLabel(booking.status))}</CheckoutText>
@@ -83,7 +87,7 @@ export function PendingBookingView({ booking, seconds, refreshing = false, error
     </View>
     {!receipt&&<CheckoutCard>
       <CheckoutText title message="Payment method" />
-      {mock?<MockPaymentPanel mock={mock}/>:<CheckoutText muted message="mock.noMoney"/>}
+      {gateway?<VnpayPaymentPanel gateway={gateway}/>:mock?<MockPaymentPanel mock={mock}/>:<CheckoutText muted message="mock.noMoney"/>}
     </CheckoutCard>}
     <CheckoutCard><CheckoutText title message="Your flights" />
       {booking.segments.map(segment => <View key={segment.id} style={styles.group}>
