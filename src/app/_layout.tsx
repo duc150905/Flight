@@ -15,7 +15,20 @@ function AppLayout() {
   return (
     <View style={styles.root}>
       <View style={styles.content}>
-        <Stack screenOptions={{ headerShown: false }} />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            animation: 'fade',
+            animationDuration: 180,
+          }}
+        >
+          <Stack.Screen name="index" options={{ animation: 'fade' }} />
+          <Stack.Screen name="account" options={{ animation: 'fade' }} />
+          <Stack.Screen name="tickets" options={{ animation: 'fade' }} />
+          <Stack.Screen name="results" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="itinerary-results" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="flights/[id]" options={{ animation: 'slide_from_bottom' }} />
+        </Stack>
       </View>
       {!hideFooter && <BottomTabBar />}
     </View>

@@ -1,10 +1,12 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useStore } from 'zustand';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import {
   ActivityIndicator,
+  Animated,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -49,6 +51,26 @@ export function HomeScreen() {
   const [initialDestinationId, setInitialDestinationId] = useState('');
   const [aiChatOpen, setAiChatOpen] = useState(false);
 
+  const [fadeAnim] = useState(() => new Animated.Value(1));
+  const [slideAnim] = useState(() => new Animated.Value(0));
+
+  useEffect(() => {
+    fadeAnim.setValue(0.2);
+    slideAnim.setValue(12);
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+    ]).start();
+  }, [searchOpen, fadeAnim, slideAnim]);
+
   useFocusEffect(
     useCallback(() => {
       if (consumeOpenSearch() || params.search === '1' || params.search === 'true') {
@@ -60,12 +82,24 @@ export function HomeScreen() {
 
   const destinationCardWidth = isDesktop ? '23.4%' : isTablet ? '31.4%' : '47.5%';
 
-  if (searchOpen) return <SearchFlow airports={airports} loading={airportsQuery.isPending}
-    error={airportsQuery.isError} onRetry={() => void airportsQuery.refetch()}
-    onClose={closeSearch} initialDestinationId={initialDestinationId} />;
+  if (searchOpen) {
+    return (
+      <Animated.View style={{ flex: 1, opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+        <SearchFlow
+          airports={airports}
+          loading={airportsQuery.isPending}
+          error={airportsQuery.isError}
+          onRetry={() => void airportsQuery.refetch()}
+          onClose={closeSearch}
+          initialDestinationId={initialDestinationId}
+        />
+      </Animated.View>
+    );
+  }
 
   return (
-    <SafeAreaView style={home.safe} edges={['top', 'left', 'right']}>
+    <Animated.View style={{ flex: 1, opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+      <SafeAreaView style={home.safe} edges={['top', 'left', 'right']}>
       {/* Pinned Top Header */}
       <View style={[home.stickyHeaderWrapper, isDesktop && home.headerWrapperDesktop]}>
         <View style={[home.header, isDesktop && home.headerDesktop]}>
@@ -199,7 +233,8 @@ export function HomeScreen() {
         airports={airports}
       />
     </SafeAreaView>
-  );
+  </Animated.View>
+);
 }
 
 function DestinationCard({
