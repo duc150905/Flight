@@ -522,3 +522,6 @@ Task hiện tại của tôi: [chỉ đọc và tóm tắt / ghi rõ task đư�
 Khi làm task được giao, kiểm tra consumer của type/RPC chung, giữ phần của người
 khác, cập nhật tài liệu và báo kết quả kiểm tra cùng các giới hạn còn lại.
 ```
+# VNPAY sandbox addition (2026-11-04)
+
+Feature branch codex/vnpay-sandbox adds provider-aware server settlement/refunds, worker reconciliation and confirmation-email outbox. See VNPAY-SANDBOX.md and ANDROID-VNPAY-ACCEPTANCE.md. Backend is deployed to flight-dev; full gateway/device acceptance is pending. Secret values stay outside Git and outside the app. Existing mock orders remain mock; new orders on this branch use VNPAY. Do not mark unknown payment/refund outcomes successful from the client.

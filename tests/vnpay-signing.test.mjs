@@ -17,6 +17,11 @@ test('checkout URL stays on sandbox and signs server-provided fields',async()=>{
  const url=new URL(await createPayUrl({ref:'b'.repeat(32),amount:10000,created:'20261104120000',expires:'20261104121000',ip:'127.0.0.1',locale:'vn'},{secret,tmnCode,returnUrl}));
  assert.equal(url.origin,'https://sandbox.vnpayment.vn');assert.equal(url.searchParams.get('vnp_ReturnUrl'),returnUrl);assert.equal(url.searchParams.get('vnp_Amount'),'1000000');
 });
+test('signed nonterminal IPN stays waiting instead of failing the attempt',async()=>{
+ const fields={vnp_TmnCode:tmnCode,vnp_TxnRef:'a'.repeat(32),vnp_Amount:'1000000',vnp_ResponseCode:'00',vnp_TransactionStatus:'01'};
+ const hash=createHmac('sha512',secret).update(canonicalPay(fields)).digest('hex');
+ assert.equal((await verifyPayCallback(new URLSearchParams({...fields,vnp_SecureHash:hash}),{secret,tmnCode})).outcome,'waiting');
+});
 test('refund signing uses documented pipe order and response verification authenticates response',async()=>{
  const f={vnp_RequestId:'r',vnp_Version:'2.1.0',vnp_Command:'refund',vnp_TmnCode:tmnCode,vnp_TransactionType:'03',vnp_TxnRef:'t',vnp_Amount:'100',vnp_TransactionNo:'1',vnp_TransactionDate:'d',vnp_CreateBy:'Flyora',vnp_CreateDate:'c',vnp_IpAddr:'ip',vnp_OrderInfo:'refund'};
  assert.equal(await signGatewayRequest('refund',f,secret),createHmac('sha512',secret).update('r|2.1.0|refund|TEST1234|03|t|100|1|d|Flyora|c|ip|refund').digest('hex'));

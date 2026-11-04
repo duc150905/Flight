@@ -20,7 +20,8 @@ export async function verifyPayCallback(params:URLSearchParams,config:Pick<Confi
  const amount=Number(fields.vnp_Amount)/100;if(!Number.isSafeInteger(amount)||amount<=0)throw Error('payment.amount');
  const success=fields.vnp_ResponseCode==='00'&&fields.vnp_TransactionStatus==='00';
  if(success&&(!/^[1-9]\d{0,14}$/.test(fields.vnp_TransactionNo??'')||!/^\d{14}$/.test(fields.vnp_PayDate??'')))throw Error('payment.invalid');
- return {ref:fields.vnp_TxnRef,amount,success,transactionNo:fields.vnp_TransactionNo??'',payDate:fields.vnp_PayDate??'',code:fields.vnp_ResponseCode,status:fields.vnp_TransactionStatus};
+ const outcome=success?'succeeded':fields.vnp_TransactionStatus==='02'||fields.vnp_ResponseCode==='24'?'failed':'waiting';
+ return {ref:fields.vnp_TxnRef,amount,success,outcome,transactionNo:fields.vnp_TransactionNo??'',payDate:fields.vnp_PayDate??'',code:fields.vnp_ResponseCode,status:fields.vnp_TransactionStatus};
 }
 const base=['vnp_RequestId','vnp_Version','vnp_Command','vnp_TmnCode'];
 const query=['vnp_TxnRef','vnp_TransactionDate','vnp_CreateDate','vnp_IpAddr','vnp_OrderInfo'];

@@ -8,16 +8,15 @@ import {AppState} from 'react-native';
 import {useAuth} from '../auth/auth-provider';
 import {useLanguage} from '../i18n/provider';
 import {createOwnerRpcClient} from './owner-rpc';
-import {parseMockState} from './mock-payment';
 import {createStepRequestGuard} from './step-request';
-import {safeCheckoutUrl} from './vnpay-payment';
+import {safeCheckoutUrl,parseGatewayState} from './vnpay-payment';
 export function useVnpayCheckout(bookingId:string,enabled:boolean,changed:()=>void){
  const {session}=useAuth();const {language}=useLanguage();const [busy,setBusy]=useState(false),[error,setError]=useState('');const lock=useRef(false),focused=useRef(false);const [guard]=useState(createStepRequestGuard);
  const ownerId=session?.user.id;
  const client=()=>{if(!session)throw Error('payment.auth');return createOwnerRpcClient({url:process.env.EXPO_PUBLIC_SUPABASE_URL!,key:process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,accessToken:session.access_token});};
  const query=useQuery({queryKey:['gateway-payment',ownerId,bookingId],enabled,retry:false,staleTime:0,gcTime:0,queryFn:async()=>{
   const {data,error:failure}=await client().rpc('get_payment_state',{p_booking_id:bookingId});if(failure)throw Error('payment.unavailable');
-  const raw=data as {provider?:string;settlement?:string;refundState?:string};return {...parseMockState(data),provider:raw.provider??null,settlement:raw.settlement??null,refundState:raw.refundState??null};
+  return parseGatewayState(data);
  }});
  const refetch=query.refetch;
  useFocusEffect(useCallback(()=>{focused.current=true;if(enabled&&ownerId)void refetch();return()=>{focused.current=false;guard.cancel();};},[enabled,ownerId,refetch,guard]));

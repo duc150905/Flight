@@ -9,6 +9,7 @@ export function VnpayManagementPanel({gateway}:{gateway:VnpayCheckout}){
    <CheckoutButton title="payment.cancel" secondary disabled={gateway.busy} onPress={()=>setConsent({fee:policy.fee,refund:policy.refundAmount})}/></>}
   {s?.booking.status==='confirmed'&&!policy?.allowed&&<CheckoutText muted message={`mock.policy.${policy?.reason??'state'}`}/>}
   {s?.refundState&&<CheckoutText>{t('payment.refundState')}: {t(`payment.refund.${s.refundState}`)}</CheckoutText>}
+  {s?.refundJobs.map(job=><View key={job.id}><MoneyText amount={job.amount}/><CheckoutText message={`payment.refund.${job.state}`}/></View>)}
   {s?.refundState==='ready'&&<CheckoutButton title="payment.refund" disabled={gateway.busy} onPress={()=>{void gateway.refund();}}/>}
   {s?.settlement==='compensation'&&<CheckoutText message="payment.compensation"/>}
   <CheckoutButton title="payment.refresh" secondary disabled={gateway.busy} onPress={()=>{void gateway.reconcile();}}/>
