@@ -1,12 +1,12 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { cacheKeys, cacheTimes } from '@/features/cache/policy';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Notice } from '@/features/auth/ui';
 import { CurrencyRateNote, MoneyText } from '@/features/currency/ui';
 import { useLanguage } from '@/features/i18n/provider';
+import { cacheKeys, cacheTimes } from '@/features/cache/policy';
 import { localeFor } from '@/features/i18n/translate';
 import { searchOneWay } from './data';
 import { cabinLabels, searchSchema, type FlightOffer, type SearchCriteria } from './model';
