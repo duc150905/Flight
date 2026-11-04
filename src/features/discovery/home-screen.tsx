@@ -16,7 +16,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppBrand } from '@/components/app-brand';
 import { useAuth } from '@/features/auth/auth-provider';
 import { Notice } from '@/features/auth/ui';
-import { LanguagePicker, useLanguage } from '@/features/i18n/provider';
+import { FlagLanguagePicker } from '@/features/i18n/flag-language-picker';
+import { useLanguage } from '@/features/i18n/provider';
 import { listAirports, listDestinations } from './data';
 import type { Airport, Destination } from './model';
 import { SearchFlow } from './search-flow';
@@ -29,7 +30,7 @@ const emptyDestinations: Destination[] = [];
 
 export function HomeScreen() {
   const { session } = useAuth();
-  const { t } = useLanguage();
+  const { t, storageError } = useLanguage();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 900;
   const isTablet = width >= 640 && width < 900;
@@ -64,11 +65,11 @@ export function HomeScreen() {
       <View style={[home.stickyHeaderWrapper, isDesktop && home.headerWrapperDesktop]}>
         <View style={[home.header, isDesktop && home.headerDesktop]}>
           <View style={home.heading}>
-            <AppBrand />
+            <AppBrand compact={width < 420} />
             <Text style={home.headingSub}>{t('Hành trình tiếp theo bắt đầu từ đây.')}</Text>
           </View>
           <View style={home.headerActions}>
-            {isDesktop && <LanguagePicker />}
+            <FlagLanguagePicker />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t(session ? 'Tài khoản' : 'Đăng nhập')}
@@ -85,6 +86,7 @@ export function HomeScreen() {
 
       <ScrollView contentContainerStyle={[home.scroll, isDesktop && home.scrollDesktop]}>
         <View style={[home.container, isDesktop && home.containerDesktop]}>
+          {storageError && <Notice text={t('common.languageStorage')} />}
           {/* Search Button / Hero CTA */}
           <Pressable
             accessibilityRole="button"
@@ -109,12 +111,6 @@ export function HomeScreen() {
               </View>
             )}
           </Pressable>
-
-          {!isDesktop && (
-            <View style={home.controls}>
-              <LanguagePicker />
-            </View>
-          )}
 
           {/* Featured Destinations */}
           <View style={home.sectionHeaderRow}>
@@ -287,14 +283,15 @@ const home = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 14,
+    gap: 8,
+    zIndex: 2,
   },
   heading: { flex: 1 },
   headingSub: { color: '#8B95A5', fontSize: 13, marginTop: 4 },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
   },
   avatar: {
     width: 42,
@@ -342,7 +339,6 @@ const home = StyleSheet.create({
     fontWeight: '700',
     fontSize: 14,
   },
-  controls: { width: '100%', gap: 8 },
   sectionHeaderRow: {
     marginTop: 6,
     gap: 4,
