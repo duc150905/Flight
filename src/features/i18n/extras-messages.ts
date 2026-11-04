@@ -5,6 +5,7 @@ export const extrasMessages = {
   'Choose a seat for each flight, or skip paid seat selection.': 'Chọn ghế cho từng chuyến hoặc bỏ qua chọn ghế trả phí.',
   'seats.available': 'Ghế trống', 'seats.selected': 'Đang chọn', 'seats.selectedOther': 'Hành khách khác đang chọn',
   'seats.held': 'Đang được giữ', 'seats.booked': 'Đã đặt', 'seats.blocked': 'Bị chặn',
+  'seats.otherCabin': 'Ngoài hạng vé',
   'seats.infant': 'Em bé không có ghế riêng trên chặng này.',
   'seats.exitRule': 'Hàng thoát hiểm: từ 18 tuổi, không đi kèm em bé trên chặng này.',
   'seats.exit': 'Không đủ điều kiện ngồi hàng thoát hiểm.',

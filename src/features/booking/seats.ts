@@ -17,9 +17,9 @@ export function parseSeatMap(input: unknown): MapSeat[] {
   return seats;
 }
 export function seatRows(seats: MapSeat[]) {
-  const max = Math.max(0, ...seats.map(s => s.row_number));
-  return Array.from({ length: max }, (_, i) => ({ row: i + 1,
-    seats: Array.from({ length: 6 }, (_, col) => seats.find(s => s.row_number === i + 1 && s.column_number === col + 1) ?? null) }));
+  const numbers = [...new Set(seats.map(seat => seat.row_number))].sort((a, b) => a - b);
+  return numbers.map(row => ({ row,
+    seats: Array.from({ length: 6 }, (_, col) => seats.find(seat => seat.row_number === row && seat.column_number === col + 1) ?? null) }));
 }
 export function seatEligibility(seat: MapSeat, passenger: CheckoutDraft['passengers'][number], leg: ItineraryLeg,
   passengers: CheckoutDraft['passengers'], choices: CheckoutDraftState['seats']): string | null {

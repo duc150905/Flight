@@ -60,7 +60,9 @@ export function PendingBookingScreen({receipt=false}:{receipt?:boolean}={}) {
   if(booking.status==='confirmed'&&!demoTicketReady(booking))return <CheckoutShell title="mock.demoTicket" back={()=>router.replace('/tickets')}><CheckoutText message="mock.refreshTicket"/><CheckoutButton title="Refresh booking" onPress={()=>{void refetch();}}/></CheckoutShell>;
   if(receipt&&booking.status!=='confirmed')return <CheckoutShell title="mock.demoTicket" back={()=>router.replace('/tickets')}><CheckoutError message="mock.state"/><CheckoutButton title="mock.details" onPress={()=>router.replace({pathname:'/pending/[id]',params:{id:booking.id}})}/></CheckoutShell>;
   if(booking.status==='confirmed'&&!receipt)return <PaymentSuccessView booking={booking} gateway={useGateway}/>;
-  return <PendingBookingView booking={booking} mock={useGateway?undefined:mock} gateway={useGateway?gateway:undefined} receipt={receipt} seconds={seconds} refreshing={query.isFetching} error={query.error?.message} refresh={() => { void refetch();void gateway.sync();mock.refresh(); }} />;
+  return <PendingBookingView booking={booking} mock={useGateway?undefined:mock} gateway={useGateway?gateway:undefined} receipt={receipt} seconds={seconds}
+    refreshing={query.isFetching || (useGateway ? gateway.busy || gateway.checking : mock.busy)} error={query.error?.message}
+    refresh={() => { if(useGateway) void gateway.retry(); else {void refetch();mock.refresh();} }} />;
 }
 
 /** Pure PDF-based presentation, also used for visual QA with synthetic data. */
@@ -72,7 +74,7 @@ export function PendingBookingView({ booking, seconds, refreshing = false, error
   const clock = `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
   return <CheckoutShell title={receipt?'mock.demoTicket':'Payment'} step={4} back={() => router.replace('/tickets')}
     savedTotal={{ amount: booking.total, count: booking.passengers.length,caption:gateway?'payment.sandbox':'mock.noMoney' }}
-    footer={{ title: active ? gateway?'payment.pay':mock?.busy?'mock.processing':'mock.pay' : 'View booking details', disabled: active&&(gateway?(!gateway.state||gateway.busy||!!gateway.error||gateway.state.booking.status!=='pending_payment'):(!mock?.state||mock.busy||!!mock.error||mock.state.booking.status!=='pending_payment')),
+    footer={{ title: active ? gateway?gateway.busy?'mock.processing':'payment.pay':mock?.busy?'mock.processing':'mock.pay' : 'View booking details', disabled: active&&(gateway?(!gateway.state||gateway.busy||gateway.checking||!!gateway.error||gateway.state.booking.status!=='pending_payment'):(!mock?.state||mock.busy||!!mock.error||mock.state.booking.status!=='pending_payment')),
       onPress: () => active?void (gateway?gateway.pay():mock?.pay()):router.replace({ pathname: '/tickets/[id]', params: { id: booking.id } }) }}>
     <View style={[styles.notice, { backgroundColor: c.tint }]}>
       {receipt&&<CheckoutText muted message="mock.notBoardingPass"/>}
@@ -80,11 +82,14 @@ export function PendingBookingView({ booking, seconds, refreshing = false, error
       <CheckoutText>{t('Booking reference')}: {booking.bookingCode}</CheckoutText>
       {active ? <>
         <CheckoutText title>{t('Time remaining')}: {clock}</CheckoutText>
-        <CheckoutText muted message="mock.hold" />
+        <CheckoutText muted message={gateway ? 'payment.hold' : 'mock.hold'} />
       </> : <CheckoutText muted message={booking.status === 'pending_payment' ? 'Checking hold status. Refresh to confirm availability.' : booking.status === 'expired' ? 'Your hold expired. Search again to get current fares and seats.' : 'Open booking details to view the latest status.'} />}
-      {refreshing && <ActivityIndicator accessibilityLabel={t('Refreshing booking')} />}
-      <CheckoutError message={error} />
-      <CheckoutButton title="Refresh booking" secondary disabled={refreshing} onPress={refresh} />
+      {refreshing && <View style={styles.statusCheck}><ActivityIndicator accessibilityLabel={t('payment.checking')} /><CheckoutText muted message="payment.checking" /></View>}
+      <CheckoutError message={error || gateway?.error} />
+      {!refreshing && (error || gateway?.error || gateway?.verificationPaused) && <>
+        {gateway?.verificationPaused && !error && !gateway.error && <CheckoutText muted message="payment.delayed" />}
+        <CheckoutButton title="Retry" variant="text" onPress={refresh} />
+      </>}
     </View>
     {!receipt&&<CheckoutCard>
       <CheckoutText title message="Payment method" />
@@ -126,11 +131,12 @@ export function PendingBookingView({ booking, seconds, refreshing = false, error
       </View>)}
     </CheckoutCard>
     {!active && booking.status === 'expired' && <CheckoutButton title="Search flights again" onPress={() => router.replace('/')} />}
-    {mock&&<BookingManagementPanel mock={mock}/>}
-    {gateway&&<VnpayManagementPanel gateway={gateway}/>}
+    {mock&&<BookingManagementPanel mock={mock} holdActive={active}/>}
+    {gateway&&<VnpayManagementPanel gateway={gateway} holdActive={active}/>}
   </CheckoutShell>;
 }
 const styles = StyleSheet.create({
   notice: { borderRadius: 12, padding: 16, gap: 12 }, method: { flexDirection: 'row', alignItems: 'center', gap: 16, borderWidth: 1, borderRadius: 10, padding: 16 },
   group: { gap: 10 }, price: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12 },
+  statusCheck: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 10 },
 });

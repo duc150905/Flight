@@ -34,8 +34,9 @@ export function ReviewScreen() {
         <CheckoutText>{leg.origin.iata_code} → {leg.destination.iata_code}</CheckoutText>
         <CheckoutText muted>{t(leg.origin.city)} → {t(leg.destination.city)}</CheckoutText>
         <CheckoutText>{leg.flightNumber} · {t(leg.fareName)}</CheckoutText>
-        <CheckoutText muted>{t('Departure')}: {formatTime(language, leg.departureAt, leg.origin.timezone)} ({leg.origin.timezone})</CheckoutText>
-        <CheckoutText muted>{t('Arrival')}: {formatTime(language, leg.arrivalAt, leg.destination.timezone)} ({leg.destination.timezone})</CheckoutText>
+        <CheckoutText muted>{t('Departure')} · {t(leg.origin.city)} ({leg.origin.iata_code}): {formatTime(language, leg.departureAt, leg.origin.timezone)}</CheckoutText>
+        <CheckoutText muted>{t('Arrival')} · {t(leg.destination.city)} ({leg.destination.iata_code}): {formatTime(language, leg.arrivalAt, leg.destination.timezone)}</CheckoutText>
+        <CheckoutText muted message="Times are shown in each airport’s local time." />
       </CheckoutCard>)}
     </CheckoutCard>
     {estimate && <CheckoutCard>
@@ -71,7 +72,6 @@ export function ReviewScreen() {
       </CheckoutCard>)}
       <CheckoutButton title="Edit travellers" secondary onPress={() => router.dismissTo('/checkout/passengers')} />
     </CheckoutCard>
-    <CheckoutText muted message={"Your booking is not confirmed yet. Baggage, seats and payment follow after these details."} />
     {checked && <CheckoutCard><CheckoutText message={"Your traveller details have been checked. You can still edit them before booking."} /></CheckoutCard>}
     <CheckoutButton title={checked ? 'Details checked' : 'Confirm traveller details'} disabled={checked}
       onPress={() => setConfirmed(fingerprint)} />

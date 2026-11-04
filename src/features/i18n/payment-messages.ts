@@ -1,4 +1,12 @@
 export const paymentEnglish={
+ 'payment.hold':'Seats are held until the countdown ends. Complete payment before the hold expires.',
+ 'payment.checking':'Checking the payment status…','payment.waiting':'Waiting for a payment result from VNPAY. The status updates automatically.',
+ 'payment.delayed':'A final result is not available yet. Retry to check again; do not make another payment if your bank has already charged you.',
+ 'payment.unpaidBooking':'Unpaid booking','payment.manageBooking':'Manage booking',
+ 'payment.cancelUnpaid':'Cancel unpaid booking','payment.cancelUnpaidHint':'An unpaid booking can be cancelled without a cancellation fee to release the held seats.',
+ 'payment.cancelPaidHint':'Cancellation applies to every traveller and flight. The saved fare rules determine the fee and refund amount.',
+ 'payment.cancelUnpaidWarning':'Cancel this booking and release the held seats?',
+ 'payment.cancelUnpaidConfirmHint':'The entire booking will be cancelled. If you have already attempted payment, its result will still be checked.',
  'payment.vnpay':'VNPAY Sandbox','payment.sandbox':'Sandbox payment — no real money is charged.','payment.hosted':'Choose an available card or QR method on VNPAY. Booking confirmation is verified by the server.',
  'payment.pay':'Pay with VNPAY','payment.refresh':'Check payment status','payment.unavailable':'Unable to complete this action. Refresh the status before trying again.',
  'payment.status.pending':'Payment is pending.','payment.status.succeeded':'Payment received.','payment.status.failed':'Payment failed. You can try again while the hold is active.','payment.status.cancelled':'Payment cancelled.',
@@ -9,6 +17,14 @@ export const paymentEnglish={
  'payment.cancel':'Cancel booking','payment.cancelConfirm':'Confirm whole-booking cancellation','payment.keep':'Keep booking','payment.fee':'Cancellation fee','payment.cancelWarning':'Cancel the entire booking? Review the fee and refund amount first.'
 };
 export const paymentVietnamese:Record<keyof typeof paymentEnglish,string>={
+ 'payment.hold':'Chỗ được giữ đến khi hết thời gian đếm ngược. Hãy hoàn tất thanh toán trước thời điểm đó.',
+ 'payment.checking':'Đang kiểm tra kết quả thanh toán…','payment.waiting':'Đang chờ kết quả từ VNPAY. Trạng thái sẽ tự cập nhật.',
+ 'payment.delayed':'Chưa có kết quả cuối cùng. Bạn có thể thử kiểm tra lại; không thanh toán thêm nếu ngân hàng đã trừ tiền.',
+ 'payment.unpaidBooking':'Đơn chưa thanh toán','payment.manageBooking':'Quản lý đơn đặt vé',
+ 'payment.cancelUnpaid':'Hủy đơn chưa thanh toán','payment.cancelUnpaidHint':'Đơn chưa thanh toán có thể hủy miễn phí để giải phóng chỗ đang giữ.',
+ 'payment.cancelPaidHint':'Hủy áp dụng cho toàn bộ hành khách và chặng bay. Phí hủy và khoản hoàn tuân theo điều kiện vé đã lưu.',
+ 'payment.cancelUnpaidWarning':'Hủy đơn này và giải phóng chỗ đang giữ?',
+ 'payment.cancelUnpaidConfirmHint':'Toàn bộ đơn sẽ bị hủy. Nếu bạn đã thực hiện thanh toán, kết quả giao dịch vẫn sẽ được kiểm tra.',
  'payment.vnpay':'VNPAY Sandbox','payment.sandbox':'Thanh toán thử nghiệm — không thu tiền thật.','payment.hosted':'Chọn phương thức thẻ hoặc QR được hỗ trợ trên VNPAY. Server sẽ xác minh kết quả đặt vé.',
  'payment.pay':'Thanh toán qua VNPAY','payment.refresh':'Kiểm tra trạng thái thanh toán','payment.unavailable':'Chưa thể hoàn tất thao tác. Hãy kiểm tra trạng thái trước khi thử lại.',
  'payment.status.pending':'Đang chờ thanh toán.','payment.status.succeeded':'Đã nhận thanh toán.','payment.status.failed':'Thanh toán thất bại. Bạn có thể thử lại khi còn thời gian giữ chỗ.','payment.status.cancelled':'Lần thanh toán đã hủy.',
