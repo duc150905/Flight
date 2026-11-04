@@ -9,6 +9,7 @@ import { displayText } from '../i18n/translate';
 import { CurrencyRateNote, MoneyText } from '../currency/ui';
 import { useCheckout } from './checkout-provider';
 import { checkoutEstimate } from './estimate';
+import { clearPendingSelection } from './pending-selection-storage';
 
 const colors = { background: '#FFFFFF', surface: '#FFFFFF', text: '#434A54', muted: '#66717E', primary: '#00B8D0', tint: '#E4F8FB', border: '#C9CDD2', error: '#B42318' };
 export function useCheckoutColors() { return colors; }
@@ -163,7 +164,7 @@ export function CheckoutShell({ title, step, children, back, footer, footerDetai
         <CheckoutText title message={"Discard your details?"} />
         <CheckoutText muted message={"Your contact and traveller information will be cleared."} />
         <CheckoutButton title="Keep editing" onPress={() => setDiscard(false)} />
-        <CheckoutButton title="Discard and leave" secondary onPress={() => { draft.reset(); setDiscard(false); router.replace('/'); }} />
+        <CheckoutButton title="Discard and leave" secondary onPress={() => { draft.reset(); setDiscard(false); void clearPendingSelection(); router.replace('/'); }} />
       </View></View>
     </Modal>
   </SafeAreaView>;
