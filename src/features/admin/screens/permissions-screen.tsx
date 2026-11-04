@@ -23,6 +23,7 @@ import {
   AdminLoadingState,
   AdminPaginationBar,
   AdminShell,
+  AdminToast,
   adminStyles,
 } from '../ui';
 
@@ -683,7 +684,7 @@ export function AdminPermissionsScreen() {
         <Text style={permStyles.subTagText}>SYSTEM / ACCESS CONTROL</Text>
       </View>
 
-      {!!formSuccess && <Notice text={formSuccess} success />}
+      <AdminToast text={formSuccess} success onClose={() => setFormSuccess('')} />
 
       {/* Top System Security Notice Card (Without MFA) */}
       <View style={permStyles.securityBanner}>
