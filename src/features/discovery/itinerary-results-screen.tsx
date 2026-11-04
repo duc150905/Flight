@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { cacheKeys, cacheTimes } from '@/features/cache/policy';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
@@ -59,9 +60,10 @@ export function ItineraryResultsScreen({ rawSearch }: { rawSearch: unknown }) {
   const activeIndex = selected.length;
   const activeLeg = parsed?.legs[activeIndex];
   const searchQuery = useQuery({
-    queryKey: ['trip-flight-search', rawSearch, activeIndex],
+    queryKey: cacheKeys.itinerarySearch(typeof rawSearch === 'string' ? rawSearch : '', activeIndex),
     queryFn: () => searchOneWay(criteriaForLeg(parsed!, activeIndex)),
     enabled: !!activeLeg,
+    staleTime: cacheTimes.search,
   });
   const offers = searchQuery.data?.offers ?? emptyOffers;
   const previous = selected.at(-1);

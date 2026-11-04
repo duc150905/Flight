@@ -1,5 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { invalidateOwnerTickets } from '@/features/cache/policy';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, StyleSheet, View } from 'react-native';
 import { supabase } from '../../lib/supabase';
@@ -20,6 +21,7 @@ import {VnpayPaymentPanel} from './vnpay-payment-panel';
 import {VnpayManagementPanel} from './vnpay-management-panel';
 
 export function PendingBookingScreen({receipt=false}:{receipt?:boolean}={}) {
+  const queryClient = useQueryClient();
   const { id } = useLocalSearchParams<{ id: string }>(); const { session, status } = useAuth(); const { t } = useLanguage();
   const validId = databaseIdSchema().safeParse(id).success;
   const enabled = !!session && status === 'ready' && validId;
@@ -32,9 +34,13 @@ export function PendingBookingScreen({receipt=false}:{receipt?:boolean}={}) {
       return { booking, receivedAt };
     } });
   const refetch = query.refetch; const expiredCheck = useRef<number | null>(null);
-  const gateway=useVnpayCheckout(id,enabled,()=>{void refetch();});
+  const changed = () => {
+    if (session) void invalidateOwnerTickets(queryClient, session.user.id);
+    void refetch();
+  };
+  const gateway=useVnpayCheckout(id,enabled,changed);
   const useGateway=gateway.state?.provider!=='mock';
-  const mock=useMockCheckout(id,enabled&&!useGateway,()=>{void refetch();});
+  const mock=useMockCheckout(id,enabled&&!useGateway,changed);
   const syncMock=mock.sync;
   useFocusEffect(useCallback(() => { if (enabled) void refetch(); }, [enabled, refetch]));
   useEffect(() => {

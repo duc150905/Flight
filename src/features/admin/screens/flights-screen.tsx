@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { invalidateFlightSearch } from '@/features/cache/policy';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { ActionButton, Notice } from '@/features/auth/ui';
 import { supabase } from '@/lib/supabase';
@@ -1099,6 +1100,7 @@ export function AdminFlightsScreen() {
   const refreshAll = async () => {
     await queryClient.invalidateQueries({ queryKey: ['admin-flights-bundle'] });
     await queryClient.invalidateQueries({ queryKey: ['admin-f09-summary'] });
+    await invalidateFlightSearch(queryClient);
   };
 
   const loadFlightSeats = async (flightId: string) => {

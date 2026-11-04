@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Notice } from '@/features/auth/ui';
 import { CurrencyRateNote, MoneyText } from '@/features/currency/ui';
 import { useLanguage } from '@/features/i18n/provider';
+import { cacheKeys, cacheTimes } from '@/features/cache/policy';
 import { localeFor } from '@/features/i18n/translate';
 import { searchOneWay } from './data';
 import { cabinLabels, searchSchema, type FlightOffer, type SearchCriteria } from './model';
@@ -41,7 +42,8 @@ export function ResultsScreen({ input }: { input: Record<string, string | string
   }, [criteria]);
 
   const searchQuery = useQuery({
-    queryKey: ['flight-search', searchKey], queryFn: () => searchOneWay(criteria), enabled: !!criteria,
+    queryKey: cacheKeys.flightSearch(searchKey), queryFn: () => searchOneWay(criteria), enabled: !!criteria,
+    staleTime: cacheTimes.search,
   });
   const offers = searchQuery.data?.offers ?? emptyOffers;
   const loading = searchQuery.isPending && !!criteria;

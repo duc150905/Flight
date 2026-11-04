@@ -1,19 +1,18 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/features/auth/auth-provider';
 import { ActionButton } from '@/features/auth/ui';
+import { cacheKeys, cacheTimes } from '@/features/cache/policy';
 import { useLanguage } from '@/features/i18n/provider';
 import type { Language } from '@/features/i18n/language';
 import { supabase } from '@/lib/supabase';
-import { createTicketService, ticketErrorMessage, type TicketDetails } from './model';
+import { createTicketService, ticketErrorMessage } from './model';
 import { bookingStatusLabel, cabinClassLabel, flightSnapshotSummary, formatDateTime, formatMoney, tripTypeLabel } from './presentation';
 import { TicketBack, TicketState, ticketStyles } from './ui';
 
-type DetailState = { ownerId: string; bookingId: string; status: 'loading' | 'ready' | 'error';
-  details: TicketDetails | null; error: string };
 const service = supabase ? createTicketService(supabase) : null;
 
 export function TicketDetailScreen() {
@@ -22,24 +21,12 @@ export function TicketDetailScreen() {
   const bookingId = typeof params.id === 'string' ? params.id : '';
   const { session, status, error: authError, retry: retryAuth } = useAuth();
   const userId = session?.user.id ?? '';
-  const [attempt, setAttempt] = useState(0);
-  const [state, setState] = useState<DetailState>({ ownerId: '', bookingId: '', status: 'loading', details: null, error: '' });
-  useEffect(() => {
-    let active = true;
-    if (!service || !userId || !bookingId || status !== 'ready') return;
-    service.details(userId, bookingId).then(details => {
-      if (active) setState({ ownerId: userId, bookingId, status: 'ready', details, error: '' });
-    }).catch(error => {
-      if (active) setState({ ownerId: userId, bookingId, status: 'error', details: null, error: ticketErrorMessage(error) });
-    });
-    return () => { active = false; };
-  }, [userId, bookingId, status, attempt]);
-  const reload = () => {
-    setState({ ownerId: userId, bookingId, status: 'loading', details: null, error: '' });
-    setAttempt(value => value + 1);
-  };
-  const current = state.ownerId === userId && state.bookingId === bookingId
-    ? state : { status: 'loading' as const, details: null, error: '' };
+  const query = useQuery({
+    queryKey: cacheKeys.ticketDetail(userId, bookingId),
+    queryFn: () => service!.details(userId, bookingId),
+    enabled: !!service && !!userId && !!bookingId && status === 'ready',
+    staleTime: cacheTimes.ticket,
+  });
 
   if (status === 'loading') return <TicketState title={t('Chi tiết đơn vé')} description={t('Đang kiểm tra phiên đăng nhập…')} loading />;
   if (status === 'error') return <TicketState title={t('Chi tiết đơn vé')} description={t(authError ?? 'Không thể khôi phục phiên.')}
@@ -48,13 +35,13 @@ export function TicketDetailScreen() {
     action={t('Về đăng nhập')} onAction={() => router.replace('/account')} />;
   if (!service || !bookingId) return <TicketState title={t('Chi tiết đơn vé')} description={t('Đường dẫn đơn vé không hợp lệ.')}
     action={t('Về danh sách')} onAction={() => router.replace('/tickets')} />;
-  if (current.status === 'loading') return <TicketState title={t('Chi tiết đơn vé')} description={t('Đang tải đơn vé…')} loading />;
-  if (current.status === 'error' || !current.details) return <TicketState title={t('Chi tiết đơn vé')}
-    description={t(current.error || 'Không thể tải đơn vé.')} action={t('Thử lại')} onAction={reload}>
+  if (query.isPending) return <TicketState title={t('Chi tiết đơn vé')} description={t('Đang tải đơn vé…')} loading />;
+  if (!query.data) return <TicketState title={t('Chi tiết đơn vé')}
+    description={t(ticketErrorMessage(query.error))} action={t('Thử lại')} onAction={() => void query.refetch()}>
     <ActionButton title={t('Về danh sách')} secondary onPress={() => router.replace('/tickets')} />
   </TicketState>;
 
-  const { booking, segments, passengers } = current.details;
+  const { booking, segments, passengers } = query.data;
   const date = (value: string) => formatDateTime(value, null, language);
   const money = (amount: number) => formatMoney(amount, booking.currency, language);
   return <SafeAreaView style={ticketStyles.safe}>
