@@ -5,7 +5,7 @@ import { bookingContactSchema, type BookingContactInput } from './contact.ts';
 import { createBookingPassengerSchema, type PassengerDetailsInput } from './passenger.ts';
 import type { CheckoutItinerary } from './itinerary-data.ts';
 import { selectedItinerarySchema } from './selection.ts';
-import type { BaggageChoice, BaggageOffer, SeatChoice } from './baggage.ts';
+import type { BaggageChoice, BaggageOffer, MealChoice, SeatChoice } from './baggage.ts';
 import { seatEligibility, type MapSeat } from './seats.ts';
 
 export type CheckoutDraft = {
@@ -15,9 +15,11 @@ export type CheckoutDraft = {
 
 export type CheckoutDraftState = CheckoutDraft & {
   baggage: BaggageChoice[];
+  meals: MealChoice[];
   seats: SeatChoice[];
   revision: number;
   setBaggage: (passengerId: string, flightId: string, offer: BaggageOffer | null) => void;
+  setMeal: (passengerId: string, flightId: string, meal: { id: string; name: string; description?: string | null } | null) => void;
   setSeat: (passengerId: string, flightId: string, seat: MapSeat | null) => void;
   itinerary: CheckoutItinerary | null;
   beginCheckout: (itinerary: CheckoutItinerary) => void;
@@ -36,7 +38,7 @@ export function createCheckoutDraftStore() {
     itinerary: null,
     contact: emptyContact(),
     passengers: [],
-    baggage: [], seats: [], revision: 0,
+    baggage: [], meals: [], seats: [], revision: 0,
     setSeat: (passengerId, flightId, seat) => {
       const state = get(); const passenger = state.passengers.find(p => p.id === passengerId);
       const leg = state.itinerary?.legs.find(l => l.flightId === flightId);
@@ -45,6 +47,18 @@ export function createCheckoutDraftStore() {
       const remaining = state.seats.filter(s => s.passengerId !== passengerId || s.flightId !== flightId);
       set({ seats: seat ? [...remaining, { passengerId, flightId, seatId: seat.flight_seat_id, seatCode: seat.seat_code,
         amount: seat.selection_fee_amount, currency: seat.currency }] : remaining, revision: state.revision + 1 });
+    },
+    setMeal: (passengerId, flightId, meal) => {
+      const state = get();
+      if (!state.passengers.some(p => p.id === passengerId) || !state.itinerary?.legs.some(l => l.flightId === flightId)) {
+        throw new Error('extras.invalid');
+      }
+      const currentMeals = state.meals ?? [];
+      const remaining = currentMeals.filter(m => m.passengerId !== passengerId || m.flightId !== flightId);
+      set({
+        meals: meal ? [...remaining, { passengerId, flightId, offerId: meal.id, name: meal.name, description: meal.description }] : remaining,
+        revision: state.revision + 1,
+      });
     },
     setBaggage: (passengerId, flightId, offer) => {
       const state = get();
@@ -65,7 +79,7 @@ export function createCheckoutDraftStore() {
         return Array.from({ length: count }, (_, i) => ({ id: `${type}-${i + 1}`,
           values: { givenNames: '', familyName: '', dateOfBirth: '' } }));
       });
-      set({ itinerary: snapshot, contact: emptyContact(), passengers, baggage: [], seats: [], revision: get().revision + 1 });
+      set({ itinerary: snapshot, contact: emptyContact(), passengers, baggage: [], meals: [], seats: [], revision: get().revision + 1 });
     },
     finish: () => get().reset(),
     updateContact: patch => set(({ contact }) => ({
@@ -95,9 +109,9 @@ export function createCheckoutDraftStore() {
           : [...passengers, updated] };
       });
     },
-    removePassenger: id => set(({ passengers, baggage, revision }) => ({ passengers: passengers.filter(passenger => passenger.id !== id),
-      baggage: baggage.filter(b => b.passengerId !== id), seats: [], revision: revision + 1 })),
-    reset: () => set({ itinerary: null, contact: emptyContact(), passengers: [], baggage: [], seats: [], revision: get().revision + 1 }),
+    removePassenger: id => set(({ passengers, baggage, meals, revision }) => ({ passengers: passengers.filter(passenger => passenger.id !== id),
+      baggage: baggage.filter(b => b.passengerId !== id), meals: (meals ?? []).filter(m => m.passengerId !== id), seats: [], revision: revision + 1 })),
+    reset: () => set({ itinerary: null, contact: emptyContact(), passengers: [], baggage: [], meals: [], seats: [], revision: get().revision + 1 }),
   }));
 }
 

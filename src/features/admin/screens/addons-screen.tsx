@@ -20,6 +20,7 @@ import {
   AdminShell,
   AdminStatusBadge,
   AdminTextField,
+  AdminToast,
   adminStyles,
 } from '../ui';
 
@@ -283,8 +284,6 @@ export function AdminAddonsScreen() {
     getIsActive: (item) => item.is_active,
   });
 
-  const displayError =
-    error || (addonsQuery.isError ? formatAdminError(addonsQuery.error, language) : null);
 
   return (
     <AdminShell
@@ -322,9 +321,12 @@ export function AdminAddonsScreen() {
         </Pressable>
       </View>
 
-      {!!displayError && (
+      <AdminToast text={info} success onClose={() => setInfo(null)} />
+      <AdminToast text={error} error onClose={() => setError(null)} />
+
+      {addonsQuery.isError && !error && (
         <View style={adminStyles.card}>
-          <Notice text={displayError} />
+          <Notice text={formatAdminError(addonsQuery.error, language)} />
           <Pressable
             accessibilityRole="button"
             onPress={() => void addonsQuery.refetch()}
@@ -334,7 +336,6 @@ export function AdminAddonsScreen() {
           </Pressable>
         </View>
       )}
-      {!!info && <Notice text={info} success />}
 
       <AdminSearchFilterBar
         query={query}
