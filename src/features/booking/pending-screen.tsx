@@ -17,6 +17,7 @@ import {PaymentSuccessView} from './payment-success';
 import {BookingManagementPanel} from './booking-management-panel';
 import {useVnpayCheckout,type VnpayCheckout} from './use-vnpay-checkout';
 import {VnpayPaymentPanel} from './vnpay-payment-panel';
+import {VnpayManagementPanel} from './vnpay-management-panel';
 
 export function PendingBookingScreen({receipt=false}:{receipt?:boolean}={}) {
   const { id } = useLocalSearchParams<{ id: string }>(); const { session, status } = useAuth(); const { t } = useLanguage();
@@ -126,6 +127,7 @@ export function PendingBookingView({ booking, seconds, refreshing = false, error
     </CheckoutCard>
     {!active && booking.status === 'expired' && <CheckoutButton title="Search flights again" onPress={() => router.replace('/')} />}
     {mock&&<BookingManagementPanel mock={mock}/>}
+    {gateway&&<VnpayManagementPanel gateway={gateway}/>}
   </CheckoutShell>;
 }
 const styles = StyleSheet.create({
