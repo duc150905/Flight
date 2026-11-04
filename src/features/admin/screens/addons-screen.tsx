@@ -91,6 +91,7 @@ export function AdminAddonsScreen() {
   const refreshAll = async () => {
     await queryClient.invalidateQueries({ queryKey: ['admin-addons-bundle'] });
     await queryClient.invalidateQueries({ queryKey: ['admin-f09-summary'] });
+    await queryClient.invalidateQueries({ queryKey: ['checkout-baggage'] });
   };
 
   const switchTab = (next: AddonTab) => {

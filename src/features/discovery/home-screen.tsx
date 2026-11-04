@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useStore } from 'zustand';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
+import { cacheKeys, cacheTimes } from '@/features/cache/policy';
 import {
   ActivityIndicator,
   Pressable,
@@ -39,8 +40,10 @@ export function HomeScreen() {
   const isDesktop = width >= 900;
   const isTablet = width >= 640 && width < 900;
 
-  const airportsQuery = useQuery({ queryKey: ['airports'], queryFn: listAirports });
-  const destinationsQuery = useQuery({ queryKey: ['featured-destinations'], queryFn: listDestinations });
+  const airportsQuery = useQuery({ queryKey: cacheKeys.airports, queryFn: listAirports,
+    staleTime: cacheTimes.catalogue });
+  const destinationsQuery = useQuery({ queryKey: cacheKeys.destinations, queryFn: listDestinations,
+    staleTime: cacheTimes.catalogue });
   const airports = airportsQuery.data ?? emptyAirports;
   const destinations = destinationsQuery.data ?? emptyDestinations;
   const airportById = useMemo(() => new Map(airports.map(airport => [airport.id, airport])), [airports]);

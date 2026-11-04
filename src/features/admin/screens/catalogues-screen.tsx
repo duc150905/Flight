@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { invalidateFlightSearch } from '@/features/cache/policy';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { ActionButton, Notice } from '@/features/auth/ui';
 import { supabase } from '@/lib/supabase';
@@ -140,6 +141,7 @@ export function AdminCataloguesScreen() {
     await queryClient.invalidateQueries({ queryKey: ['admin-f09-summary'] });
     await queryClient.invalidateQueries({ queryKey: ['airports'] });
     await queryClient.invalidateQueries({ queryKey: ['featured-destinations'] });
+    await invalidateFlightSearch(queryClient);
   };
 
   const openAirportEditor = (airport?: AirportRow) => {

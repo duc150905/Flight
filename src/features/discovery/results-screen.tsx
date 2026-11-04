@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { cacheKeys, cacheTimes } from '@/features/cache/policy';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Notice } from '@/features/auth/ui';
@@ -41,7 +42,8 @@ export function ResultsScreen({ input }: { input: Record<string, string | string
   }, [criteria]);
 
   const searchQuery = useQuery({
-    queryKey: ['flight-search', searchKey], queryFn: () => searchOneWay(criteria), enabled: !!criteria,
+    queryKey: cacheKeys.flightSearch(searchKey), queryFn: () => searchOneWay(criteria), enabled: !!criteria,
+    staleTime: cacheTimes.search,
   });
   const offers = searchQuery.data?.offers ?? emptyOffers;
   const loading = searchQuery.isPending && !!criteria;

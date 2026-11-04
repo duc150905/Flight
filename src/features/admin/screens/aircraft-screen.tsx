@@ -217,6 +217,7 @@ export function AdminAircraftScreen() {
   const refreshAll = async () => {
     await queryClient.invalidateQueries({ queryKey: ['admin-aircraft'] });
     await queryClient.invalidateQueries({ queryKey: ['admin-f09-summary'] });
+    await queryClient.invalidateQueries({ queryKey: ['checkout-seat-map'] });
   };
 
   const openAircraftEditor = (ac?: AircraftRow) => {

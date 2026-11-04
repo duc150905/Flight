@@ -123,7 +123,7 @@ function ProfileForm({ userId, profile, onSaved, onBack }: {
     setError('');
     try {
       const updated = await profileService!.save(userId, values);
-      void queryClient.invalidateQueries();
+      void queryClient.invalidateQueries({ queryKey: ['admin-customers-bundle'] });
       onSaved(updated);
     }
     catch (error) { setError(profileErrorMessage(error)); }

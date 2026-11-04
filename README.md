@@ -10,6 +10,7 @@ npm.cmd start
 ```
 
 Xem [hướng dẫn môi trường](docs/SETUP.md) để chạy Android, web, cấu hình Supabase và build APK.
+Xem [chính sách cache](docs/CACHE.md) để biết dữ liệu nào được lưu trên thiết bị, cách làm mới và cách kiểm thử.
 
 ## Công nghệ
 

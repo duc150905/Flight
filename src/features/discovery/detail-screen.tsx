@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
+import { cacheKeys, cacheTimes } from '@/features/cache/policy';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Notice } from '@/features/auth/ui';
@@ -36,8 +37,9 @@ export function DetailScreen({ input }: { input: Record<string, string | string[
   const id = typeof input.id === 'string' ? input.id : '';
   const fareId = typeof input.fareId === 'string' ? input.fareId : '';
   const detailQuery = useQuery({
-    queryKey: ['flight-detail', key], queryFn: () => loadFlightOffer(id, fareId, criteria!),
+    queryKey: cacheKeys.flightDetail(key), queryFn: () => loadFlightOffer(id, fareId, criteria!),
     enabled: !!criteria && !!id && !!fareId,
+    staleTime: cacheTimes.search,
   });
   const offer: FlightOffer | undefined = detailQuery.data;
   const loading = detailQuery.isPending && !!criteria && !!id && !!fareId;
