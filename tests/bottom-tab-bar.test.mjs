@@ -13,6 +13,7 @@ function renderTabs(pathname) {
     'expo-router': { usePathname: () => pathname, router: { canGoBack: () => true, back: () => calls.push('back'), replace: href => calls.push(JSON.parse(JSON.stringify(href))) } },
     zustand: { useStore: () => state },
     'expo-image': { Image: 'Image' },
+    'expo-symbols': { SymbolView: 'SymbolView' },
     'react-native': { Pressable: 'Pressable', Text: 'Text', View: 'View', StyleSheet: { create: value => value } },
     'react-native-safe-area-context': { useSafeAreaInsets: () => ({ bottom: 0 }) },
     '@/features/i18n/provider': { useLanguage: () => ({ t: value => value }) },
