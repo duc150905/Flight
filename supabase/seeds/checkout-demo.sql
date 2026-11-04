@@ -30,12 +30,12 @@ begin
     select id into airport from public.airports where iata_code=r.iata and country_code=r.country and timezone=r.tz and is_active;
     if airport is null then raise exception 'Existing airport % conflicts with demo geography; no records overwritten',r.iata; end if;
   end loop;
-  insert into public.airlines(id,iata_code,name) values(airline,'F0','Flight Checkout Demo') on conflict do nothing;
-  if not exists(select 1 from public.airlines where id=airline and iata_code='F0' and name='Flight Checkout Demo' and is_active) then
+  insert into public.airlines(id,iata_code,name) values(airline,'F0','Flyora Airways') on conflict do nothing;
+  if not exists(select 1 from public.airlines where id=airline and iata_code='F0' and name='Flyora Airways' and is_active) then
     raise exception 'Reserved demo airline conflicts with an existing row'; end if;
   insert into public.aircraft(id,airline_id,registration_code,model_name)
-    values(plane,airline,'DEMO-TV2-24','Demo 24-seat aircraft') on conflict do nothing;
-  if not exists(select 1 from public.aircraft where id=plane and airline_id=airline and registration_code='DEMO-TV2-24' and is_active) then
+    values(plane,airline,'FLY-TV2-24','Flyora Regional 24') on conflict do nothing;
+  if not exists(select 1 from public.aircraft where id=plane and airline_id=airline and registration_code='FLY-TV2-24' and is_active) then
     raise exception 'Reserved demo aircraft conflicts with an existing row'; end if;
   for row_no in 1..4 loop
     for col_no in 1..6 loop
@@ -49,7 +49,7 @@ begin
   for bag in select * from (values ('DEMO_BAG_15',15),('DEMO_BAG_25',25)) as x(code,kg) loop
     product := pg_temp.checkout_demo_id('product:'||bag.code);
     insert into public.addon_products(id,code,name,category,description,weight_kg)
-      values(product,bag.code,'Demo checked baggage '||bag.kg||' kg','baggage','Synthetic checkout test fixture',bag.kg) on conflict do nothing;
+      values(product,bag.code,'Hành lý ký gửi '||bag.kg||' kg','baggage','Hành lý ký gửi mua thêm cho từng hành khách và chặng bay.',bag.kg) on conflict do nothing;
     if not exists(select 1 from public.addon_products p where p.id=product and p.code=bag.code and p.category='baggage' and p.weight_kg=bag.kg and p.is_active) then
       raise exception 'Reserved demo baggage conflicts with an existing row'; end if;
   end loop;
@@ -78,7 +78,7 @@ begin
       insert into public.flight_fares(id,flight_id,fare_code,cabin_class,name,adult_base_amount,child_base_amount,infant_base_amount,
         adult_tax_amount,child_tax_amount,infant_tax_amount,adult_fee_amount,child_fee_amount,infant_fee_amount,
         baggage_allowance,cancellation_allowed,cancellation_fee_amount)
-        values(fare,flight,tier.code,'economy',case when tier.checked_kg=0 then 'Demo Standard' else 'Demo Flex' end,
+        values(fare,flight,tier.code,'economy',case when tier.checked_kg=0 then 'Phổ thông Tiết kiệm' else 'Phổ thông Linh hoạt' end,
           tier.adult,tier.child,tier.infant,180000,120000,20000,70000,50000,10000,
           jsonb_build_object('cabin_pieces',1,'cabin_kg',7,'checked_pieces',case when tier.checked_kg=0 then 0 else 1 end,'checked_kg',tier.checked_kg),
           tier.checked_kg>0,200000) on conflict(id) do nothing;

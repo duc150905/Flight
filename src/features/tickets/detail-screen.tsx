@@ -4,7 +4,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/features/auth/auth-provider';
-import { ActionButton, Notice } from '@/features/auth/ui';
+import { ActionButton } from '@/features/auth/ui';
 import { useLanguage } from '@/features/i18n/provider';
 import type { Language } from '@/features/i18n/language';
 import { supabase } from '@/lib/supabase';
@@ -108,7 +108,7 @@ export function TicketDetailScreen() {
         <Info label={t('Số điện thoại')} value={booking.contact_phone} />
       </View>
       <View style={ticketStyles.card}>
-        <Text style={ticketStyles.cardTitle}>{t('Tổng tiền mô phỏng')}</Text>
+        <Text style={ticketStyles.cardTitle}>{t('quote.total')}</Text>
         <Info label={t('Giá vé')} value={money(booking.base_amount)} />
         <Info label={t('Thuế')} value={money(booking.tax_amount)} />
         <Info label={t('Phí')} value={money(booking.fee_amount)} />
@@ -117,7 +117,6 @@ export function TicketDetailScreen() {
         <View style={ticketStyles.divider} />
         <Info label={t('Tổng cộng')} value={money(booking.total_amount)} />
       </View>
-      <Notice text={t('mock.notBoardingPass')} />
     </ScrollView>
   </SafeAreaView>;
 }

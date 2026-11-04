@@ -22,7 +22,8 @@ export function SeatMapScreen({ flightId }: { flightId?: string }) {
     <CheckoutButton title="Edit travellers" onPress={() => router.dismissTo('/checkout/passengers')} /></CheckoutShell>;
   const passenger = draft.passengers.find(p => p.id === person) ?? draft.passengers[0];
   const choice = draft.seats.find(s => s.flightId === flightId && s.passengerId === passenger.id);
-  const map = query.data?.filter(s => s.cabin_class === leg.cabinClass) ?? [];
+  const map = query.data ?? [];
+  const hasCabinSeats = map.some(seat => seat.cabin_class === leg.cabinClass);
   const infant = classifyPassenger(passenger.values.dateOfBirth.trim(), leg.departureDate) === 'infant';
   const stale = choice && query.data && !seatChoiceCurrent(choice, query.data, draft);
   return <CheckoutShell title="Choose seats" step={3} back={() => router.back()} footer={{ title: 'Done', onPress: () => router.back() }}
@@ -35,14 +36,16 @@ export function SeatMapScreen({ flightId }: { flightId?: string }) {
       const picked = draft.seats.find(s => s.flightId === flightId && s.passengerId === p.id);
       return { id: p.id, text: `${i + 1}. ${p.values.givenNames} · ${picked?.seatCode ?? '—'}` };
     })} />
-    <SeatLegend /><CheckoutText muted message="Seat choices are not held." />
+    <SeatLegend />
+    <CheckoutText muted message="Seats in other cabins are shown for reference and cannot be selected with this fare." />
+    <CheckoutText muted message="Seat choices are not held." />
     <CheckoutText muted message="seats.exitRule" />
     {infant && <CheckoutText message="seats.infant" />}
     {query.isFetching && <ActivityIndicator accessibilityLabel={t('Loading')} />}
     {query.isError && <CheckoutError message={query.error.message} />}
     <CheckoutError message={error || (stale ? 'seats.changed' : undefined)} />
     <CheckoutButton title="Refresh seats" secondary disabled={query.isFetching} onPress={() => { void query.refetch(); }} />
-    {!query.isError && query.data && !map.length && <CheckoutError message="seats.unavailable" />}
+    {!query.isError && query.data && !hasCabinSeats && <CheckoutError message="seats.unavailable" />}
     {!query.isError && map.length > 0 && <SeatGrid map={map} draft={draft} leg={leg} passengerId={passenger.id} busy={query.isFetching} onError={setError} />}
     <CheckoutCard><CheckoutText title>{passenger.values.givenNames} · {choice?.seatCode ?? t('No paid seat selected')}</CheckoutText>
       <MoneyText amount={choice?.amount ?? 0} />

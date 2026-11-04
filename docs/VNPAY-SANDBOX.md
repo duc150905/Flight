@@ -38,7 +38,13 @@ RESEND_API_KEY and BOOKING_EMAIL_FROM are server-only. Retry reuses a frozen sen
 - Hosted PAY readiness passed: valid signed sandbox checkout reaches the test payment-method selection page. Initial HTTP readiness incorrectly dropped the session cookie on redirect; retaining cookies fixed that test harness. A separate real code defect (Postgres inet::text appending /32) was reproduced RED and fixed through a forward migration normalizing host IPs. Config values match the user's email. QueryDR with a nonexistent transaction still returns unsigned99 and is not trusted as a result. User is configuring merchant IPN; actual card/QR payment and refund acceptance remain pending.
 - Physical Android, bank/QR channel availability, actual sandbox refund completion and inbox delivery to a real booking contact remain unchecked. A fresh APK should be built from the final feature commit; do not use old APK8404da7 to test this integration.
 
-## Reproduce checks
+## Refund UI and gateway check, 04 November 2026
+
+Cancelling while `/receipt/[id]` is open now displays readable booking details instead of the stale e-ticket state error. Terminal bookings have no checkout total/payment footer or payment-method card. The refund section shows one card per refund job, a short status, amount, captured cancellation fee, and a completion timestamp when supplied by the server. Verified success is green; unknown/review is amber. Aggregate refund status is not rendered as a duplicate job. Both Vietnamese and English copy are included. Active-screen polling remains bounded to two minutes; after that a read-only status update action is offered. Reopening also reads the current result.
+
+The actual recent sandbox refunds remain unresolved (`unknown`, with the existing `transport_or_validation` code after roughly 15 seconds). A separate read-only QueryDR probe for a real pending refund received HTTP 200 with code 99, without a signature; it could not verify a refund outcome. No refund was resubmitted and no booking/payment/refund rows were manually changed during diagnosis. Full gateway refund completion is still an acceptance item; do not mark these refunds succeeded without verified provider evidence. Computer Use could not verify the current Windows browser URL, so visual browser/Android acceptance remains pending. No new APK was built.
+
+### Reproduce checks
 
 `npm test`, `npm run check`, `npm run build:web`, `npm run build:android`.
 

@@ -13,11 +13,16 @@ import { clearPendingSelection } from './pending-selection-storage';
 
 const colors = { background: '#FFFFFF', surface: '#FFFFFF', text: '#434A54', muted: '#66717E', primary: '#00B8D0', tint: '#E4F8FB', border: '#C9CDD2', error: '#B42318' };
 export function useCheckoutColors() { return colors; }
-export function CheckoutButton({ title, onPress, secondary = false, disabled = false }: { title: string; onPress: () => void; secondary?: boolean; disabled?: boolean }) {
+export function CheckoutButton({ title, onPress, secondary = false, disabled = false, variant = 'filled', tone = 'default' }: {
+  title: string; onPress: () => void; secondary?: boolean; disabled?: boolean;
+  variant?: 'filled' | 'text'; tone?: 'default' | 'danger';
+}) {
   const c = useCheckoutColors(); const { t } = useLanguage();
+  const backgroundColor = variant === 'text' ? 'transparent' : tone === 'danger' ? '#FEECE9' : secondary ? c.tint : c.primary;
+  const color = tone === 'danger' ? c.error : variant === 'text' ? '#006D7D' : '#00414B';
   return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
-    style={({ pressed }) => [checkoutStyles.button, { backgroundColor: secondary ? c.tint : c.primary, opacity: disabled ? 0.5 : pressed ? 0.75 : 1 }]}>
-    <Text style={[checkoutStyles.buttonText, { color: '#00414B' }]}>{t(title)}</Text>
+    style={({ pressed }) => [checkoutStyles.button, { backgroundColor, opacity: disabled ? 0.5 : pressed ? 0.75 : 1 }]}>
+    <Text style={[checkoutStyles.buttonText, { color }]}>{t(title)}</Text>
   </Pressable>;
 }
 export function CheckoutText({ children, message, muted = false, title = false }: PropsWithChildren<{ message?: string; muted?: boolean; title?: boolean }>) {

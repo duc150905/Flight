@@ -19,8 +19,29 @@ test('blocked, held, booked, wrong-cabin, duplicate and under-18 exit seats are 
  assert.equal(seats.seatEligibility({...seat,is_exit_row:true},{id:'adult-1',values:{dateOfBirth:'2009-01-01'}},leg,people,[]),'seats.exit');
 });
 test('map keeps actual positions, rejects duplicate cells/IDs and unsupported geometry',()=>{
- assert.equal(seats.seatRows(seats.parseSeatMap([seat]))[1].seats[0].seat_code,'2A');
+ assert.equal(seats.seatRows(seats.parseSeatMap([seat])).find(row=>row.row===2).seats[0].seat_code,'2A');
  for(const map of [[seat,seat],[{...seat,column_number:7}],[{...seat,selection_fee_amount:-1}]]) assert.throws(()=>seats.parseSeatMap(map));
+});
+
+test('seat rows preserve real row numbers without inventing empty leading or missing rows',()=>{
+ const map=[{...seat,row_number:8,column_number:6,seat_code:'8F'},
+  {...seat,flight_seat_id:f,row_number:6,seat_code:'6A'}];
+ const rows=seats.seatRows(map);
+ assert.deepEqual(rows.map(row=>row.row),[6,8]);
+ assert.equal(rows[0].seats[0].seat_code,'6A');
+ assert.equal(rows[0].seats[5],null);
+ assert.equal(rows[1].seats[5].seat_code,'8F');
+ assert.deepEqual(seats.seatRows([]),[]);
+});
+
+test('front-cabin rows stay in the full map while an economy traveller cannot select them',()=>{
+ const front={...seat,flight_seat_id:f,row_number:1,seat_code:'1A',cabin_class:'business'};
+ const economy={...seat,row_number:6,seat_code:'6A'};
+ const rows=seats.seatRows([economy,front]);
+ assert.deepEqual(rows.map(row=>row.row),[1,6]);
+ assert.equal(rows[0].seats[0].seat_code,'1A');
+ assert.equal(seats.seatEligibility(front,people[0],leg,people,[]),'seats.unavailable');
+ assert.equal(seats.seatEligibility(economy,people[0],leg,people,[]),null);
 });
 test('seat choices cannot overwrite another traveller and clear/reprice correctly',()=>{
  const store=createCheckoutDraftStore();store.getState().beginCheckout({selection:{tripType:'one_way',passengers:{adults:2,children:0,infants:0},segments:[{flightId:f,fareId:g,journeyIndex:1,legIndex:1}]},legs:[leg],international:false});
