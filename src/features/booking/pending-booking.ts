@@ -32,6 +32,12 @@ export function withLatestReceipt(booking:PendingBooking,receipt?:BookingReceipt
 export function demoTicketReady(booking:PendingBooking){
  return booking.status==='confirmed'&&booking.passengerSegments.every(ps=>!ps.requiresSeat||booking.seats.some(s=>s.passengerSegmentId===ps.id&&s.flightId===ps.flightId&&s.status==='confirmed'));
 }
+/** A receipt URL can stay open during cancellation; ended bookings remain readable. */
+export function bookingScreenMode(booking:PendingBooking,receipt=false){
+ if(booking.status!=='confirmed')return 'details';
+ if(!demoTicketReady(booking))return 'refresh-ticket';
+ return receipt?'receipt':'success';
+}
 export function holdSecondsRemaining(booking: { status: string; expiresAt: string; serverNow: string }, elapsedMs: number) {
   return booking.status === 'pending_payment' ? Math.max(0, Math.ceil((Date.parse(booking.expiresAt) - Date.parse(booking.serverNow) - Math.max(0, elapsedMs)) / 1000)) : 0;
 }

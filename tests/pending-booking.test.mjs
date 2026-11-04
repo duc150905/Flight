@@ -4,6 +4,7 @@ import { holdSecondsRemaining, parsePendingBooking,demoTicketReady,withLatestRec
 import { pendingBookingFixture } from './fixtures/pending-booking.mjs';
 import { translate } from '../src/features/i18n/translate.ts';
 import { bookingVietnamese } from '../src/features/i18n/booking-messages.ts';
+import * as pendingPresentation from '../src/features/booking/pending-booking.ts';
 test('countdown starts from server time, clamps expiry, uses elapsed monotonic duration',()=>{
  const booking={status:'pending_payment',expiresAt:'2026-11-03T10:15:00Z',serverNow:'2026-11-03T10:00:00Z'};
  assert.equal(holdSecondsRemaining(booking,0),900);assert.equal(holdSecondsRemaining(booking,120000),780);
@@ -36,4 +37,13 @@ test('an older mock cache cannot turn a freshly expired booking back into pendin
  assert.equal(withLatestReceipt(expired,pendingBookingFixture).status,'expired');
  const confirmed={...pendingBookingFixture,status:'confirmed',serverNow:'2026-11-03T10:17:00Z'};
  assert.equal(withLatestReceipt(expired,confirmed).status,'confirmed');
+});
+
+test('cancelling from an open e-ticket switches to booking details instead of a ticket error',()=>{
+ const booking=structuredClone(pendingBookingFixture);
+ booking.status='confirmed';booking.seats[0].status='confirmed';
+ assert.equal(pendingPresentation.bookingScreenMode(booking,true),'receipt');
+ booking.status='cancelled';booking.seats[0].status='released';
+ assert.equal(pendingPresentation.bookingScreenMode(booking,true),'details');
+ assert.equal(pendingPresentation.bookingScreenMode({...booking,status:'expired'},true),'details');
 });

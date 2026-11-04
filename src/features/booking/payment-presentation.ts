@@ -39,3 +39,26 @@ export async function refreshPaymentRead(read: () => Promise<unknown>, current: 
   await read();
   if (current()) changed();
 }
+
+type RefundState = 'ready' | 'submitted' | 'unknown' | 'processing' | 'succeeded' | 'failed' | 'review';
+type RefundRecord = { id: string; amount: number; status: string; completedAt: string | null };
+type RefundDisplayState = {
+  refundState?: RefundState | null;
+  refundJobs: { id: string; amount: number; state: RefundState }[];
+  refunds: RefundRecord[];
+};
+/** Per-job state takes priority; an aggregate status is never a second refund. */
+export function refundStatusCards(state: RefundDisplayState) {
+  const jobs = state.refundJobs.length ? state.refundJobs : state.refunds.map(refund => ({
+    id: refund.id, amount: refund.amount,
+    state: state.refundState ?? (refund.status === 'succeeded' ? 'succeeded' : refund.status === 'failed' ? 'failed' : 'submitted'),
+  }));
+  return jobs.map(job => ({
+    ...job,
+    titleKey: `refund.status.${job.state}`,
+    hintKey: `refund.hint.${job.state}`,
+    amountKey: job.state === 'succeeded' ? 'refund.amountCompleted' : 'payment.refundDue',
+    tone: job.state === 'succeeded' ? 'success' : ['unknown', 'failed', 'review'].includes(job.state) ? 'attention' : 'waiting',
+    completedAt: job.state === 'succeeded' ? state.refunds.find(refund => refund.id === job.id)?.completedAt ?? null : null,
+  }));
+}
