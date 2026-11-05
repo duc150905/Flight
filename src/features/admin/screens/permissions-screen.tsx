@@ -625,9 +625,15 @@ export function AdminPermissionsScreen() {
                         )}
                       </View>
                       <Text style={permStyles.staffEmail}>{acc.email}</Text>
-                      {!!acc.phone && (
-                        <Text style={permStyles.staffPhone}>📞 {acc.phone}</Text>
-                      )}
+                      <Text style={permStyles.staffPhone}>
+                        📞 {acc.phone?.trim() ? (
+                          acc.phone
+                        ) : (
+                          <Text style={{ fontStyle: 'italic', color: '#94A3B8' }}>
+                            {bi('Chưa cập nhật SĐT', 'No phone')}
+                          </Text>
+                        )}
+                      </Text>
                     </View>
                   </View>
 
@@ -1079,9 +1085,15 @@ export function AdminPermissionsScreen() {
                           </View>
                         </View>
                         <Text style={permStyles.candidateEmail}>{acc.email}</Text>
-                        {!!acc.phone && (
-                          <Text style={permStyles.candidatePhone}>📞 {acc.phone}</Text>
-                        )}
+                        <Text style={permStyles.candidatePhone}>
+                          📞 {acc.phone?.trim() ? (
+                            acc.phone
+                          ) : (
+                            <Text style={{ fontStyle: 'italic', color: '#94A3B8' }}>
+                              {bi('Chưa cập nhật SĐT', 'No phone')}
+                            </Text>
+                          )}
+                        </Text>
                       </View>
 
                       {isAlreadyAdmin ? (

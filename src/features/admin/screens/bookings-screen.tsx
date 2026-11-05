@@ -385,7 +385,13 @@ function AdminBookingsContent({ initialQuery, ownerId, bookingId }: { initialQue
                 </View>
 
                 <Text style={adminStyles.muted}>
-                  📧 {bk.contact_email} · 📞 {bk.contact_phone} · 👥 {paxList.length}{' '}
+                  📧 {bk.contact_email || '—'} · 📞 {bk.contact_phone?.trim() ? (
+                    bk.contact_phone
+                  ) : (
+                    <Text style={{ fontStyle: 'italic', color: '#94A3B8' }}>
+                      {bi('Chưa cập nhật SĐT', 'No phone')}
+                    </Text>
+                  )} · 👥 {paxList.length}{' '}
                   {bi('hành khách', 'passengers')} · ✈ {segList.length}{' '}
                   {bi('chặng bay', 'segments')}
                 </Text>
