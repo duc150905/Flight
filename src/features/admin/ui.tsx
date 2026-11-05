@@ -584,14 +584,18 @@ export function AdminShell({
               keyboardShouldPersistTaps="handled"
             >
               <View style={adminStyles.container}>
-                <View style={adminStyles.headerRow}>
-                  <View style={{ flex: 1, gap: 4 }}>
+                <View style={[adminStyles.headerRow, !isDesktop && adminStyles.headerRowCompact]}>
+                  <View style={[adminStyles.headerCopy, !isDesktop && adminStyles.headerCopyCompact]}>
                     <Text accessibilityRole="header" style={adminStyles.title}>
                       {title}
                     </Text>
                     {!!subtitle && <Text style={adminStyles.subtitle}>{subtitle}</Text>}
                   </View>
-                  {rightAction}
+                  {!!rightAction && (
+                    <View style={!isDesktop && adminStyles.headerActionsCompact}>
+                      {rightAction}
+                    </View>
+                  )}
                 </View>
 
                 {children}
@@ -1805,6 +1809,10 @@ export const adminStyles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 12,
   },
+  headerRowCompact: { flexDirection: 'column', alignItems: 'stretch' },
+  headerCopy: { flex: 1, minWidth: 0, gap: 4 },
+  headerCopyCompact: { flex: 0, width: '100%' },
+  headerActionsCompact: { width: '100%' },
   title: { fontSize: 24, fontWeight: '800', color: consolePalette.heading },
   subtitle: { fontSize: 14, color: consolePalette.subtext, lineHeight: 20 },
   sectionTitle: { fontSize: 17, fontWeight: '700', color: consolePalette.heading },

@@ -27,6 +27,9 @@ test('admin errors explain server catalogue constraints in the selected language
     ['Active fares require unblocked seat inventory in their cabin', /khoang/i, /cabin/],
     ['Deactivate fares before blocking the last unblocked seat in this cabin', /ghế cuối cùng/, /last/],
     ['Meals and insurance are read-only: checkout currently supports baggage only', /hành lý/, /baggage/],
+    ['Insurance is read-only: checkout supports baggage and meals only', /bảo hiểm/i, /insurance/i],
+    ['Cannot change an existing add-on product category', /phân loại/, /category/],
+    ['Cannot change an existing add-on offer category', /phân loại/, /category/],
     ['Use an HTTPS image URL or a known bundled destination path such as destinations/da-nang.jpg', /HTTPS/, /HTTPS/],
   ];
   for (const [message, vi, en] of cases) {
@@ -121,7 +124,7 @@ test('destinationInputSchema validates slug format and airportId', () => {
   );
 });
 
-test('addonProductInputSchema requires baggage weight and rejects checkout-unsupported service authoring', () => {
+test('addonProductInputSchema supports meals without baggage weight and keeps insurance read-only', () => {
   const baggage = addonProductInputSchema.parse({
     code: 'bag_20kg',
     name: 'Hành lý 20kg',
@@ -143,13 +146,16 @@ test('addonProductInputSchema requires baggage weight and rejects checkout-unsup
     /weight_kg > 0/,
   );
 
-  assert.throws(()=>addonProductInputSchema.parse({
+  const meal = addonProductInputSchema.parse({
     code: 'meal_hot',
     name: 'Suất ăn nóng',
     category: 'meal',
     weightKg: null,
-  }),/checked baggage only/);
-  assert.throws(()=>addonProductInputSchema.parse({code:'INS_TEST',name:'Protection',category:'insurance_demo'}),/checked baggage only/);
+  });
+  assert.equal(meal.category, 'meal');
+  assert.equal(meal.code, 'MEAL_HOT');
+  assert.equal(meal.weightKg, null);
+  assert.throws(()=>addonProductInputSchema.parse({code:'INS_TEST',name:'Protection',category:'insurance_demo'}),/baggage and meals only/);
 });
 
 test('flightAddonOfferInputSchema validates flightId, productId, unitAmount, and maxQuantityPerPassenger', () => {
@@ -334,7 +340,16 @@ test('saveAdminAirport, saveAdminAirline, saveAdminDestination, saveAdminAddonPr
     isActive: true,
   });
 
-  assert.equal(calls.length, 5);
+  await saveAdminAddonProduct(mockClient, {
+    id: SAMPLE_UUID_2,
+    code: 'meal_hot',
+    name: 'Suất ăn nóng',
+    category: 'meal',
+    weightKg: 20,
+    isActive: false,
+  });
+
+  assert.equal(calls.length, 6);
   assert.equal(calls[0].table, 'airports');
   assert.equal(calls[0].payload.iata_code, 'DAD');
   assert.equal(calls[1].table, 'airlines');
@@ -345,6 +360,12 @@ test('saveAdminAirport, saveAdminAirline, saveAdminDestination, saveAdminAddonPr
   assert.equal(calls[3].payload.weight_kg, 20);
   assert.equal(calls[4].table, 'flight_addon_offers');
   assert.equal(calls[4].payload.unit_amount, 280000);
+  assert.equal(calls[5].table, 'addon_products');
+  assert.equal(calls[5].op, 'update');
+  assert.equal(calls[5].payload.category, 'meal');
+  assert.equal(calls[5].payload.code, 'MEAL_HOT');
+  assert.equal(calls[5].payload.weight_kg, null);
+  assert.equal(calls[5].payload.is_active, false);
 });
 
 test('booking value remains separate while cash uses actual receipt/refund completion events', () => {

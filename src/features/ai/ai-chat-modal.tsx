@@ -26,13 +26,6 @@ const GREETINGS: Record<'vi' | 'en', string> = {
   en: "Hello! I'm Flyora's AI Assistant. ✨\nWhere would you like to fly, when, and how many passengers? Just tell me and I'll find the best flight options for you!",
 };
 
-const INITIAL_GREETING: ChatMessage = {
-  id: 'greeting',
-  role: 'assistant',
-  text: '',
-  timestamp: 0,
-};
-
 const SUGGESTIONS: Record<'vi' | 'en', string[]> = {
   vi: [
     'Vé khứ hồi Hà Nội đi Đà Nẵng cuối tuần sau cho 2 người',
@@ -284,13 +277,24 @@ export function AiChatModal({
   const currentSuggestions = SUGGESTIONS[language] || SUGGESTIONS.vi;
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={false}
+      onRequestClose={onClose}
+      // Match the modal's origin to the keyboard's screen coordinates. Safe-area
+      // padding below keeps content clear of both Android system bars.
+      statusBarTranslucent={Platform.OS === 'android'}
+      navigationBarTranslucent={Platform.OS === 'android'}
+    >
       <StatusBar barStyle="dark-content" />
       <View style={s.safe}>
         <KeyboardAvoidingView
           style={s.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+          // Android edge-to-edge windows do not resize for the IME. The modal
+          // must avoid it explicitly, just as on iOS (no navigation header).
+          behavior={Platform.OS === 'web' ? undefined : 'padding'}
+          keyboardVerticalOffset={0}
         >
           {/* Header Bar with Safe Top Padding for Notch/Island */}
           <View style={[s.headerContainer, { paddingTop: topInset }]}>
@@ -334,6 +338,7 @@ export function AiChatModal({
             style={s.messageList}
             contentContainerStyle={s.messageContent}
             keyboardShouldPersistTaps="handled"
+            onLayout={() => scrollViewRef.current?.scrollToEnd({ animated: false })}
           >
             {messages.map((msg) => {
               const messageText = msg.id === 'greeting' ? (GREETINGS[language] || GREETINGS.vi) : msg.text;

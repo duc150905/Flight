@@ -17,14 +17,14 @@ export async function loadBaggage(client: SupabaseClient<Database>, itinerary: C
   }
   const baggageOffers: BaggageOffer[] = offers.data.flatMap(o => {
     const product = products.data.find(p => p.id === o.product_id && p.category === 'baggage');
-    return product && o.currency === 'VND' && Number.isSafeInteger(o.unit_amount) && o.unit_amount >= 0
-      && product.weight_kg !== null && product.weight_kg > 0 && o.max_quantity_per_passenger >= 1
+    return product && o.currency === 'VND' && Number.isSafeInteger(o.unit_amount) && o.unit_amount >= 0 && o.max_quantity_per_passenger === 1
+      && product.weight_kg !== null && product.weight_kg > 0
       ? [{ id: o.id, flightId: o.flight_id, name: product.name, weightKg: product.weight_kg, amount: o.unit_amount, currency: 'VND' as const }] : [];
   });
 
   const mealOffers: MealOffer[] = offers.data.flatMap(o => {
     const product = products.data.find(p => p.id === o.product_id && p.category === 'meal');
-    return product && o.currency === 'VND' && Number.isSafeInteger(o.unit_amount) && o.unit_amount >= 0
+    return product && o.currency === 'VND' && Number.isSafeInteger(o.unit_amount) && o.unit_amount >= 0 && o.max_quantity_per_passenger === 1
       ? [{ id: o.id, flightId: o.flight_id, productId: product.id, name: product.name, description: product.description, amount: o.unit_amount, currency: 'VND' as const }] : [];
   });
 

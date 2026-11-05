@@ -31,6 +31,9 @@ import { loadAddonsBundle } from '../catalogue-data';
 type AddonTab = 'products' | 'offers';
 type AddonCategory = 'baggage' | 'meal' | 'insurance_demo';
 
+function supportsCheckoutCategory(category: AddonCategory | undefined) {
+  return category === 'baggage' || category === 'meal';
+}
 
 export function AdminAddonsScreen() {
   const params = useLocalSearchParams<{ q?: string }>();
@@ -83,6 +86,10 @@ function AdminAddonsContent({ initialQuery }: { initialQuery: string }) {
     maxQuantityPerPassenger: '1',
     isActive: true,
   });
+  const editedOffer = offers.find(offer => offer.id === offerForm.id);
+  const editedOfferCategory = products.find(product => product.id === editedOffer?.product_id)?.category;
+  const offerProducts = products.filter(product => supportsCheckoutCategory(product.category)
+    && (!offerForm.id || product.category === editedOfferCategory));
 
   const refreshAll = async () => {
     await queryClient.invalidateQueries({ queryKey: ['admin-addons-bundle'] });
@@ -187,7 +194,7 @@ function AdminAddonsContent({ initialQuery }: { initialQuery: string }) {
     setOfferForm({
       id: null,
       flightId: flights[0]?.id ?? '',
-      productId: products.find(p => p.category === 'baggage')?.id ?? '',
+      productId: products.find(p => supportsCheckoutCategory(p.category))?.id ?? '',
       unitAmount: '280000',
       maxQuantityPerPassenger: '1',
       isActive: true,
@@ -287,8 +294,8 @@ function AdminAddonsContent({ initialQuery }: { initialQuery: string }) {
       activeSection="addons"
       title={bi('Quản lý Hành lý, Suất ăn & Dịch vụ bổ sung', 'Baggage, Meals & Add-on Services')}
       subtitle={bi(
-        'Khách hàng chỉ mua được một gói hành lý / hành khách / chặng. Suất ăn và bảo hiểm chỉ đọc, chưa được bán.',
-        'Checkout supports one baggage choice per traveller per leg. Meals and insurance are read-only and unavailable for sale.',
+        'Mỗi hành khách được chọn tối đa một gói hành lý và một suất ăn cho từng chặng. Bảo hiểm chỉ đọc, chưa được bán.',
+        'Each traveller can select up to one baggage package and one meal per leg. Insurance is read-only and unavailable for sale.',
       )}
       onQuickSearch={(txt) => {
         setQuery(txt);
@@ -358,10 +365,10 @@ function AdminAddonsContent({ initialQuery }: { initialQuery: string }) {
           </Text>
 
           <AdminTextField
-            label={bi('Mã dịch vụ (ví dụ: BAG_20KG, MEAL_HOT)', 'Product Code (e.g., BAG_20KG)')}
+            label={bi('Mã dịch vụ (ví dụ: BAG_20KG, MEAL_HOT)', 'Product Code (e.g., BAG_20KG, MEAL_HOT)')}
             value={productForm.code}
             onChangeText={(text) => setProductForm((s) => ({ ...s, code: text }))}
-            placeholder="BAG_20KG"
+            placeholder={productForm.category === 'meal' ? 'MEAL_HOT' : 'BAG_20KG'}
             autoCapitalize="characters"
           />
 
@@ -369,11 +376,34 @@ function AdminAddonsContent({ initialQuery }: { initialQuery: string }) {
             label={bi('Tên hiển thị', 'Display Name')}
             value={productForm.name}
             onChangeText={(text) => setProductForm((s) => ({ ...s, name: text }))}
-            placeholder="Hành lý ký gửi 20kg"
+            placeholder={productForm.category === 'meal' ? bi('Suất ăn nóng', 'Hot meal') : bi('Hành lý ký gửi 20kg', '20kg checked baggage')}
             autoCapitalize="sentences"
           />
 
-          <Text style={adminStyles.muted}>{bi('Nhóm dịch vụ: Hành lý', 'Service category: Baggage')}</Text>
+          <Text style={adminStyles.label}>{bi('Nhóm dịch vụ', 'Service category')}</Text>
+          {productForm.id ? (
+            <Text style={adminStyles.muted}>
+              {productForm.category === 'meal' ? bi('Suất ăn', 'Meal') : bi('Hành lý', 'Baggage')}
+              {' · '}{bi('Không thể đổi phân loại sau khi tạo sản phẩm.', 'Category cannot be changed after creating a product.')}
+            </Text>
+          ) : (
+            <View style={adminStyles.chipRow}>
+              {(['baggage', 'meal'] as const).map(category => (
+                <Pressable
+                  key={category}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: productForm.category === category }}
+                  disabled={busy}
+                  onPress={() => setProductForm(s => ({ ...s, category }))}
+                  style={[adminStyles.chip, { minHeight: 48, justifyContent: 'center' }, productForm.category === category && adminStyles.chipSelected]}
+                >
+                  <Text style={[adminStyles.chipText, productForm.category === category && adminStyles.chipTextSelected]}>
+                    {category === 'meal' ? bi('Suất ăn', 'Meal') : bi('Hành lý', 'Baggage')}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
 
           {productForm.category === 'baggage' && (
             <AdminTextField
@@ -389,7 +419,7 @@ function AdminAddonsContent({ initialQuery }: { initialQuery: string }) {
             label={bi('Mô tả chi tiết', 'Description')}
             value={productForm.description}
             onChangeText={(text) => setProductForm((s) => ({ ...s, description: text }))}
-            placeholder="Thêm 1 kiện hành lý ký gửi tiêu chuẩn."
+            placeholder={productForm.category === 'meal' ? bi('Mô tả món ăn và thành phần.', 'Describe the meal and ingredients.') : bi('Thêm 1 kiện hành lý ký gửi tiêu chuẩn.', 'One standard checked baggage package.')}
             autoCapitalize="sentences"
           />
 
@@ -436,7 +466,8 @@ function AdminAddonsContent({ initialQuery }: { initialQuery: string }) {
 
           <CataloguePicker items={flights} value={offerForm.flightId} label={bi('Chọn chuyến bay', 'Select Flight')}
             getLabel={fl => `${fl.flight_number} · ${fl.departure_at}`} onSelect={fl => setOfferForm(s => ({ ...s, flightId: fl.id }))} />
-          <CataloguePicker items={products.filter(p => p.category === 'baggage')} value={offerForm.productId} label={bi('Chọn gói hành lý', 'Select Baggage Product')}
+          {offerForm.id && <Text style={adminStyles.muted}>{bi('Chỉ được đổi sang sản phẩm cùng nhóm dịch vụ. Hãy tạo gói bán mới nếu cần đổi nhóm.', 'Choose a product in the same service category. Create a new offer to use another category.')}</Text>}
+          <CataloguePicker items={offerProducts} value={offerForm.productId} label={bi('Chọn gói hành lý hoặc suất ăn', 'Select Baggage or Meal Product')}
             getLabel={pr => `${pr.code} · ${pr.name}`} onSelect={pr => setOfferForm(s => ({ ...s, productId: pr.id }))} />
 
           <View style={adminStyles.rowGap}>
@@ -450,7 +481,7 @@ function AdminAddonsContent({ initialQuery }: { initialQuery: string }) {
             </View>
             <View style={{ flex: 1, minWidth: 160 }}>
               <AdminTextField
-                label={bi('Một gói / hành khách / chặng', 'One choice / traveller / leg')}
+                label={bi('Một lựa chọn / nhóm / khách / chặng', 'One choice / category / traveller / leg')}
                 editable={false}
                 value={offerForm.maxQuantityPerPassenger}
                 onChangeText={(text) =>
@@ -512,12 +543,12 @@ function AdminAddonsContent({ initialQuery }: { initialQuery: string }) {
                   {bi('Phân loại:', 'Category:')} {item.category}
                   {item.weight_kg != null ? ` · ${item.weight_kg} kg` : ''}
                 </Text>
-                {item.category !== 'baggage' && <Notice text={bi('Chỉ đọc · Chưa hỗ trợ bán trong checkout.', 'Read-only · Unavailable in checkout.')} />}
+                {!supportsCheckoutCategory(item.category) && <Notice text={bi('Bảo hiểm chỉ đọc · Chưa hỗ trợ bán trong checkout.', 'Insurance is read-only · Unavailable in checkout.')} />}
                 {!!item.description && <Text style={adminStyles.muted}>{item.description}</Text>}
                 <View style={adminStyles.rowGap}>
                   <Pressable
                     accessibilityRole="button"
-                    disabled={item.category !== 'baggage'}
+                    disabled={busy || !supportsCheckoutCategory(item.category)}
                     onPress={() => openEditProduct(item)}
                     style={adminStyles.secondaryBtnSmall}
                   >
@@ -525,7 +556,7 @@ function AdminAddonsContent({ initialQuery }: { initialQuery: string }) {
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"
-                    disabled={busy || item.category !== 'baggage'}
+                    disabled={busy || !supportsCheckoutCategory(item.category)}
                     onPress={() => void handleToggleProductActive(item)}
                     style={
                       item.is_active ? adminStyles.dangerBtnSmall : adminStyles.primaryBtnSmall
@@ -572,12 +603,12 @@ function AdminAddonsContent({ initialQuery }: { initialQuery: string }) {
                   {bi('Đơn giá:', 'Price:')} {money(offer.unit_amount, offer.currency)} ·{' '}
                   {bi('Tối đa / khách:', 'Max / passenger:')} {offer.max_quantity_per_passenger}
                 </Text>
-                {pr?.category !== 'baggage' && <Notice text={bi('Chỉ đọc · Chưa hỗ trợ bán trong checkout.', 'Read-only · Unavailable in checkout.')} />}
-                {pr?.category === 'baggage' && offer.max_quantity_per_passenger !== 1 && <Text style={adminStyles.muted}>{bi('Checkout chỉ cho chọn một gói. Lưu thay đổi sẽ đặt giới hạn về 1.', 'Checkout allows one choice. Saving changes sets this limit to 1.')}</Text>}
+                {!supportsCheckoutCategory(pr?.category) && <Notice text={bi('Chỉ đọc · Chưa hỗ trợ bán trong checkout.', 'Read-only · Unavailable in checkout.')} />}
+                {supportsCheckoutCategory(pr?.category) && offer.max_quantity_per_passenger !== 1 && <Text style={adminStyles.muted}>{bi('Mỗi nhóm chỉ được chọn một lựa chọn. Lưu thay đổi sẽ đặt giới hạn về 1.', 'Checkout allows one choice per category. Saving changes sets this limit to 1.')}</Text>}
                 <View style={adminStyles.rowGap}>
                   <Pressable
                     accessibilityRole="button"
-                    disabled={pr?.category !== 'baggage'}
+                    disabled={busy || !supportsCheckoutCategory(pr?.category)}
                     onPress={() => openEditOffer(offer)}
                     style={adminStyles.secondaryBtnSmall}
                   >
@@ -585,7 +616,7 @@ function AdminAddonsContent({ initialQuery }: { initialQuery: string }) {
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"
-                    disabled={busy || pr?.category !== 'baggage'}
+                    disabled={busy || !supportsCheckoutCategory(pr?.category)}
                     onPress={() => void handleToggleOfferActive(offer)}
                     style={
                       offer.is_active ? adminStyles.dangerBtnSmall : adminStyles.primaryBtnSmall

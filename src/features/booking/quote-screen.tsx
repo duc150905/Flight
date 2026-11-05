@@ -82,8 +82,8 @@ export function QuoteScreen() {
         <CheckoutText message={`quote.${field}`} /><MoneyText amount={quote[field]} /></CheckoutCard>)}
         <CheckoutText muted message="Taxes and fare fees are configured per fare, not calculated from a fixed percentage." />
         <CheckoutText title message="Additional services" />
-        {(['baggage', 'seat'] as const).map(field => <CheckoutCard key={field}>
-          <CheckoutText message={`quote.${field}`} /><MoneyText amount={quote[field]} />
+        {(['baggage', 'meal', 'seat'] as const).map(field => <CheckoutCard key={field}>
+          <CheckoutText message={`quote.${field}`} /><MoneyText amount={quote[field] ?? 0} />
         </CheckoutCard>)}
         <CheckoutText title message="quote.total" /><MoneyText amount={quote.total} />
         <CurrencyRateNote />
@@ -95,7 +95,8 @@ export function QuoteScreen() {
           <CheckoutText>{p.values.givenNames} {p.values.familyName} · {leg.origin.iata_code} → {leg.destination.iata_code}</CheckoutText>
           <CheckoutText muted>{t(line.passengerType)} · {line.seatCode ?? t('No paid seat selected')}</CheckoutText>
           {!!line.baggageName && <CheckoutText>{t(line.baggageName)}</CheckoutText>}
-          <MoneyText amount={line.base + line.tax + line.fee + line.baggage + line.seat} />
+          {!!line.mealName && <CheckoutText>{t('Selected meal')}: {t(line.mealName)}</CheckoutText>}
+          <MoneyText amount={line.base + line.tax + line.fee + line.baggage + (line.meal ?? 0) + line.seat} />
         </CheckoutCard>;
       })}</CheckoutCard>
       {changed && (

@@ -1,0 +1,50 @@
+[
+  {
+    "code": "MEAL_CHICKEN_RICE",
+    "nameVi": "Cơm gà sốt gừng",
+    "nameEn": "Ginger chicken rice",
+    "descriptionVi": "Cơm trắng, thịt gà sốt gừng và rau củ. Có đậu nành và lúa mì; có thể có dấu vết trứng, sữa, đậu phộng và hải sản.",
+    "descriptionEn": "Steamed rice, ginger chicken and vegetables. Contains soy and wheat; may contain traces of egg, milk, peanuts and seafood.",
+    "unitAmount": 110000
+  },
+  {
+    "code": "MEAL_BEEF_RICE",
+    "nameVi": "Cơm bò sốt tiêu",
+    "nameEn": "Pepper beef rice",
+    "descriptionVi": "Cơm trắng, thịt bò sốt tiêu đen và rau củ. Có đậu nành và lúa mì; có thể có dấu vết trứng, sữa, đậu phộng và hải sản.",
+    "descriptionEn": "Steamed rice, black pepper beef and vegetables. Contains soy and wheat; may contain traces of egg, milk, peanuts and seafood.",
+    "unitAmount": 130000
+  },
+  {
+    "code": "MEAL_TOFU_RICE",
+    "nameVi": "Cơm đậu hũ rau củ",
+    "nameEn": "Tofu and vegetable rice",
+    "descriptionVi": "Cơm, đậu hũ và rau củ sốt nấm, phù hợp chế độ ăn chay. Có đậu nành và lúa mì; có thể có dấu vết trứng, sữa, đậu phộng và hải sản. Không bảo đảm không nhiễm chéo.",
+    "descriptionEn": "Rice, tofu and vegetables in mushroom sauce, suitable for a vegetarian diet. Contains soy and wheat; may contain traces of egg, milk, peanuts and seafood. Cross-contact cannot be excluded.",
+    "unitAmount": 95000
+  },
+  {
+    "code": "MEAL_CHICKEN_SANDWICH",
+    "nameVi": "Bánh mì kẹp gà",
+    "nameEn": "Chicken sandwich",
+    "descriptionVi": "Bánh mì mềm kẹp thịt gà, rau và sốt mayonnaise. Có lúa mì, trứng và sữa; có thể có dấu vết đậu nành, đậu phộng và hải sản.",
+    "descriptionEn": "Soft bread with chicken, vegetables and mayonnaise. Contains wheat, egg and milk; may contain traces of soy, peanuts and seafood.",
+    "unitAmount": 85000
+  },
+  {
+    "code": "MEAL_VEGETABLE_PASTA",
+    "nameVi": "Mì Ý sốt cà chua rau củ",
+    "nameEn": "Vegetable tomato pasta",
+    "descriptionVi": "Mì Ý, rau củ và sốt cà chua, phù hợp chế độ ăn chay. Có lúa mì và trứng; có thể có dấu vết sữa, đậu nành, đậu phộng và hải sản. Không bảo đảm không nhiễm chéo.",
+    "descriptionEn": "Pasta with vegetables and tomato sauce, suitable for a vegetarian diet. Contains wheat and egg; may contain traces of milk, soy, peanuts and seafood. Cross-contact cannot be excluded.",
+    "unitAmount": 105000
+  },
+  {
+    "code": "MEAL_FRUIT_YOGURT",
+    "nameVi": "Trái cây và sữa chua",
+    "nameEn": "Fruit and yogurt",
+    "descriptionVi": "Trái cây theo mùa và một phần sữa chua. Có sữa; có thể có dấu vết trứng, lúa mì, đậu nành và đậu phộng.",
+    "descriptionEn": "Seasonal fruit with a serving of yogurt. Contains milk; may contain traces of egg, wheat, soy and peanuts.",
+    "unitAmount": 75000
+  }
+]

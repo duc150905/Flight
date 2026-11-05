@@ -1,8 +1,10 @@
 import { expandedCatalogueEnglish } from './expanded-catalogue.ts';
+import { mealCatalogueEnglish } from './meal-catalogue.ts';
 
 // Shared catalogue copy is translated at display time; database identifiers and prices stay intact.
 export const catalogueEnglish = {
   ...expandedCatalogueEnglish,
+  ...mealCatalogueEnglish,
   'Hà Nội ngàn năm văn hiến': 'Hanoi, a thousand years of heritage',
   'Đà Nẵng — Thành phố đáng sống': 'Da Nang, where coast meets city',
   'Đảo ngọc Phú Quốc': 'Phu Quoc, the pearl island',

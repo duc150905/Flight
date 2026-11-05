@@ -3,7 +3,7 @@ import { calendarDateSchema } from './passenger.ts';
 import { classifyPassenger } from './passenger-policy.ts';
 
 /** Display estimate only. A booking RPC must independently price every leg. */
-export function checkoutEstimate(draft: Pick<CheckoutDraftState, 'itinerary' | 'passengers'> & Partial<Pick<CheckoutDraftState, 'baggage' | 'seats'>>) {
+export function checkoutEstimate(draft: Pick<CheckoutDraftState, 'itinerary' | 'passengers'> & Partial<Pick<CheckoutDraftState, 'baggage' | 'seats' | 'meals'>>) {
   if (!draft.itinerary?.legs.length || !draft.passengers.length) return null;
   let amount = 0; let currency: string | undefined;
   for (const leg of draft.itinerary.legs) {
@@ -19,7 +19,7 @@ export function checkoutEstimate(draft: Pick<CheckoutDraftState, 'itinerary' | '
       amount += value;
     }
   }
-  for (const extra of [...(draft.baggage ?? []), ...(draft.seats ?? [])]) {
+  for (const extra of [...(draft.baggage ?? []), ...(draft.seats ?? []), ...(draft.meals ?? [])]) {
     if (extra.currency !== currency || !Number.isSafeInteger(extra.amount) || extra.amount < 0 || !Number.isSafeInteger(amount + extra.amount)) return null;
     amount += extra.amount;
   }
