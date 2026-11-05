@@ -6,27 +6,20 @@ import type { AiExtractedFlightSearch, ChatMessage } from './types';
 const STORAGE_KEY = 'flyora_custom_gemini_key';
 
 export async function getGeminiApiKey(): Promise<string> {
-  const envKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
-  if (envKey && envKey.trim().length > 0) {
-    return envKey.trim();
-  }
   try {
     const savedKey = await AsyncStorage.getItem(STORAGE_KEY);
-    return savedKey ? savedKey.trim() : '';
+    if (savedKey?.trim()) return savedKey.trim();
   } catch {
-    return '';
+    // Fall back to the key bundled at build time if device storage is unavailable.
   }
+  return process.env.EXPO_PUBLIC_GEMINI_API_KEY?.trim() ?? '';
 }
 
 export async function saveCustomGeminiApiKey(key: string): Promise<void> {
-  try {
-    if (!key.trim()) {
-      await AsyncStorage.removeItem(STORAGE_KEY);
-    } else {
-      await AsyncStorage.setItem(STORAGE_KEY, key.trim());
-    }
-  } catch (error) {
-    console.error('Failed to save Gemini API key:', error);
+  if (!key.trim()) {
+    await AsyncStorage.removeItem(STORAGE_KEY);
+  } else {
+    await AsyncStorage.setItem(STORAGE_KEY, key.trim());
   }
 }
 
