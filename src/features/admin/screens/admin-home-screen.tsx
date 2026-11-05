@@ -1,4 +1,4 @@
-import { loadAllRows, loadAllAuditLogs } from '../complete-data';
+import { loadAllRows } from '../complete-data';
 import { router, useFocusEffect, type Href } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -8,54 +8,43 @@ import { ActionButton, Notice } from '@/features/auth/ui';
 import { supabase } from '@/lib/supabase';
 import { useAdminI18n } from '../i18n';
 import { formatAdminError, summarizeAdminBookingsAndRevenue } from '../model';
+import { loadAdminAccounts } from '../account-service';
+import { loadAdminPaymentLedger } from '../reconciliation-data';
 import { adminChartSeries } from '../chart-series';
 import { AdminLoadingState, AdminShell, AdminStatusBadge, adminStyles } from '../ui';
 
 async function loadConsoleOverview() {
   if (!supabase) throw new Error('Chưa cấu hình kết nối Supabase.');
-  const [bookings, payments, refunds, profiles, flights, airports, aircraft, auditLogs] =
+  const [bookings, payments, refunds, profiles, flights, airports, aircraft, accounts] =
     await Promise.all([
       loadAllRows((from, to) => (supabase!
         .from('bookings')
         .select('id,booking_code,contact_name,contact_email,status,total_amount,currency,created_at,confirmed_at')
         .order('created_at', { ascending: false })).order('id').range(from, to)),
-      loadAllRows((from, to) => (supabase!.from('payments').select('id,status,amount,created_at')).order('id').range(from, to)),
-      loadAllRows((from, to) => (supabase!.from('refunds').select('id,status,amount,created_at')).order('id').range(from, to)),
+      loadAdminPaymentLedger(supabase),
+      loadAllRows((from, to) => (supabase!.from('refunds').select('id,status,amount,created_at,completed_at')).order('id').range(from, to)),
       loadAllRows((from, to) => (supabase!.from('profiles').select('id,full_name,created_at')).order('id').range(from, to)),
       loadAllRows((from, to) => (supabase!.from('flight_instances').select('id,status,published_at')).order('id').range(from, to)),
       loadAllRows((from, to) => (supabase!.from('airports').select('id,is_active')).order('id').range(from, to)),
       loadAllRows((from, to) => (supabase!.from('aircraft').select('id,is_active')).order('id').range(from, to)),
-      loadAllAuditLogs(supabase),
+      loadAdminAccounts(supabase),
     ]);
 
   const firstError =
     bookings.error ??
-    payments.error ??
     refunds.error ??
     profiles.error ??
     flights.error ??
     airports.error ??
     aircraft.error;
-  if (firstError) {
-    const isPermissionError =
-      (firstError as { code?: string })?.code === '42501' ||
-      /permission denied|Admin privileges required/i.test((firstError as Error).message);
-    if (!isPermissionError) {
-      throw firstError;
-    }
-  }
-
-  const adminActorIds = new Set<string>();
-  for (const log of auditLogs) {
-    if (log.actor_user_id) adminActorIds.add(log.actor_user_id);
-  }
+  if (firstError) throw firstError;
 
   return {
     bookings: bookings.data ?? [],
-    payments: payments.data ?? [],
+    payments,
     refunds: refunds.data ?? [],
     profiles: profiles.data ?? [],
-    adminActorIds: Array.from(adminActorIds),
+    accounts,
     flightsTotal: flights.data?.length ?? 0,
     flightsPublished: flights.data?.filter((r) => r.published_at !== null).length ?? 0,
     airportsActive: airports.data?.filter((r) => r.is_active).length ?? 0,
@@ -88,11 +77,7 @@ export function AdminHomeScreen() {
   });
 
   const data = overviewQuery.data;
-  const adminIdSet = new Set<string>(data?.adminActorIds ?? []);
-  if (session?.user?.id) {
-    adminIdSet.add(session.user.id);
-  }
-  const customerProfiles = (data?.profiles ?? []).filter((p) => !adminIdSet.has(p.id));
+  const customerProfiles = (data?.accounts ?? []).filter(row => row.role === 'customer').map(row => ({id: row.id, created_at: row.createdAt}));
 
   const metrics = data
     ? summarizeAdminBookingsAndRevenue({
@@ -134,15 +119,10 @@ export function AdminHomeScreen() {
   const currentProfile = session?.user?.id
     ? (data?.profiles ?? []).find((p) => p.id === session.user.id)
     : undefined;
-  const adminActorProfile = (data?.adminActorIds ?? [])
-    .map((id) => (data?.profiles ?? []).find((p) => p.id === id))
-    .find((p) => Boolean(p?.full_name?.trim()));
-
   const candidateName =
     selfName ||
     currentProfile?.full_name?.trim() ||
-    (session?.user?.user_metadata?.full_name as string | undefined)?.trim() ||
-    adminActorProfile?.full_name?.trim();
+    (session?.user?.user_metadata?.full_name as string | undefined)?.trim();
 
   const isGenericOrHash = !candidateName || /^bnvawg/i.test(candidateName) || candidateName === 'Admin';
   const adminName = isGenericOrHash
@@ -158,7 +138,7 @@ export function AdminHomeScreen() {
       value: metrics ? `${metrics.totalBookings}` : '—',
       badge: metrics
         ? bi(`${metrics.confirmedCount} đã xác nhận`, `${metrics.confirmedCount} confirmed`)
-        : '+12.8%',
+        : '—',
       badgePositive: true,
       sub: bi(
         `trong ${RANGE_DAYS[rangeTab]} ngày qua`,
@@ -170,18 +150,18 @@ export function AdminHomeScreen() {
       icon: '💰',
       iconBg: '#EEF2FF',
       iconColor: '#4F46E5',
-      label: bi('Doanh thu (Mô phỏng)', 'Simulated Revenue'),
-      value: metrics ? money(metrics.simulatedNetAmount) : '—',
+      label: bi('Thu ròng trong kỳ', 'Net cash in period'),
+      value: metrics ? money(metrics.netCashAmount) : '—',
       badge: metrics
         ? bi(
             `${metrics.succeededPaymentsCount} giao dịch TT`,
             `${metrics.succeededPaymentsCount} paid`,
           )
-        : '+8.4%',
+        : '—',
       badgePositive: true,
       sub: bi(
-        'đơn đã xác nhận (đã trừ hoàn/hủy)',
-        'confirmed net of completed refunds',
+        'tiền đã thu trừ hoàn tất hoàn tiền',
+        'provider captures less completed refunds',
       ),
       href: '/admin/payments' as const,
     },
@@ -193,7 +173,7 @@ export function AdminHomeScreen() {
       value: metrics ? `${metrics.totalCustomers}` : '—',
       badge: metrics
         ? bi(`+${metrics.newCustomersInWindow} mới`, `+${metrics.newCustomersInWindow} new`)
-        : '+4.2%',
+        : '—',
       badgePositive: true,
       sub: bi('tài khoản hành khách đăng ký', 'registered traveler profiles'),
       href: '/admin/customers' as const,
@@ -240,8 +220,8 @@ export function AdminHomeScreen() {
       iconBg: '#FEF3C7',
       title: bi('Đối soát Thanh toán & Hoàn tiền', 'Payments & Refunds'),
       desc: bi(
-        'Theo dõi giao dịch mô phỏng, mã lỗi thanh toán & hoàn tiền',
-        'Inspect simulated payment attempts, failure codes & refunds',
+        'Theo dõi giao dịch, mã lỗi thanh toán & hoàn tiền',
+        'Inspect provider payment attempts, failure codes & refunds',
       ),
     },
     {
@@ -250,8 +230,8 @@ export function AdminHomeScreen() {
       iconBg: '#FCE7F3',
       title: bi('Báo cáo & Nhật ký Quản trị', 'Reports & Admin Audit Logs'),
       desc: bi(
-        'Thống kê doanh thu mô phỏng & lịch sử thao tác Admin',
-        'Simulated revenue breakdown & security audit trail',
+        'Thống kê dòng tiền & lịch sử thao tác Admin',
+        'Cash flow breakdown & security audit trail',
       ),
     },
   ];
@@ -265,8 +245,8 @@ export function AdminHomeScreen() {
       activeSection="home"
       title={bi(`Chào buổi sáng, ${adminName} ✦`, `Good morning, ${adminName} ✦`)}
       subtitle={bi(
-        'Đây là tình hình vận hành Đơn đặt chỗ, Doanh thu mô phỏng, Khách hàng và Lịch bay của hệ thống hôm nay.',
-        'Here is your booking, simulated revenue, customer, and flight operations overview today.',
+        'Đây là tình hình vận hành Đơn đặt chỗ, Dòng tiền, Khách hàng và Lịch bay của hệ thống hôm nay.',
+        'Here is your booking, cash flow, customer, and flight operations overview today.',
       )}
     >
       {overviewQuery.isPending && <AdminLoadingState />}
@@ -377,17 +357,17 @@ export function AdminHomeScreen() {
               <View style={dashStyles.legendItem}>
                 <View style={[dashStyles.legendDot, { backgroundColor: '#6366F1' }]} />
                 <Text style={dashStyles.legendText}>
-                  {bi('Doanh thu vé xác nhận (VND)', 'Confirmed gross revenue (VND)')}
+                  {bi('Giá trị đơn còn xác nhận (VND)', 'Confirmed booking value (VND)')}
                 </Text>
               </View>
             </View>
 
             <View style={{ alignItems: 'flex-end' }}>
               <Text style={dashStyles.chartBigStat}>
-                {metrics ? money(metrics.simulatedNetAmount) : '—'}
+                {metrics ? money(metrics.confirmedGrossAmount) : '—'}
               </Text>
               <Text style={dashStyles.kpiSubtext}>
-                {bi('doanh thu mô phỏng kỳ này', 'simulated revenue this period')}
+                {bi('giá trị đơn còn xác nhận trong kỳ', 'confirmed booking value this period')}
               </Text>
             </View>
           </View>

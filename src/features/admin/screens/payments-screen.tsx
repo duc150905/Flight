@@ -23,7 +23,7 @@ import {
   adminStyles,
 } from '../ui';
 
-type PaymentTab = 'payments' | 'refunds';
+type PaymentTab = 'payments' | 'refunds' | 'review';
 type PaymentStatusFilter = 'all' | PaymentRow['status'];
 
 async function loadPaymentsBundle() {
@@ -46,12 +46,18 @@ async function loadPaymentsBundle() {
 }
 
 export function AdminPaymentsScreen() {
-  const params = useLocalSearchParams<{ q?: string }>();
+  const params = useLocalSearchParams<{ q?: string; paymentId?: string; tab?: string }>();
+  const initialQuery = typeof params.q === 'string' ? params.q : '';
+  const paymentId = typeof params.paymentId === 'string' ? params.paymentId : undefined;
+  const initialTab = params.tab === 'review' ? 'review' : 'payments';
+  return <AdminPaymentsContent key={JSON.stringify([initialQuery, paymentId, initialTab])} initialQuery={initialQuery} paymentId={paymentId} initialTab={initialTab} />;
+}
+function AdminPaymentsContent({ initialQuery, paymentId, initialTab }: { initialQuery: string; paymentId?: string; initialTab: PaymentTab }) {
   const { language, ta, bi, money, airportTime } = useAdminI18n();
 
-  const [tab, setTab] = useState<PaymentTab>('payments');
+  const [tab, setTab] = useState<PaymentTab>(initialTab);
   const [statusFilter, setStatusFilter] = useState<PaymentStatusFilter>('all');
-  const [query, setQuery] = useState(typeof params.q === 'string' ? params.q : '');
+  const [query, setQuery] = useState(initialQuery);
   const [page, setPage] = useState(1);
 
   const payQuery = useQuery({
@@ -69,7 +75,7 @@ export function AdminPaymentsScreen() {
   }
 
   const filteredPayments = payments.filter((p) =>
-    statusFilter === 'all' ? true : p.status === statusFilter,
+    (!paymentId || p.id === paymentId) && (statusFilter === 'all' || p.status === statusFilter),
   );
 
   const pagedPayments = filterAndPaginate(filteredPayments, {
@@ -78,17 +84,17 @@ export function AdminPaymentsScreen() {
     pageSize: 8,
     getSearchText: (p: PaymentRow) => {
       const bk = bookingById.get(p.booking_id);
-      return `${p.provider} ${p.provider_reference ?? ''} ${p.status} ${p.failure_code ?? ''} ${p.idempotency_key} ${bk?.booking_code ?? ''} ${bk?.contact_name ?? ''}`;
+      return `${p.id} ${p.booking_id} ${p.provider} ${p.provider_reference ?? ''} ${p.status} ${p.failure_code ?? ''} ${p.idempotency_key} ${bk?.booking_code ?? ''} ${bk?.contact_name ?? ''}`;
     },
   });
 
-  const pagedRefunds = filterAndPaginate(refunds, {
+  const pagedRefunds = filterAndPaginate(refunds.filter(row => (!paymentId || row.payment_id === paymentId) && (statusFilter === 'all' || row.status === statusFilter)), {
     query,
     page,
     pageSize: 8,
     getSearchText: (r: RefundRow) => {
       const bk = bookingById.get(r.booking_id);
-      return `${r.reason} ${r.status} ${r.provider_reference ?? ''} ${bk?.booking_code ?? ''}`;
+      return `${r.id} ${r.payment_id} ${r.reason} ${r.status} ${r.provider_reference ?? ''} ${bk?.booking_code ?? ''}`;
     },
   });
 
@@ -97,15 +103,15 @@ export function AdminPaymentsScreen() {
       activeSection="payments"
       title={bi('Quản lý Thanh toán & Hoàn tiền', 'Payments & Refunds Management')}
       subtitle={bi(
-        'Theo dõi các lần thanh toán mô phỏng, mã lỗi xử lý (failure_code), khóa chống trùng (idempotency_key) và hoàn tiền để hỗ trợ kiểm thử & vận hành.',
-        'Monitor simulated payment attempts, failure codes, idempotency keys, and refunds for testing and operations.',
+        'Theo dõi giao dịch theo nhà cung cấp, mã lỗi, khóa chống trùng và hoàn tiền; trạng thái đối soát cổng được hiển thị riêng.',
+        'Monitor provider payment attempts, failure codes, idempotency keys and refunds, alongside detailed gateway reconciliation.',
       )}
       onQuickSearch={(txt) => {
         setQuery(txt);
         setPage(1);
       }}
     >
-      <AdminVnpayReview />
+      {paymentId && <View style={adminStyles.card}><Text selectable style={adminStyles.muted}>Payment: {paymentId}</Text><ActionButton secondary title={bi('Bỏ lọc giao dịch', 'Clear payment filter')} onPress={() => router.replace('/admin/payments')} /></View>}
       <View style={adminStyles.chipRow}>
         <Pressable
           accessibilityRole="button"
@@ -134,6 +140,9 @@ export function AdminPaymentsScreen() {
             {bi(`Hoàn tiền (${refunds.length})`, `Refunds (${refunds.length})`)}
           </Text>
         </Pressable>
+        <Pressable accessibilityRole="button" accessibilityState={{ selected: tab === 'review' }} onPress={() => { setTab('review'); setPage(1); }} style={[adminStyles.chip, {minHeight: 44, justifyContent: 'center'}, tab === 'review' && adminStyles.chipSelected]}>
+          <Text style={[adminStyles.chipText, tab === 'review' && adminStyles.chipTextSelected]}>{bi('Đối soát cổng', 'Gateway reconciliation')}</Text>
+        </Pressable>
       </View>
 
       <AdminSearchFilterBar
@@ -149,7 +158,7 @@ export function AdminPaymentsScreen() {
         onRefresh={() => void payQuery.refetch()}
       />
 
-      {tab === 'payments' && (
+      {tab !== 'review' && (
         <View style={adminStyles.chipRow}>
           {(['all', 'succeeded', 'pending', 'failed', 'cancelled'] satisfies PaymentStatusFilter[]).map(
             (st) => {
@@ -174,7 +183,7 @@ export function AdminPaymentsScreen() {
         </View>
       )}
 
-      {payQuery.isPending ? (
+      {tab === 'review' ? <AdminVnpayReview searchQuery={paymentId ?? query} /> : payQuery.isPending ? (
         <AdminLoadingState />
       ) : payQuery.isError ? (
         <View style={adminStyles.card}>
@@ -215,8 +224,8 @@ export function AdminPaymentsScreen() {
                   {!!p.failure_code && (
                     <Notice
                       text={bi(
-                        `Mã lỗi thanh toán mô phỏng (failure_code): ${p.failure_code}`,
-                        `Simulated payment failure_code: ${p.failure_code}`,
+                        `Mã lỗi thanh toán (failure_code): ${p.failure_code}`,
+                        `Payment failure_code: ${p.failure_code}`,
                       )}
                     />
                   )}
@@ -232,7 +241,7 @@ export function AdminPaymentsScreen() {
                         accessibilityRole="button"
                         onPress={() =>
                           router.push(
-                            `/admin/bookings?q=${encodeURIComponent(bk.booking_code)}` as Href,
+                            `/admin/bookings?bookingId=${encodeURIComponent(bk.id)}` as Href,
                           )
                         }
                         style={adminStyles.secondaryBtnSmall}
@@ -279,8 +288,12 @@ export function AdminPaymentsScreen() {
                   {bi('Lý do hoàn tiền:', 'Refund reason:')} {r.reason}
                 </Text>
                 <Text style={adminStyles.helperText}>
-                  {bi('Tạo lúc:', 'Created:')} {airportTime(r.created_at, 'Asia/Ho_Chi_Minh')}
+                  {bi('Tạo lúc:', 'Created:')} {airportTime(r.created_at, 'Asia/Ho_Chi_Minh')} · {bi('Hoàn tất:', 'Completed:')} {r.completed_at ? airportTime(r.completed_at, 'Asia/Ho_Chi_Minh') : '—'}
                 </Text>
+                <ActionButton secondary title={bi('Xem đối soát hoàn tiền', 'Inspect refund reconciliation')} onPress={() => router.push({ pathname: '/admin/payments', params: { tab: 'review', q: r.id } })} />
+                <Text selectable style={adminStyles.muted}>Ref: {r.provider_reference ?? '—'} · Payment: {r.payment_id}</Text>
+                <ActionButton secondary title={bi('Xem đơn', 'Open booking')} onPress={() => router.push({ pathname: '/admin/bookings', params: { bookingId: r.booking_id } })} />
+                <ActionButton secondary title={bi('Xem giao dịch', 'Open payment')} onPress={() => router.push({ pathname: '/admin/payments', params: { paymentId: r.payment_id } })} />
               </View>
             );
           })}

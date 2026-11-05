@@ -1,6 +1,7 @@
 import { loadAllRows, loadAllAuditLogs } from '../complete-data';
-import { useEffect, useState } from 'react';
-import { permissionsStore } from '../permissions-store';
+import { useState } from 'react';
+import { loadAdminAccounts } from '../account-service';
+import { loadAdminPaymentLedger } from '../reconciliation-data';
 import { useQuery } from '@tanstack/react-query';
 import { Pressable, Text, View } from 'react-native';
 import { ActionButton, Notice } from '@/features/auth/ui';
@@ -44,13 +45,14 @@ async function loadReportsAndAuditBundle() {
     aircraft,
     addonProducts,
     auditLogs,
+    accounts,
   ] = await Promise.all([
     loadAllRows((from, to) => (supabase!
       .from('bookings')
       .select('id,status,total_amount,created_at,confirmed_at')
       .order('created_at', { ascending: false })).order('id').range(from, to)),
-    loadAllRows((from, to) => (supabase!.from('payments').select('id,status,amount,created_at')).order('id').range(from, to)),
-    loadAllRows((from, to) => (supabase!.from('refunds').select('id,status,amount,created_at')).order('id').range(from, to)),
+    loadAdminPaymentLedger(supabase),
+    loadAllRows((from, to) => (supabase!.from('refunds').select('id,status,amount,created_at,completed_at')).order('id').range(from, to)),
     loadAllRows((from, to) => (supabase!.from('profiles').select('id,full_name,contact_phone,created_at')).order('id').range(from, to)),
     loadAllRows((from, to) => (supabase!
       .from('flight_instances')
@@ -60,11 +62,11 @@ async function loadReportsAndAuditBundle() {
     loadAllRows((from, to) => (supabase!.from('aircraft').select('id,registration_code,model_name')).order('id').range(from, to)),
     loadAllRows((from, to) => (supabase!.from('addon_products').select('id,code,name')).order('id').range(from, to)),
     loadAllAuditLogs(supabase),
+    loadAdminAccounts(supabase),
   ]);
 
   const firstError =
     bookings.error ??
-    payments.error ??
     refunds.error ??
     profiles.error ??
     flights.error ??
@@ -76,7 +78,7 @@ async function loadReportsAndAuditBundle() {
 
   return {
     bookings: bookings.data ?? [],
-    payments: payments.data ?? [],
+    payments,
     refunds: refunds.data ?? [],
     profiles: (profiles.data ?? []) as Pick<
       ProfileRow,
@@ -94,6 +96,7 @@ async function loadReportsAndAuditBundle() {
     >[],
     addonProducts: (addonProducts.data ?? []) as Pick<AddonProductRow, 'id' | 'code' | 'name'>[],
     auditLogs,
+    accounts,
     fetchedAtMs: Date.now(),
   };
 }
@@ -697,16 +700,6 @@ export function AdminReportsScreen() {
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
 
-  const [permAuditRows, setPermAuditRows] = useState<AdminAuditLogRow[]>(() =>
-    permissionsStore.toAuditLogRows(),
-  );
-
-  useEffect(() => {
-    permissionsStore.load().then(() => {
-      setPermAuditRows(permissionsStore.toAuditLogRows());
-    });
-  }, []);
-
   const reportQuery = useQuery({
     queryKey: ['admin-reports-audit-bundle'],
     queryFn: loadReportsAndAuditBundle,
@@ -718,7 +711,7 @@ export function AdminReportsScreen() {
         bookings: data.bookings,
         payments: data.payments,
         refunds: data.refunds,
-        profiles: data.profiles,
+        profiles: data.accounts.filter(row => row.role === 'customer').map(row => ({id: row.id, created_at: row.createdAt})),
         nowMs: data.fetchedAtMs,
         daysWindow,
       })
@@ -748,7 +741,7 @@ export function AdminReportsScreen() {
     { key: 'addon_products', label: bi('🧳 Dịch vụ & Hành lý', '🧳 Add-ons') },
   ];
 
-  const allAuditRows = [...permAuditRows, ...(data?.auditLogs ?? [])];
+  const allAuditRows = data?.auditLogs ?? [];
   const auditLogs = allAuditRows.map((log) => ({
     raw: log,
     human: describeAuditLog(log, lookupCtx),
@@ -780,8 +773,8 @@ export function AdminReportsScreen() {
       activeSection="reports"
       title={bi('Báo cáo Đối soát & Nhật ký Quản trị', 'Reconciliation Reports & Audit Logs')}
       subtitle={bi(
-        'Thống kê số lượng đơn và tổng tiền thanh toán mô phỏng theo kỳ (loại trừ đơn hủy/hết hạn, múi giờ Asia/Ho_Chi_Minh) cùng Nhật ký kiểm toán các thao tác quản trị.',
-        'Simulated booking revenue reconciliation (excluding cancelled/expired, Asia/Ho_Chi_Minh timezone) and immutable Admin Audit Logs.',
+        'Giá trị đơn hiện còn xác nhận được tách riêng với tiền cổng thanh toán đã thu và hoàn tất hoàn tiền theo thời điểm từng sự kiện; kèm nhật ký quản trị từ máy chủ.',
+        'Current confirmed booking value, provider captures and completed refunds by event time, with server audit logs.',
       )}
       onQuickSearch={(txt) => {
         setQuery(txt);
@@ -796,7 +789,7 @@ export function AdminReportsScreen() {
           style={[adminStyles.chip, tab === 'revenue' && adminStyles.chipSelected]}
         >
           <Text style={[adminStyles.chipText, tab === 'revenue' && adminStyles.chipTextSelected]}>
-            📊 {bi('Báo cáo Đơn & Tổng tiền mô phỏng', 'Booking & Simulated Revenue Report')}
+            📊 {bi('Báo cáo Đơn & Dòng tiền', 'Booking & Cash Report')}
           </Text>
         </Pressable>
 
@@ -857,7 +850,7 @@ export function AdminReportsScreen() {
             </View>
             <View style={adminStyles.rowBetween}>
               <Text style={adminStyles.muted}>
-                • {bi('Đơn đã xác nhận (confirmed — tính vào tổng thu)', 'Confirmed (included in gross)')}
+                • {bi('Đơn hiện còn xác nhận', 'Currently confirmed')}
               </Text>
               <Text style={adminStyles.bold}>{summary.confirmedCount}</Text>
             </View>
@@ -881,10 +874,15 @@ export function AdminReportsScreen() {
           <View style={adminStyles.itemCard}>
             <View style={adminStyles.rowBetween}>
               <Text style={adminStyles.label}>
-                2. {bi('Tổng tiền gộp từ đơn đã xác nhận (Confirmed Gross)', 'Confirmed Gross Simulated Amount')}
+                2. {bi('Giá trị đơn hiện còn xác nhận (tạo trong kỳ)', 'Current confirmed value (orders created in period)')}
               </Text>
               <Text style={adminStyles.bold}>{money(summary.confirmedGrossAmount)}</Text>
             </View>
+            <View style={adminStyles.rowBetween}>
+              <Text style={adminStyles.label}>{bi('Tiền cổng thanh toán đã thu trong kỳ', 'Provider captures in period')}</Text>
+              <Text style={adminStyles.bold}>{money(summary.successfulReceiptAmount)}</Text>
+            </View>
+            <Text style={adminStyles.helperText}>{bi('Tiền thu gồm cả khoản trùng/chậm cần bồi hoàn; không cộng lại vào giá trị đơn. Khoản hoàn chỉ tính khi hoàn tất, có thể thuộc đơn từ kỳ trước.', 'Captures include duplicate/late funds awaiting compensation; booking value stays separate. Refunds count on completion and can relate to earlier orders.')}</Text>
             <View style={adminStyles.rowBetween}>
               <Text style={adminStyles.muted}>
                 − {bi('Trừ các khoản hoàn tiền đã hoàn tất (Completed Refunds)', 'Less Completed Refunds')}
@@ -894,10 +892,10 @@ export function AdminReportsScreen() {
             <View style={adminStyles.divider} />
             <View style={adminStyles.rowBetween}>
               <Text style={adminStyles.bold}>
-                = {bi('Tổng thu ròng mô phỏng (Net Simulated Amount)', 'Net Simulated Confirmed Amount')}
+                = {bi('Thu ròng = tiền đã thu − hoàn tất', 'Net cash = captures − completed refunds')}
               </Text>
               <Text style={[adminStyles.title, { fontSize: 20 }]}>
-                {money(summary.simulatedNetAmount)}
+                {money(summary.netCashAmount)}
               </Text>
             </View>
           </View>
