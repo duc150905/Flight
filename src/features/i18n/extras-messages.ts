@@ -6,6 +6,7 @@ export const extrasMessages = {
   'seats.available': 'Ghế trống', 'seats.selected': 'Đang chọn', 'seats.selectedOther': 'Hành khách khác đang chọn',
   'seats.held': 'Đang được giữ', 'seats.booked': 'Đã đặt', 'seats.blocked': 'Bị chặn',
   'seats.otherCabin': 'Ngoài hạng vé',
+  'seats.exitRow': 'Hàng thoát hiểm · Hàng {row}', 'seats.exitRowLegend': 'Hàng thoát hiểm',
   'seats.infant': 'Em bé không có ghế riêng trên chặng này.',
   'seats.exitRule': 'Hàng thoát hiểm: từ 18 tuổi, không đi kèm em bé trên chặng này.',
   'seats.exit': 'Không đủ điều kiện ngồi hàng thoát hiểm.',

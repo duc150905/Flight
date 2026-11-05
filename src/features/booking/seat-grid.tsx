@@ -19,13 +19,19 @@ export function SeatGrid({ map, draft, leg, passengerId, busy, onError }: { map:
       {rows.map((row, index) => {
         const cabin = row.seats.find(Boolean)?.cabin_class;
         const previousCabin = rows[index - 1]?.seats.find(Boolean)?.cabin_class;
+        const isExitRow = row.seats.some(seat => seat?.is_exit_row);
         return <View key={row.row} style={styles.rowGroup}>
         {cabin && cabin !== previousCabin && <View style={[styles.cabinLabel, { backgroundColor: cabin === leg.cabinClass ? c.tint : '#EFF2F5' }]}>
           <Text style={{ color: cabin === leg.cabinClass ? '#006D7D' : c.muted, fontSize: 12, fontWeight: '600' }}>
             {t(cabinClassLabel(cabin))}{cabin === leg.cabinClass ? ` · ${t('Your cabin')}` : ''}
           </Text>
         </View>}
-        <View style={styles.row}>
+        {isExitRow && <View style={styles.exitRowLabel} accessible accessibilityLabel={t('seats.exitRow', { row: row.row })}>
+          <Text style={styles.exitText}>EXIT</Text>
+          <Text style={styles.exitText}>{t('seats.exitRow', { row: row.row })}</Text>
+          <Text style={styles.exitText}>EXIT</Text>
+        </View>}
+        <View style={[styles.row, isExitRow && styles.exitRow]}>
         {row.seats.flatMap((seat, col) => {
           let cell = <View key={`empty-${col}`} style={styles.empty} />;
           if (seat) {
@@ -36,7 +42,7 @@ export function SeatGrid({ map, draft, leg, passengerId, busy, onError }: { map:
             const otherCabin = seat.cabin_class !== leg.cabinClass;
             const state = otherCabin ? 'otherCabin' : selected ? 'selected' : another ? 'selectedOther' : seat.availability;
             cell = <Pressable key={seat.flight_seat_id} accessibilityRole="button" accessibilityState={{ selected, disabled }} aria-pressed={selected} aria-disabled={disabled}
-              accessibilityLabel={`${seat.seat_code}, ${t(`seats.${state}`)}, ${seat.selection_fee_amount} VND${reason ? `, ${t(reason)}` : ''}`}
+              accessibilityLabel={`${seat.seat_code}, ${t(`seats.${state}`)}, ${seat.selection_fee_amount} VND${seat.is_exit_row ? `, ${t('seats.exitRow', { row: seat.row_number })}` : ''}${reason ? `, ${t(reason)}` : ''}`}
               disabled={disabled} hitSlop={2} onPress={() => {
                 try { draft.setSeat(passengerId, leg.flightId, selected ? null : seat); onError(''); }
                 catch (e) { onError(e instanceof Error ? e.message : 'seats.unavailable'); }
@@ -58,7 +64,9 @@ export function SeatLegend() {
   const { t } = useLanguage(); const c = useCheckoutColors();
   return <View style={styles.legend}>{(['available', 'selected', 'held', 'booked', 'blocked', 'otherCabin'] as const).map(state => <View key={state} style={styles.legendItem}>
     <Text style={[styles.legendSymbol, { color: state === 'selected' ? '#00414B' : c.text, backgroundColor: state === 'selected' ? c.primary : state === 'available' ? c.surface : '#E8EBEF' }]}>{state === 'selected' ? '✓' : state === 'available' ? '□' : state === 'held' ? '◷' : state === 'booked' ? '■' : state === 'otherCabin' ? '—' : '×'}</Text>
-    <Text style={[styles.legendText, { color: c.muted }]}>{t(`seats.${state}`)}</Text></View>)}</View>;
+    <Text style={[styles.legendText, { color: c.muted }]}>{t(`seats.${state}`)}</Text></View>)}
+    <View style={styles.legendItem}><Text style={[styles.legendSymbol, styles.exitLegend]}>EXIT</Text><Text style={[styles.legendText, { color: c.muted }]}>{t('seats.exitRowLegend')}</Text></View>
+  </View>;
 }
 const styles = StyleSheet.create({
   legend: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 }, legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
@@ -68,6 +76,10 @@ const styles = StyleSheet.create({
   cockpit: { flexDirection: 'row', gap: 4 }, window: { width: 28, height: 12, backgroundColor: '#526D79', borderRadius: 4 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 3 }, column: { textAlign: 'center', fontSize: 12, fontWeight: '600' },
   rowGroup: { alignItems: 'center', gap: 10 },
+  exitRow: { backgroundColor: '#EFFAF3', borderRadius: 8, paddingVertical: 6 },
+  exitRowLabel: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 8, paddingVertical: 8, borderRadius: 6, backgroundColor: '#EFFAF3', borderWidth: 1, borderColor: '#B6DBC3' },
+  exitText: { color: '#166534', fontSize: 12, lineHeight: 18, fontWeight: '700' },
+  exitLegend: { width: 40, backgroundColor: '#EFFAF3', borderColor: '#B6DBC3', color: '#166534', fontSize: 12, fontWeight: '700', lineHeight: 22 },
   cabinLabel: { alignSelf: 'stretch', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 6 },
   rowNumber: { width: 28, textAlign: 'center', fontSize: 12 }, empty: { width: 44, height: 52 },
   seat: { width: 44, minHeight: 52, borderWidth: 1.5, borderRadius: 10, alignItems: 'center', justifyContent: 'center', gap: 7 },
