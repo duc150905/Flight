@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { splitPhone, choosePhoneCode, editPhoneNumber } from '../src/features/booking/phone.ts';
 import { bookingContactSchema } from '../src/features/booking/contact.ts';
+import { filterCountries, findCountryByDialCode } from '../src/features/booking/country-codes.ts';
 test('phone country selector preserves domestic and unsupported international numbers', () => {
   assert.deepEqual(splitPhone('090 123 4567'), { code: '', number: '090 123 4567' });
   assert.deepEqual(splitPhone('+84 901234567'), { code: '+84', number: '901234567' });
@@ -14,4 +15,14 @@ test('selecting Vietnam before or after typing a domestic number gives the same 
   assert.equal(editPhoneNumber('+84', '0901234567'), choosePhoneCode('0901234567', '+84'));
   assert.equal(editPhoneNumber('+65', '81234567'), '+65 81234567');
   assert.equal(editPhoneNumber('', '+819012345678'), '+819012345678');
+});
+test('country picker allows searching by Vietnamese name, English name, and dial code', () => {
+  assert.ok(filterCountries('Nhật').some(c => c.iso === 'JP' && c.dialCode === '+81'));
+  assert.ok(filterCountries('korea').some(c => c.iso === 'KR' && c.dialCode === '+82'));
+  assert.ok(filterCountries('+66').some(c => c.iso === 'TH'));
+  assert.equal(findCountryByDialCode('+81')?.nameVi, 'Nhật Bản');
+  const jpPhone = choosePhoneCode('09012345678', '+81');
+  assert.equal(jpPhone, '+81 09012345678');
+  assert.deepEqual(splitPhone(jpPhone), { code: '+81', number: '09012345678' });
+  assert.equal(choosePhoneCode(jpPhone, '+66'), '+66 09012345678');
 });
