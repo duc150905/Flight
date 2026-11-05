@@ -17,20 +17,13 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Airport } from '../discovery/model';
 import { useLanguage } from '../i18n/provider';
-import { getGeminiApiKey, sendChatMessageToGemini } from './gemini-service';
+import { getGeminiApiKey, saveCustomGeminiApiKey, sendChatMessageToGemini } from './gemini-service';
 import { aiChatStore } from './ai-chat-store';
 import type { AiExtractedFlightSearch, ChatMessage } from './types';
 
 const GREETINGS: Record<'vi' | 'en', string> = {
   vi: 'Xin chào! Em là Trợ lý AI của Flyora. ✨\nBạn muốn bay đi đâu, vào thời gian nào và có bao nhiêu người cùng đi? Hãy nói hoặc nhắn cho em biết nhé!',
   en: "Hello! I'm Flyora's AI Assistant. ✨\nWhere would you like to fly, when, and how many passengers? Just tell me and I'll find the best flight options for you!",
-};
-
-const INITIAL_GREETING: ChatMessage = {
-  id: 'greeting',
-  role: 'assistant',
-  text: '',
-  timestamp: 0,
 };
 
 const SUGGESTIONS: Record<'vi' | 'en', string[]> = {
@@ -120,12 +113,16 @@ export function AiChatModal({
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const [apiKey, setApiKey] = useState('');
+  const [keyDraft, setKeyDraft] = useState('');
+  const [showKeyEditor, setShowKeyEditor] = useState(false);
+  const [keySaveError, setKeySaveError] = useState(false);
   const scrollViewRef = useRef<ElementRef<typeof ScrollView>>(null);
 
   useEffect(() => {
     if (visible) {
       void getGeminiApiKey().then((k) => {
         setApiKey(k);
+        setShowKeyEditor(!k);
       });
     }
   }, [visible]);
@@ -141,11 +138,12 @@ export function AiChatModal({
     if (!text || loading) return;
 
     if (!apiKey) {
+      setShowKeyEditor(true);
       const errorMessage = createMessage(
         'system',
         isEn
-          ? 'Missing EXPO_PUBLIC_GEMINI_API_KEY in .env.local file. Please check configuration and reload the app!'
-          : 'Chưa tìm thấy EXPO_PUBLIC_GEMINI_API_KEY trong file .env.local. Vui lòng kiểm tra lại file .env.local và khởi động lại dự án!',
+          ? 'Enter a Gemini API key in the AI settings above to use the assistant.'
+          : 'Hãy nhập Gemini API key trong phần cài đặt AI ở phía trên để dùng trợ lý.',
         { error: true }
       );
       setMessages((prev) => [...prev, errorMessage]);
@@ -174,9 +172,10 @@ export function AiChatModal({
         : 'Đã có lỗi xảy ra khi kết nối tới Trợ lý AI. Vui lòng thử lại sau!';
 
       if (err?.message === 'MISSING_API_KEY' || err?.message === 'INVALID_API_KEY') {
+        setShowKeyEditor(true);
         errorText = isEn
-          ? 'Invalid or expired Google Gemini API Key. Please check EXPO_PUBLIC_GEMINI_API_KEY in .env.local!'
-          : 'API Key của Google Gemini không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra lại EXPO_PUBLIC_GEMINI_API_KEY trong file .env.local!';
+          ? 'The Gemini API key is invalid or expired. Update it in AI settings.'
+          : 'Gemini API key không hợp lệ hoặc đã hết hạn. Hãy cập nhật trong phần cài đặt AI.';
       } else if (err?.message === 'QUOTA_EXCEEDED') {
         errorText = isEn
           ? 'Gemini API quota exceeded (Rate limit). Please wait 1 minute and try again!'
@@ -256,6 +255,20 @@ export function AiChatModal({
     resetChat();
   };
 
+  const handleSaveKey = async () => {
+    const key = keyDraft.trim();
+    if (!key) return;
+    setKeySaveError(false);
+    try {
+      await saveCustomGeminiApiKey(key);
+      setApiKey(key);
+      setKeyDraft('');
+      setShowKeyEditor(false);
+    } catch {
+      setKeySaveError(true);
+    }
+  };
+
   const getCabinName = (cabinClass: string) => {
     if (isEn) {
       switch (cabinClass) {
@@ -310,6 +323,17 @@ export function AiChatModal({
               <View style={s.headerActions}>
                 <Pressable
                   accessibilityRole="button"
+                  accessibilityLabel={isEn ? 'Configure Gemini API key' : 'Cấu hình Gemini API key'}
+                  onPress={() => {
+                    setKeySaveError(false);
+                    setShowKeyEditor((value) => !value);
+                  }}
+                  style={s.headerBtn}
+                >
+                  <Text style={s.headerBtnText}>🔑</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
                   accessibilityLabel={isEn ? 'Reset conversation' : 'Làm mới cuộc trò chuyện'}
                   onPress={handleResetChat}
                   style={s.headerBtn}
@@ -327,6 +351,46 @@ export function AiChatModal({
               </View>
             </View>
           </View>
+
+          {showKeyEditor && (
+            <View style={s.keyBanner}>
+              <Text style={s.keyBannerTitle}>
+                {isEn ? 'Gemini API key for this device' : 'Gemini API key cho thiết bị này'}
+              </Text>
+              <Text style={s.keyBannerDesc}>
+                {isEn
+                  ? 'Enter your own key to enable AI flight search. It is saved on this device.'
+                  : 'Nhập key của bạn để bật tìm chuyến bằng AI. Key được lưu trên thiết bị này.'}
+              </Text>
+              <View style={s.keyInputRow}>
+                <TextInput
+                  accessibilityLabel={isEn ? 'Gemini API key' : 'Gemini API key'}
+                  value={keyDraft}
+                  onChangeText={setKeyDraft}
+                  placeholder="Gemini API key"
+                  placeholderTextColor="#94A3B8"
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  style={s.keyInput}
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={isEn ? 'Save Gemini API key' : 'Lưu Gemini API key'}
+                  onPress={() => void handleSaveKey()}
+                  disabled={!keyDraft.trim()}
+                  style={[s.keySaveBtn, !keyDraft.trim() && s.sendBtnDisabled]}
+                >
+                  <Text style={s.keySaveBtnText}>{isEn ? 'Save' : 'Lưu'}</Text>
+                </Pressable>
+              </View>
+              {keySaveError && (
+                <Text style={s.keyBannerDesc}>
+                  {isEn ? 'Could not save the key. Please try again.' : 'Không lưu được key. Vui lòng thử lại.'}
+                </Text>
+              )}
+            </View>
+          )}
 
           {/* Messages Scroll Area */}
           <ScrollView
@@ -601,6 +665,7 @@ const s = StyleSheet.create({
   bubbleWrapper: {
     flexDirection: 'row',
     gap: 8,
+    width: '88%',
     maxWidth: '88%',
   },
   bubbleWrapperUser: {
@@ -621,6 +686,8 @@ const s = StyleSheet.create({
     marginTop: 2,
   },
   bubble: {
+    flex: 1,
+    minWidth: 0,
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 10,
