@@ -1,106 +1,27 @@
-import { useCallback, useEffect, useState } from 'react';
-
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './auth-provider';
 import { checkIsAdmin } from './admin';
-import { permissionsStore } from '../admin/permissions-store';
-
 export { checkIsAdmin };
-
-export type AdminStatus = {
-  isAdmin: boolean;
-  loading: boolean;
-  error: string | null;
-  refetch: () => Promise<boolean>;
-};
-
-type AdminDataState = {
-  userId: string | null;
-  isAdmin: boolean;
-  error: string | null;
-};
-
-/**
- * Hook to reactively observe admin permissions of the current user.
- */
+export type AdminStatus = { isAdmin: boolean; loading: boolean; error: string | null; refetch: () => Promise<boolean> };
 export function useAdmin(): AdminStatus {
   const { session, status } = useAuth();
-  const currentUserId = session?.user?.id ?? null;
-
-  const [data, setData] = useState<AdminDataState>({
-    userId: null,
-    isAdmin: false,
-    error: null,
-  });
-
-  const refetch = useCallback(async (): Promise<boolean> => {
-    if (!session || !supabase) {
-      setData({ userId: currentUserId, isAdmin: false, error: null });
-      return false;
-    }
-    try {
-      await permissionsStore.load();
-      let res = await checkIsAdmin(supabase);
-      if (currentUserId) {
-        if (permissionsStore.promotedIds.has(currentUserId)) {
-          res = true;
-        } else if (permissionsStore.revokedIds.has(currentUserId)) {
-          res = false;
-        }
-      }
-      setData({ userId: currentUserId, isAdmin: res, error: null });
-      return res;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Không thể xác thực quyền quản trị.';
-      setData({ userId: currentUserId, isAdmin: false, error: msg });
-      return false;
-    }
-  }, [currentUserId, session]);
-
+  const owner = session?.user.id ?? null;
+  const identity = `${owner ?? ''}:${session?.access_token ?? ''}`;
+  const sequence = useRef(0);
+  const [data, setData] = useState({ identity: '', isAdmin: false });
+  const refetch = useCallback(async () => {
+    const ticket = ++sequence.current;
+    const allowed = Boolean(owner && supabase && await checkIsAdmin(supabase));
+    if (ticket === sequence.current) setData({ identity, isAdmin: allowed });
+    return ticket === sequence.current && allowed;
+  }, [identity, owner]);
+  const cancelPending = useCallback(() => { sequence.current++; }, []);
   useEffect(() => {
-    let ignore = false;
-    if (status === 'loading') return;
-
-    if (!session || !supabase) {
-      return;
-    }
-
-    const resolveAdminRole = async (): Promise<boolean> => {
-      await permissionsStore.load();
-      let res = await checkIsAdmin(supabase);
-      if (session.user.id) {
-        if (permissionsStore.promotedIds.has(session.user.id)) {
-          res = true;
-        } else if (permissionsStore.revokedIds.has(session.user.id)) {
-          res = false;
-        }
-      }
-      return res;
-    };
-
-    void resolveAdminRole().then(
-      res => {
-        if (!ignore) {
-          setData({ userId: session.user.id, isAdmin: res, error: null });
-        }
-      },
-      err => {
-        if (!ignore) {
-          const msg = err instanceof Error ? err.message : 'Không thể xác thực quyền quản trị.';
-          setData({ userId: session.user.id, isAdmin: false, error: msg });
-        }
-      }
-    );
-
-    return () => {
-      ignore = true;
-    };
-  }, [session, status]);
-
-  const isCurrent = !session || data.userId === currentUserId;
-  const loading = status === 'loading' || (Boolean(session) && !isCurrent);
-  const isAdmin = Boolean(session) && isCurrent && data.isAdmin;
-  const error = isCurrent ? data.error : null;
-
-  return { isAdmin, loading, error, refetch };
+    void refetch();
+    const timer = setInterval(() => { void refetch(); }, 15000);
+    return () => { clearInterval(timer); cancelPending(); };
+  }, [refetch, cancelPending]);
+  const current = data.identity === identity;
+  return { isAdmin: Boolean(owner && current && data.isAdmin), loading: status === 'loading' || Boolean(owner && !current), error: null, refetch };
 }

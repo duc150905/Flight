@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Pressable, Text, View } from 'react-native';
@@ -24,34 +25,29 @@ import {
   adminStyles,
 } from '../ui';
 
+import { CataloguePicker } from '../catalogue-picker';
+import { loadAddonsBundle } from '../catalogue-data';
+
 type AddonTab = 'products' | 'offers';
 type AddonCategory = 'baggage' | 'meal' | 'insurance_demo';
 
-async function loadAddonsBundle() {
-  if (!supabase) throw new Error('Chưa cấu hình kết nối Supabase.');
-  const [prRes, ofRes, flRes] = await Promise.all([
-    supabase.from('addon_products').select('*').order('category', { ascending: true }),
-    supabase.from('flight_addon_offers').select('*').order('unit_amount', { ascending: true }),
-    supabase.from('flight_instances').select('*').order('departure_at', { ascending: true }),
-  ]);
-  if (prRes.error) throw prRes.error;
-  if (ofRes.error) throw ofRes.error;
-  if (flRes.error) throw flRes.error;
-
-  return {
-    products: prRes.data ?? [],
-    offers: ofRes.data ?? [],
-    flights: flRes.data ?? [],
-  };
-}
 
 export function AdminAddonsScreen() {
+  const params = useLocalSearchParams<{ q?: string }>();
+  const initialQuery = typeof params.q === 'string' ? params.q : '';
+  return <AdminAddonsContent key={initialQuery} initialQuery={initialQuery} />;
+}
+
+function AdminAddonsContent({ initialQuery }: { initialQuery: string }) {
   const { language, ta, bi, money } = useAdminI18n();
   const queryClient = useQueryClient();
 
   const addonsQuery = useQuery({
     queryKey: ['admin-addons-bundle'],
-    queryFn: loadAddonsBundle,
+    queryFn: () => {
+      if (!supabase) throw new Error('Chưa cấu hình kết nối Supabase.');
+      return loadAddonsBundle(supabase);
+    },
   });
 
   const products = addonsQuery.data?.products ?? [];
@@ -63,7 +59,7 @@ export function AdminAddonsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [page, setPage] = useState(1);
 
@@ -84,7 +80,7 @@ export function AdminAddonsScreen() {
     flightId: '',
     productId: '',
     unitAmount: '280000',
-    maxQuantityPerPassenger: '2',
+    maxQuantityPerPassenger: '1',
     isActive: true,
   });
 
@@ -191,9 +187,9 @@ export function AdminAddonsScreen() {
     setOfferForm({
       id: null,
       flightId: flights[0]?.id ?? '',
-      productId: products[0]?.id ?? '',
+      productId: products.find(p => p.category === 'baggage')?.id ?? '',
       unitAmount: '280000',
-      maxQuantityPerPassenger: '2',
+      maxQuantityPerPassenger: '1',
       isActive: true,
     });
     setShowOfferForm(true);
@@ -207,7 +203,7 @@ export function AdminAddonsScreen() {
       flightId: item.flight_id,
       productId: item.product_id,
       unitAmount: String(item.unit_amount),
-      maxQuantityPerPassenger: String(item.max_quantity_per_passenger),
+      maxQuantityPerPassenger: '1',
       isActive: item.is_active,
     });
     setShowOfferForm(true);
@@ -226,7 +222,7 @@ export function AdminAddonsScreen() {
         flightId: offerForm.flightId,
         productId: offerForm.productId,
         unitAmount: Number(offerForm.unitAmount || 0),
-        maxQuantityPerPassenger: Number(offerForm.maxQuantityPerPassenger || 1),
+        maxQuantityPerPassenger: 1,
         isActive: offerForm.isActive,
       });
       setShowOfferForm(false);
@@ -250,7 +246,7 @@ export function AdminAddonsScreen() {
         flightId: item.flight_id,
         productId: item.product_id,
         unitAmount: item.unit_amount,
-        maxQuantityPerPassenger: item.max_quantity_per_passenger,
+        maxQuantityPerPassenger: 1,
         isActive: !item.is_active,
       });
       setInfo(ta('admin.saved'));
@@ -291,8 +287,8 @@ export function AdminAddonsScreen() {
       activeSection="addons"
       title={bi('Quản lý Hành lý, Suất ăn & Dịch vụ bổ sung', 'Baggage, Meals & Add-on Services')}
       subtitle={bi(
-        'Quản lý danh mục sản phẩm dịch vụ (addon_products) và bảng giá gói dịch vụ bán theo từng chuyến bay (flight_addon_offers).',
-        'Manage add-on service products (addon_products) and per-flight add-on pricing offers (flight_addon_offers).',
+        'Khách hàng chỉ mua được một gói hành lý / hành khách / chặng. Suất ăn và bảo hiểm chỉ đọc, chưa được bán.',
+        'Checkout supports one baggage choice per traveller per leg. Meals and insurance are read-only and unavailable for sale.',
       )}
       onQuickSearch={(txt) => {
         setQuery(txt);
@@ -377,40 +373,7 @@ export function AdminAddonsScreen() {
             autoCapitalize="sentences"
           />
 
-          <View style={adminStyles.fieldGroup}>
-            <Text style={adminStyles.label}>{bi('Nhóm dịch vụ (category)', 'Category')}</Text>
-            <View style={adminStyles.chipRow}>
-              {(['baggage', 'meal', 'insurance_demo'] as AddonCategory[]).map((cat) => {
-                const selected = productForm.category === cat;
-                return (
-                  <Pressable
-                    key={cat}
-                    accessibilityRole="button"
-                    onPress={() => setProductForm((s) => ({ ...s, category: cat }))}
-                    style={[adminStyles.chip, selected && adminStyles.chipSelected]}
-                  >
-                    <Text style={[adminStyles.chipText, selected && adminStyles.chipTextSelected]}>
-                      {cat === 'baggage'
-                        ? bi('Hành lý (baggage)', 'Baggage')
-                        : cat === 'meal'
-                          ? bi('Suất ăn (meal)', 'Meal')
-                          : bi('Bảo hiểm Demo (insurance_demo)', 'Insurance Demo')}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-
-          {productForm.category === 'insurance_demo' && (
-            <Notice
-              text={bi(
-                'Lưu ý: Nhóm insurance_demo chỉ phục vụ mục đích mô phỏng học tập trong ứng dụng.',
-                'Note: The insurance_demo category is strictly for educational demo purposes.',
-              )}
-              success
-            />
-          )}
+          <Text style={adminStyles.muted}>{bi('Nhóm dịch vụ: Hành lý', 'Service category: Baggage')}</Text>
 
           {productForm.category === 'baggage' && (
             <AdminTextField
@@ -471,49 +434,10 @@ export function AdminAddonsScreen() {
               : bi('Gán gói dịch vụ vào chuyến bay', 'Create Flight Add-on Offer')}
           </Text>
 
-          <View style={adminStyles.fieldGroup}>
-            <Text style={adminStyles.label}>{bi('Chọn chuyến bay', 'Select Flight')}</Text>
-            <View style={adminStyles.chipRow}>
-              {flights.map((fl) => {
-                const selected = offerForm.flightId === fl.id;
-                return (
-                  <Pressable
-                    key={fl.id}
-                    accessibilityRole="button"
-                    onPress={() => setOfferForm((s) => ({ ...s, flightId: fl.id }))}
-                    style={[adminStyles.chip, selected && adminStyles.chipSelected]}
-                  >
-                    <Text style={[adminStyles.chipText, selected && adminStyles.chipTextSelected]}>
-                      {fl.flight_number} ({fl.departure_at.slice(0, 10)})
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-
-          <View style={adminStyles.fieldGroup}>
-            <Text style={adminStyles.label}>
-              {bi('Chọn sản phẩm dịch vụ', 'Select Add-on Product')}
-            </Text>
-            <View style={adminStyles.chipRow}>
-              {products.map((pr) => {
-                const selected = offerForm.productId === pr.id;
-                return (
-                  <Pressable
-                    key={pr.id}
-                    accessibilityRole="button"
-                    onPress={() => setOfferForm((s) => ({ ...s, productId: pr.id }))}
-                    style={[adminStyles.chip, selected && adminStyles.chipSelected]}
-                  >
-                    <Text style={[adminStyles.chipText, selected && adminStyles.chipTextSelected]}>
-                      {pr.code} · {pr.name}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
+          <CataloguePicker items={flights} value={offerForm.flightId} label={bi('Chọn chuyến bay', 'Select Flight')}
+            getLabel={fl => `${fl.flight_number} · ${fl.departure_at}`} onSelect={fl => setOfferForm(s => ({ ...s, flightId: fl.id }))} />
+          <CataloguePicker items={products.filter(p => p.category === 'baggage')} value={offerForm.productId} label={bi('Chọn gói hành lý', 'Select Baggage Product')}
+            getLabel={pr => `${pr.code} · ${pr.name}`} onSelect={pr => setOfferForm(s => ({ ...s, productId: pr.id }))} />
 
           <View style={adminStyles.rowGap}>
             <View style={{ flex: 1, minWidth: 160 }}>
@@ -526,7 +450,8 @@ export function AdminAddonsScreen() {
             </View>
             <View style={{ flex: 1, minWidth: 160 }}>
               <AdminTextField
-                label={bi('Số lượng tối đa / hành khách', 'Max Qty / Passenger')}
+                label={bi('Một gói / hành khách / chặng', 'One choice / traveller / leg')}
+                editable={false}
                 value={offerForm.maxQuantityPerPassenger}
                 onChangeText={(text) =>
                   setOfferForm((s) => ({ ...s, maxQuantityPerPassenger: text }))
@@ -587,10 +512,12 @@ export function AdminAddonsScreen() {
                   {bi('Phân loại:', 'Category:')} {item.category}
                   {item.weight_kg != null ? ` · ${item.weight_kg} kg` : ''}
                 </Text>
+                {item.category !== 'baggage' && <Notice text={bi('Chỉ đọc · Chưa hỗ trợ bán trong checkout.', 'Read-only · Unavailable in checkout.')} />}
                 {!!item.description && <Text style={adminStyles.muted}>{item.description}</Text>}
                 <View style={adminStyles.rowGap}>
                   <Pressable
                     accessibilityRole="button"
+                    disabled={item.category !== 'baggage'}
                     onPress={() => openEditProduct(item)}
                     style={adminStyles.secondaryBtnSmall}
                   >
@@ -598,7 +525,7 @@ export function AdminAddonsScreen() {
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"
-                    disabled={busy}
+                    disabled={busy || item.category !== 'baggage'}
                     onPress={() => void handleToggleProductActive(item)}
                     style={
                       item.is_active ? adminStyles.dangerBtnSmall : adminStyles.primaryBtnSmall
@@ -645,9 +572,12 @@ export function AdminAddonsScreen() {
                   {bi('Đơn giá:', 'Price:')} {money(offer.unit_amount, offer.currency)} ·{' '}
                   {bi('Tối đa / khách:', 'Max / passenger:')} {offer.max_quantity_per_passenger}
                 </Text>
+                {pr?.category !== 'baggage' && <Notice text={bi('Chỉ đọc · Chưa hỗ trợ bán trong checkout.', 'Read-only · Unavailable in checkout.')} />}
+                {pr?.category === 'baggage' && offer.max_quantity_per_passenger !== 1 && <Text style={adminStyles.muted}>{bi('Checkout chỉ cho chọn một gói. Lưu thay đổi sẽ đặt giới hạn về 1.', 'Checkout allows one choice. Saving changes sets this limit to 1.')}</Text>}
                 <View style={adminStyles.rowGap}>
                   <Pressable
                     accessibilityRole="button"
+                    disabled={pr?.category !== 'baggage'}
                     onPress={() => openEditOffer(offer)}
                     style={adminStyles.secondaryBtnSmall}
                   >
@@ -655,7 +585,7 @@ export function AdminAddonsScreen() {
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"
-                    disabled={busy}
+                    disabled={busy || pr?.category !== 'baggage'}
                     onPress={() => void handleToggleOfferActive(offer)}
                     style={
                       offer.is_active ? adminStyles.dangerBtnSmall : adminStyles.primaryBtnSmall

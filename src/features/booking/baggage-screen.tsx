@@ -29,7 +29,6 @@ export function BaggageScreen() {
   const leg = itinerary.legs.find(l => l.flightId === flight) ?? itinerary.legs[0];
   const passenger = draft.passengers.find(p => p.id === person) ?? draft.passengers[0];
   const current = draft.baggage.find(b => b.flightId === leg.flightId && b.passengerId === passenger.id);
-  const currentMeal = draft.meals?.find(m => m.flightId === leg.flightId && m.passengerId === passenger.id);
   const stale = draft.baggage.some(b => !query.data || !isBaggageCurrent(b, query.data.offers));
   const allowance = query.data?.allowances[leg.flightId];
   async function next() {
@@ -76,11 +75,7 @@ export function BaggageScreen() {
         <Text style={[screenStyles.categoryTabText, activeCategory === 'meals' && screenStyles.categoryTabTextActive]}>
           {t('In-flight Meals')}
         </Text>
-        {Boolean(currentMeal) && (
-          <View style={screenStyles.categoryBadge}>
-            <Text style={screenStyles.categoryBadgeText}>✓</Text>
-          </View>
-        )}
+
       </Pressable>
     </View>
 
@@ -115,69 +110,25 @@ export function BaggageScreen() {
                 {t('Flight catering menu')}
               </Text>
               <Text style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>
-                {t('Meals are freshly prepared and served hot during your flight.')}
+                {t('Meal pre-ordering is not available yet.')}
               </Text>
             </View>
           </View>
         </CheckoutCard>
 
         <CheckoutCard>
-          <CheckoutText title message="Select your meal preference for each flight and traveller." />
-          <Option
-            title={t('No pre-selected meal')}
-            selected={!currentMeal}
-            onPress={() => draft.setMeal(passenger.id, leg.flightId, null)}
-          />
-
-          {query.data?.meals?.filter(m => m.flightId === leg.flightId).map(m => {
-            const isSelected = currentMeal?.offerId === m.id;
-            const icon = m.name.includes('chay') ? '🥗' : m.name.includes('bánh') || m.name.includes('Combo') ? '☕' : m.name.includes('trẻ em') ? '🥪' : m.name.includes('hải sản') ? '🦐' : '🍲';
-            return (
-              <Pressable
-                key={m.id}
-                accessibilityRole="button"
-                onPress={() => draft.setMeal(passenger.id, leg.flightId, m)}
-                style={[
-                  screenStyles.mealCard,
-                  isSelected && screenStyles.mealCardSelected
-                ]}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-                  <View style={{ flex: 1, gap: 4 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={{ fontSize: 18 }}>{icon}</Text>
-                      <Text style={[screenStyles.mealTitle, isSelected && screenStyles.mealTitleSelected]}>{t(m.name)}</Text>
-                    </View>
-                    {Boolean(m.description) && (
-                      <Text style={screenStyles.mealDescription}>{m.description}</Text>
-                    )}
-                  </View>
-                  <View style={[screenStyles.radioCircle, isSelected && screenStyles.radioCircleSelected]}>
-                    {isSelected && <View style={screenStyles.radioDot} />}
-                  </View>
-                </View>
-
-                <View style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  {m.amount > 0 ? (
-                    <>
-                      <Text style={{ fontSize: 12, color: '#64748B' }}>{t('Giá đặt trước:')}</Text>
-                      <MoneyText amount={m.amount} />
-                    </>
-                  ) : (
-                    <View style={screenStyles.complimentaryBadge}>
-                      <Text style={screenStyles.complimentaryBadgeText}>{t('Phục vụ theo tiêu chuẩn hãng')}</Text>
-                    </View>
-                  )}
-                  {isSelected && (
-                    <Text style={{ fontSize: 12, color: '#0F766E', fontWeight: '700' }}>✓ Đã chọn</Text>
-                  )}
-                </View>
-              </Pressable>
-            );
-          })}
-
+          <CheckoutText title message="Menu for reference only" />
+          <CheckoutText muted message="Meals cannot be added to your booking yet." />
+          {query.data?.meals?.filter(m => m.flightId === leg.flightId).map(m => (
+            <View key={m.id} style={screenStyles.mealCard}>
+              <Text style={screenStyles.mealTitle}>{t(m.name)}</Text>
+              {!!m.description && <Text style={screenStyles.mealDescription}>{m.description}</Text>}
+              <CheckoutText muted message="Reference price" />
+              <MoneyText amount={m.amount} />
+            </View>
+          ))}
           {query.data && !query.data.meals?.some(m => m.flightId === leg.flightId) && (
-            <CheckoutText muted message="Chuyến bay này phục vụ đồ uống và thức ăn nhẹ tiêu chuẩn." />
+            <CheckoutText muted message="No meal menu is available for this flight." />
           )}
         </CheckoutCard>
       </>
@@ -194,11 +145,7 @@ export function BaggageScreen() {
             🧳 {current ? `+${current.weightKg}kg` : t('Hành lý tiêu chuẩn')}
           </Text>
         </View>
-        <View style={screenStyles.summaryChip}>
-          <Text style={screenStyles.summaryChipText}>
-            🍱 {currentMeal ? currentMeal.name : t('Suất ăn tiêu chuẩn')}
-          </Text>
-        </View>
+
       </View>
     </View>
   </CheckoutShell>;

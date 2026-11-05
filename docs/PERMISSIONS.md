@@ -2,6 +2,8 @@
 
 Tài liệu chi tiết về cơ chế phân quyền, bảo vệ thao tác Quản trị viên (Admin) và kiểm soát an toàn dữ liệu trên Supabase và ứng dụng Flight.
 
+**Cập nhật 05/11/2026:** đọc [bản sửa Admin](ADMIN-REMEDIATION-2026-11-05.md). Thao tác thường ngày dùng màn Tài khoản & phân quyền: directory lấy email/role thật, cấp/thu hồi qua RPC có audit, khóa/mở qua Edge Function + Auth Admin. `private.account_access` và guard trên RLS/RPC chặn cả JWT còn hạn. Không dùng local store để thay quyền; cache admin tách theo tài khoản. Các lệnh SQL bên dưới chỉ dùng khởi tạo/khôi phục bởi người quản lý database, vì ghi trực tiếp bỏ qua bảo vệ tự thu hồi/admin cuối cùng của RPC.
+
 ---
 
 ## 1. Kiến trúc Bảo mật 3 Lớp (Defense in Depth)
@@ -112,7 +114,7 @@ Toàn bộ khu vực quản trị được bảo vệ tự động tại `src/ap
 - `/admin/catalogues` (`src/features/admin/screens/catalogues-screen.tsx`): Quản lý Sân bay (`airports`), Hãng hàng không (`airlines`) và Điểm đến trang chủ (`destinations`) với tìm kiếm, lọc trạng thái, phân trang và tắt/bật mềm (`is_active`).
 - `/admin/aircraft` (`src/features/admin/screens/aircraft-screen.tsx`): Quản lý Tàu bay (`aircraft`) và trình tạo/cập nhật Sơ đồ ghế mẫu 4 hạng khoang (`seats`) qua RPC `admin_upsert_aircraft` và `admin_upsert_aircraft_seats`.
 - `/admin/flights` (`src/features/admin/screens/flights-screen.tsx`): Quản lý Lịch bay (`flight_instances`) theo múi giờ IANA của sân bay, Đóng/Mở bán chuyến bay (`admin_set_flight_sales`), Bảng giá hạng vé (`flight_fares` qua `admin_save_flight_fare`) và Kho ghế chuyến bay (`flight_seats` qua `admin_update_flight_seat`).
-- `/admin/addons` (`src/features/admin/screens/addons-screen.tsx`): Quản lý Sản phẩm dịch vụ bổ sung (`addon_products`: hành lý, suất ăn, bảo hiểm demo) và Gói bán theo từng chuyến bay (`flight_addon_offers`).
+- `/admin/addons` (`src/features/admin/screens/addons-screen.tsx`): Quản lý hành lý ký gửi và gói bán từng chuyến (`flight_addon_offers`), tối đa một gói/người/chặng. Suất ăn/bảo hiểm hiện chỉ xem vì checkout chưa hỗ trợ mua.
 
 Khi đăng nhập bằng tài khoản có `isAdmin = true`, màn hình `/account` (`src/features/auth/account-screen.tsx`) sẽ hiển thị nút **"Bảng điều khiển Quản trị"** để mở `/admin`.
 

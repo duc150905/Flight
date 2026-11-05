@@ -52,6 +52,8 @@ nhận dưới cùng. Dấu ✓ là ghế đang chọn của người hiện t�
 người khác trong đơn đang chọn. Ghế giữ có đồng hồ, đã đặt là ô đặc, bị chặn là ×.
 Có nhãn cho trình đọc màn hình; ghế không khả dụng không bấm được.
 
+Cập nhật 05/11/2026: hàng có `is_exit_row` được tô nền xanh nhạt và có dải EXIT kèm số hàng, chú giải Việt–Anh và nhãn đọc màn hình cho từng ghế thoát hiểm. Nhãn lấy từ dữ liệu từng chuyến, không cố định hàng 10: VN118/VN-A321 đánh dấu hàng 10; KE7030/FLY-KE-DAD-ICN đánh dấu hàng 15. Điều kiện chọn ghế và phí giữ nguyên.
+
 Infant không chọn ghế trên chặng chưa đủ hai tuổi; sau sinh nhật được chọn như
 child. Exit row yêu cầu từ 18 tuổi và không đi kèm infant trên chặng đó. Không
 cho hai người trong draft chọn trùng. DOB/người đi kèm thay đổi sẽ xóa lựa chọn

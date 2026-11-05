@@ -28,23 +28,5 @@ export async function loadBaggage(client: SupabaseClient<Database>, itinerary: C
       ? [{ id: o.id, flightId: o.flight_id, productId: product.id, name: product.name, description: product.description, amount: o.unit_amount, currency: 'VND' as const }] : [];
   });
 
-  for (const leg of itinerary.legs) {
-    const hasMeal = mealOffers.some(m => m.flightId === leg.flightId);
-    if (!hasMeal) {
-      const generalMeals = products.data.filter(p => p.category === 'meal');
-      for (const gm of generalMeals) {
-        mealOffers.push({
-          id: `meal:${leg.flightId}:${gm.id}`,
-          flightId: leg.flightId,
-          productId: gm.id,
-          name: gm.name,
-          description: gm.description,
-          amount: 0,
-          currency: 'VND',
-        });
-      }
-    }
-  }
-
   return { allowances, offers: baggageOffers, meals: mealOffers };
 }

@@ -21,6 +21,21 @@ import {
 const SAMPLE_UUID = '00000000-0000-4000-8000-000000000001';
 const SAMPLE_UUID_2 = '00000000-0000-4000-8000-000000000002';
 
+test('admin errors explain server catalogue constraints in the selected language', () => {
+  const cases = [
+    ['Cannot unpublish a flight with active bookings or seat holds', /ngừng mở bán/, /unpublish/],
+    ['Active fares require unblocked seat inventory in their cabin', /khoang/i, /cabin/],
+    ['Deactivate fares before blocking the last unblocked seat in this cabin', /ghế cuối cùng/, /last/],
+    ['Meals and insurance are read-only: checkout currently supports baggage only', /hành lý/, /baggage/],
+    ['Use an HTTPS image URL or a known bundled destination path such as destinations/da-nang.jpg', /HTTPS/, /HTTPS/],
+  ];
+  for (const [message, vi, en] of cases) {
+    assert.match(formatAdminError({message, code: '23514'}, 'vi'), vi);
+    assert.match(formatAdminError({message, code: '23514'}, 'en'), en);
+  }
+  assert.equal(formatAdminError({message: 'A specific server failure'}), 'A specific server failure');
+});
+
 test('isValidIanaTimezone validates real IANA timezones and rejects invalid strings', () => {
   assert.equal(isValidIanaTimezone('Asia/Ho_Chi_Minh'), true);
   assert.equal(isValidIanaTimezone('Asia/Tokyo'), true);
@@ -106,7 +121,7 @@ test('destinationInputSchema validates slug format and airportId', () => {
   );
 });
 
-test('addonProductInputSchema requires positive weightKg for baggage and allows null for meal/insurance_demo', () => {
+test('addonProductInputSchema requires baggage weight and rejects checkout-unsupported service authoring', () => {
   const baggage = addonProductInputSchema.parse({
     code: 'bag_20kg',
     name: 'Hành lý 20kg',
@@ -128,13 +143,13 @@ test('addonProductInputSchema requires positive weightKg for baggage and allows 
     /weight_kg > 0/,
   );
 
-  const meal = addonProductInputSchema.parse({
+  assert.throws(()=>addonProductInputSchema.parse({
     code: 'meal_hot',
     name: 'Suất ăn nóng',
     category: 'meal',
     weightKg: null,
-  });
-  assert.equal(meal.code, 'MEAL_HOT');
+  }),/checked baggage only/);
+  assert.throws(()=>addonProductInputSchema.parse({code:'INS_TEST',name:'Protection',category:'insurance_demo'}),/checked baggage only/);
 });
 
 test('flightAddonOfferInputSchema validates flightId, productId, unitAmount, and maxQuantityPerPassenger', () => {
@@ -142,12 +157,13 @@ test('flightAddonOfferInputSchema validates flightId, productId, unitAmount, and
     flightId: SAMPLE_UUID,
     productId: SAMPLE_UUID_2,
     unitAmount: '250000',
-    maxQuantityPerPassenger: '3',
+    maxQuantityPerPassenger: '1',
     isActive: true,
   });
 
   assert.equal(offer.unitAmount, 250000);
-  assert.equal(offer.maxQuantityPerPassenger, 3);
+  assert.equal(offer.maxQuantityPerPassenger, 1);
+  assert.throws(()=>flightAddonOfferInputSchema.parse({flightId:SAMPLE_UUID,productId:SAMPLE_UUID_2,unitAmount:250000,maxQuantityPerPassenger:2}));
 
   assert.throws(() =>
     flightAddonOfferInputSchema.parse({
@@ -314,7 +330,7 @@ test('saveAdminAirport, saveAdminAirline, saveAdminDestination, saveAdminAddonPr
     flightId: SAMPLE_UUID,
     productId: SAMPLE_UUID_2,
     unitAmount: 280000,
-    maxQuantityPerPassenger: 2,
+    maxQuantityPerPassenger: 1,
     isActive: true,
   });
 
@@ -331,7 +347,7 @@ test('saveAdminAirport, saveAdminAirline, saveAdminDestination, saveAdminAddonPr
   assert.equal(calls[4].payload.unit_amount, 280000);
 });
 
-test('summarizeAdminBookingsAndRevenue counts only confirmed bookings in simulated revenue and deducts completed refunds', () => {
+test('booking value remains separate while cash uses actual receipt/refund completion events', () => {
   const nowMs = Date.parse('2026-11-02T12:00:00Z');
   const summary = summarizeAdminBookingsAndRevenue({
     nowMs,
@@ -367,11 +383,11 @@ test('summarizeAdminBookingsAndRevenue counts only confirmed bookings in simulat
       },
     ],
     payments: [
-      { id: 'p1', status: 'succeeded', amount: 3_000_000, created_at: '2026-10-25T10:05:00Z' },
+      { id: 'p1', status: 'succeeded', amount: 3_000_000, created_at: '2026-10-25T10:05:00Z',paid_at:'2026-10-25T10:05:00Z' },
       { id: 'p2', status: 'failed', amount: 2_000_000, created_at: '2026-10-28T10:05:00Z' },
     ],
     refunds: [
-      { id: 'r1', status: 'completed', amount: 400_000, created_at: '2026-10-31T10:00:00Z' },
+      { id: 'r1', status: 'completed', amount: 400_000, created_at: '2026-10-31T10:00:00Z',completed_at:'2026-10-31T10:01:00Z' },
       { id: 'r2', status: 'initiated', amount: 500_000, created_at: '2026-10-31T11:00:00Z' },
     ],
     profiles: [

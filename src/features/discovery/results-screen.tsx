@@ -13,6 +13,7 @@ import { cabinLabels, searchSchema, type FlightOffer, type SearchCriteria } from
 import { saveLastSearch } from './last-search-storage';
 import { formatFlightTime } from './time-format';
 import { FlightButton, flightColors, Page, styles } from './ui';
+import { AirlineLogo } from './airline-logo';
 
 type Sort = 'price' | 'departure' | 'duration';
 const emptyOffers: FlightOffer[] = [];
@@ -159,7 +160,7 @@ const FlightCard = memo(function FlightCard({ offer, criteria }: { offer: Flight
     },
   })}>
     <View style={r.cardTop}>
-      <View style={r.airlineMark}><Text style={r.airlineInitial}>{offer.airline.name.charAt(0)}</Text></View>
+      <AirlineLogo name={offer.airline.name} logoPath={offer.airline.logo_path} />
       <View style={r.airlineDetails}><Text style={r.airlineName}>{offer.airline.name}</Text>
         <Text style={r.flightNumber}>{offer.flight.flight_number}</Text></View>
       <Text style={r.duration}>{t('{hours}g {minutes}p', { hours: Math.floor(minutes / 60), minutes: minutes % 60 })}</Text>

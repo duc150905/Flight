@@ -6,6 +6,7 @@ export const extrasMessages = {
   'seats.available': 'Ghế trống', 'seats.selected': 'Đang chọn', 'seats.selectedOther': 'Hành khách khác đang chọn',
   'seats.held': 'Đang được giữ', 'seats.booked': 'Đã đặt', 'seats.blocked': 'Bị chặn',
   'seats.otherCabin': 'Ngoài hạng vé',
+  'seats.exitRow': 'Hàng thoát hiểm · Hàng {row}', 'seats.exitRowLegend': 'Hàng thoát hiểm',
   'seats.infant': 'Em bé không có ghế riêng trên chặng này.',
   'seats.exitRule': 'Hàng thoát hiểm: từ 18 tuổi, không đi kèm em bé trên chặng này.',
   'seats.exit': 'Không đủ điều kiện ngồi hàng thoát hiểm.',
@@ -52,4 +53,9 @@ export const extrasMessages = {
   'Meals are freshly prepared and served hot during your flight.': 'Suất ăn được chế biến theo tiêu chuẩn chất lượng và phục vụ nóng trong chuyến bay.',
   'Meal': 'Suất ăn',
   'Selected meal': 'Món đã chọn',
+  'Meal pre-ordering is not available yet.': 'Chưa hỗ trợ đặt trước suất ăn.',
+  'Menu for reference only': 'Thực đơn tham khảo',
+  'Meals cannot be added to your booking yet.': 'Hiện chưa thể thêm suất ăn vào đơn đặt vé.',
+  'Reference price': 'Giá tham khảo',
+  'No meal menu is available for this flight.': 'Chưa có thực đơn cho chuyến bay này.',
 } as const;

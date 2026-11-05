@@ -27,6 +27,7 @@ import { listAirports, listDestinations } from './data';
 import type { Airport, Destination } from './model';
 import { SearchFlow } from './search-flow';
 import { destinationImages } from './destination-images';
+import { resolveDestinationMedia } from './media-paths';
 import { flightColors } from './ui';
 import { consumeOpenSearch, searchStore } from './search-state';
 import { PendingBookingCard } from '@/features/booking/pending-booking-card';
@@ -253,11 +254,8 @@ function DestinationCard({
 }) {
   const { t } = useLanguage();
   const [hovered, setHovered] = useState(false);
-  const imageUri =
-    destination.image_path && /^https:\/\//i.test(destination.image_path)
-      ? destination.image_path
-      : null;
-  const source = imageUri ? { uri: imageUri } : destinationImages[airport.iata_code];
+  const media = resolveDestinationMedia(destination.image_path, airport.iata_code);
+  const source = media && ('uri' in media ? media : destinationImages[media.bundleCode]);
 
   return (
     <Pressable

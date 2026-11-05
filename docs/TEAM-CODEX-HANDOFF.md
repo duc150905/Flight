@@ -1,3 +1,7 @@
+# Cập nhật Admin — 05/11/2026
+
+Đọc [ADMIN-REMEDIATION-2026-11-05.md](ADMIN-REMEDIATION-2026-11-05.md) trước khi sửa admin hoặc các phần giao nhau. Quyền/khóa là dữ liệu server, không dùng AsyncStorage làm nguồn quyền. Cache admin tách theo tài khoản; đọc đủ trang và báo lỗi tải thiếu. Template ghế thay thế toàn bộ với index vị trí ghế active; publish=false thực sự riêng tư, có bảo vệ chuyến đang có đơn. Checkout chỉ hỗ trợ một gói hành lý/người/chặng; meal/insurance chỉ xem. Báo cáo tiền dùng capture/refund completion theo ngày sự kiện, khác giá trị đơn confirmed. Ba migration 20261105022806/09/11 và hàm admin-account-suspension đã lên flight-dev; không chạy lại seed, không sửa history migration cũ hoặc các refund review đang chờ. Chưa nghiệm thu Android/build APK; kiểm tra Git để biết local/push/merge.
+
 # Cập nhật danh mục — 04/11/2026
 
 Đã nạp bộ mở rộng vào **flight-dev**: thêm 10 sân bay, 4 hãng, 14 điểm đến, 24 máy bay với 2.964 ghế mẫu; 1.440 chuyến bay (24 cặp đường bay hai chiều) từ 05/11 đến 04/12/2026, 4.620 gói giá, 177.840 ghế theo chuyến, 5 sản phẩm và 7.200 offer. Đọc [CATALOGUE-DATA.md](CATALOGUE-DATA.md) trước khi seed: chỉ dùng generator riêng, không chạy toàn bộ seed gốc vì có cấp admin. Không sửa booking/payment/refund/profile/role; bảo vệ bằng fingerprint trong giao dịch. Tên hiển thị Demo đã chuẩn hóa, giữ mã enum/code cũ để tương thích; có bản dịch Việt–Anh. VNPAY Sandbox giữ nguyên. Lịch, giá và sơ đồ ghế là dữ liệu học tập, không phải inventory thương mại. Chưa build APK mới.

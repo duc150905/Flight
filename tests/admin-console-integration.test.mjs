@@ -9,6 +9,11 @@ test('admin data reads beyond PostgREST cap and fails instead of reporting parti
  await assert.rejects(data.loadAllRows(async(from,to)=>from?{data:null,error:new Error('offline')}:{data:rows.slice(from,to+1),error:null}),/offline/);
  const audit=await data.loadAllRows(async(from,to)=>({data:rows.slice(from,to+1),error:null}),200);assert.equal(audit.data.length,1251);
 });
+
+test('audit RPC failure is exposed rather than presented as an empty immutable history',async()=>{
+ const client={rpc:async()=>({data:null,error:{message:'audit unavailable'}})};
+ await assert.rejects(()=>data.loadAllAuditLogs(client),/audit unavailable/);
+});
 test('overview chart uses real dates and confirmed amounts, including a zero-data baseline',()=>{
  const now=Date.parse('2026-11-02T08:00:00Z');assert.ok(adminChartSeries([],now,7).every(p=>p.bookingPct===0&&p.revPct===0));
  const points=adminChartSeries([{created_at:'2026-11-01T18:00:00Z',status:'confirmed',total_amount:1200000},

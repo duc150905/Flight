@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useContext, useEffect, useRef, useState, type PropsWithChildren } from 'react';
 import { AppState, Platform } from 'react-native';
 
-import { clearPrivateQueries } from '@/features/cache/policy';
+import { clearPrivateQueries, isPublicQueryKey } from '@/features/cache/policy';
 import { supabase } from '@/lib/supabase';
 import { createAuthService } from './model';
 import { watchSession } from './session';
@@ -14,24 +14,21 @@ const AuthContext = createContext<(AuthState & { actions: typeof actions; retry:
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
-  const ownerRef = useRef<string | null>(null);
+  const cacheOwner = useRef<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<AuthState>({ session: null, status: 'loading' });
   useEffect(() => {
     const client = supabase;
     if (!client) return;
+    const clearOwnerCache = (nextOwner: string | null) => {
+      if (cacheOwner.current === nextOwner) return;
+      cacheOwner.current = nextOwner;
+      void queryClient.cancelQueries({ predicate: query => !isPublicQueryKey(query.queryKey) });
+      clearPrivateQueries(queryClient);
+    };
     const dispose = watchSession(client.auth,
-      session => {
-        const ownerId = session?.user.id ?? null;
-        if (ownerRef.current !== ownerId) clearPrivateQueries(queryClient);
-        ownerRef.current = ownerId;
-        setState({ session, status: 'ready' });
-      },
-      () => {
-        clearPrivateQueries(queryClient);
-        ownerRef.current = null;
-        setState({ session: null, status: 'error', error: 'Không thể khôi phục phiên đăng nhập. Hãy kiểm tra kết nối và thử lại.' });
-      });
+      session => { clearOwnerCache(session?.user.id ?? null); setState({ session, status: 'ready' }); },
+      () => { clearOwnerCache(null); setState({ session: null, status: 'error', error: 'Không thể khôi phục phiên đăng nhập. Hãy kiểm tra kết nối và thử lại.' }); });
     if (Platform.OS === 'web') return dispose;
     const syncRefresh = (next: string | null | undefined) => {
       if (next === 'active') client.auth.startAutoRefresh();

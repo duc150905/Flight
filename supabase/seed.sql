@@ -43,15 +43,16 @@ set
   is_active = excluded.is_active;
 
 -- =============================================================================
+-- Logos intentionally default to initials until an HTTPS logo is configured.
 -- 2. HÃNG HÀNG KHÔNG (public.airlines)
 -- =============================================================================
 insert into public.airlines (id, iata_code, name, logo_path, is_active)
 values
-  (pg_temp.seed_uuid('airline:VN'), 'VN', 'Vietnam Airlines', 'airlines/vn.png', true),
-  (pg_temp.seed_uuid('airline:VJ'), 'VJ', 'Vietjet Air', 'airlines/vj.png', true),
-  (pg_temp.seed_uuid('airline:QH'), 'QH', 'Bamboo Airways', 'airlines/qh.png', true),
-  (pg_temp.seed_uuid('airline:VU'), 'VU', 'Vietravel Airlines', 'airlines/vu.png', true),
-  (pg_temp.seed_uuid('airline:SQ'), 'SQ', 'Singapore Airlines', 'airlines/sq.png', true)
+  (pg_temp.seed_uuid('airline:VN'), 'VN', 'Vietnam Airlines', null, true),
+  (pg_temp.seed_uuid('airline:VJ'), 'VJ', 'Vietjet Air', null, true),
+  (pg_temp.seed_uuid('airline:QH'), 'QH', 'Bamboo Airways', null, true),
+  (pg_temp.seed_uuid('airline:VU'), 'VU', 'Vietravel Airlines', null, true),
+  (pg_temp.seed_uuid('airline:SQ'), 'SQ', 'Singapore Airlines', null, true)
 on conflict (iata_code) do update
 set
   name = excluded.name,
@@ -264,7 +265,7 @@ values
     'meal',
     'Cơm gà sốt sả hoặc phở bò phục vụ nóng kèm nước suối.',
     null,
-    true
+    false
   ),
   (
     pg_temp.seed_uuid('addon:MEAL_VEG'),
@@ -273,7 +274,7 @@ values
     'meal',
     'Thực đơn rau củ hữu cơ và nấm chế biến theo tiêu chuẩn hàng không.',
     null,
-    true
+    false
   ),
   (
     pg_temp.seed_uuid('addon:MEAL_COMBO_DRINK'),
@@ -282,7 +283,7 @@ values
     'meal',
     'Bánh sừng bò nướng bơ Pháp kèm trà đào hoặc cà phê sữa đá.',
     null,
-    true
+    false
   ),
   (
     pg_temp.seed_uuid('addon:INS_BASIC_DEMO'),
@@ -291,7 +292,7 @@ values
     'insurance_demo',
     'Quyền lợi bảo vệ hành trình theo gói đã chọn.',
     null,
-    true
+    false
   ),
   (
     pg_temp.seed_uuid('addon:INS_PLUS_DEMO'),
@@ -300,7 +301,7 @@ values
     'insurance_demo',
     'Quyền lợi bảo vệ hành trình theo gói đã chọn.',
     null,
-    true
+    false
   )
 on conflict (code) do update
 set
@@ -585,12 +586,9 @@ with product_pricing as (
       when 'INS_PLUS_DEMO' then 145000::bigint
       else 100000::bigint
     end as unit_amount,
-    case
-      when p.category = 'insurance_demo' then 1::smallint
-      else 2::smallint
-    end as max_qty
+    1::smallint as max_qty
   from public.addon_products p
-  where p.is_active = true
+  where p.is_active = true and p.category = 'baggage'
 )
 insert into public.flight_addon_offers (
   id, flight_id, product_id, unit_amount, currency, max_quantity_per_passenger, is_active

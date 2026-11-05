@@ -91,12 +91,10 @@ export function QuoteScreen() {
       </CheckoutCard>
       <CheckoutCard>{quote.lines.map(line => {
         const p = draft.passengers.find(p => p.id === line.passengerId)!; const leg = draft.itinerary!.legs.find(l => l.flightId === line.flightId)!;
-        const meal = draft.meals?.find(m => m.flightId === line.flightId && m.passengerId === line.passengerId);
         return <CheckoutCard key={`${line.flightId}:${line.passengerId}`}>
           <CheckoutText>{p.values.givenNames} {p.values.familyName} · {leg.origin.iata_code} → {leg.destination.iata_code}</CheckoutText>
           <CheckoutText muted>{t(line.passengerType)} · {line.seatCode ?? t('No paid seat selected')}</CheckoutText>
           {!!line.baggageName && <CheckoutText>{t(line.baggageName)}</CheckoutText>}
-          {!!meal && <CheckoutText muted>🍱 {meal.name}</CheckoutText>}
           <MoneyText amount={line.base + line.tax + line.fee + line.baggage + line.seat} />
         </CheckoutCard>;
       })}</CheckoutCard>

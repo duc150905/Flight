@@ -38,6 +38,8 @@ import {
   adminStyles,
 } from '../ui';
 
+import { CataloguePicker } from '../catalogue-picker';
+import { loadFlightsBundle, loadFlightSeats as fetchFlightSeats } from '../catalogue-data';
 type FlightStatus = 'draft' | 'scheduled' | 'delayed' | 'departed' | 'arrived' | 'cancelled';
 
 const FLIGHT_STATUS_OPTIONS: { key: FlightStatus; vi: string; en: string; icon: string }[] = [
@@ -91,38 +93,6 @@ function isFlightSalesOpen(flight: FlightInstanceRow, nowMs: number): boolean {
   );
 }
 
-async function loadFlightsBundle() {
-  if (!supabase) throw new Error('Chưa cấu hình kết nối Supabase.');
-  const [apRes, alRes, acRes, flRes, frRes] = await Promise.all([
-    supabase.from('airports').select('*').order('iata_code', { ascending: true }),
-    supabase.from('airlines').select('*').order('iata_code', { ascending: true }),
-    supabase.from('aircraft').select('*').order('registration_code', { ascending: true }),
-    supabase.from('flight_instances').select('*').order('departure_at', { ascending: true }),
-    supabase.from('flight_fares').select('*').order('adult_base_amount', { ascending: true }),
-  ]);
-
-  if (apRes.error) throw apRes.error;
-  if (alRes.error) throw alRes.error;
-  if (acRes.error) throw acRes.error;
-  if (flRes.error) throw flRes.error;
-  if (frRes.error) throw frRes.error;
-
-  const groupedFares: Record<string, FlightFareRow[]> = {};
-  for (const fare of frRes.data ?? []) {
-    const list = groupedFares[fare.flight_id] ?? [];
-    list.push(fare);
-    groupedFares[fare.flight_id] = list;
-  }
-
-  return {
-    airports: apRes.data ?? [],
-    airlines: alRes.data ?? [],
-    aircraftList: acRes.data ?? [],
-    flights: flRes.data ?? [],
-    faresByFlight: groupedFares,
-    fetchedAtMs: Date.now(),
-  };
-}
 
 function FlightSeatsManager({
   flight,
@@ -130,8 +100,6 @@ function FlightSeatsManager({
   seatFeeDrafts,
   setSeatFeeDrafts,
   busy,
-  money,
-  ta,
   bi,
   onUpdateSeat,
   onReloadSeats,
@@ -141,8 +109,6 @@ function FlightSeatsManager({
   seatFeeDrafts: Record<string, string>;
   setSeatFeeDrafts: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   busy: boolean;
-  money: (amount: number) => string;
-  ta: (key: string, params?: Record<string, string | number>) => string;
   bi: (v: string, e: string) => string;
   onUpdateSeat: (seat: FlightSeatRow, nextBlocked?: boolean) => Promise<void>;
   onReloadSeats: () => Promise<void>;
@@ -844,12 +810,20 @@ function FlightSeatsManager({
 
 export function AdminFlightsScreen() {
   const params = useLocalSearchParams<{ q?: string }>();
+  const initialQuery = typeof params.q === 'string' ? params.q : '';
+  return <AdminFlightsContent key={initialQuery} initialQuery={initialQuery} />;
+}
+
+function AdminFlightsContent({ initialQuery }: { initialQuery: string }) {
   const { language, ta, bi, money, airportTime } = useAdminI18n();
   const queryClient = useQueryClient();
 
   const flightsQuery = useQuery({
     queryKey: ['admin-flights-bundle'],
-    queryFn: loadFlightsBundle,
+    queryFn: () => {
+      if (!supabase) throw new Error('Chưa cấu hình kết nối Supabase.');
+      return loadFlightsBundle(supabase);
+    },
   });
 
   const airports = useMemo(() => flightsQuery.data?.airports ?? [], [flightsQuery.data?.airports]);
@@ -865,7 +839,7 @@ export function AdminFlightsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
-  const [query, setQuery] = useState(typeof params.q === 'string' ? params.q : '');
+  const [query, setQuery] = useState(initialQuery);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [page, setPage] = useState(1);
 
@@ -1108,13 +1082,7 @@ export function AdminFlightsScreen() {
     setBusy(true);
     setError(null);
     try {
-      const { data, error: seatErr } = await supabase
-        .from('flight_seats')
-        .select('*')
-        .eq('flight_id', flightId)
-        .order('row_number', { ascending: true })
-        .order('column_number', { ascending: true });
-      if (seatErr) throw seatErr;
+      const data = await fetchFlightSeats(supabase, flightId);
       setSeatsByFlight((prev) => ({ ...prev, [flightId]: data ?? [] }));
       const nextDrafts: Record<string, string> = {};
       for (const seat of data ?? []) {
@@ -1525,56 +1493,11 @@ export function AdminFlightsScreen() {
               : bi('Thêm chuyến bay mới', 'Create Flight Instance')}
           </Text>
 
-          <View style={adminStyles.fieldGroup}>
-            <Text style={adminStyles.label}>{bi('Hãng hàng không', 'Airline')}</Text>
-            <View style={adminStyles.chipRow}>
-              {airlines.map((al) => {
-                const selected = flightForm.airlineId === al.id;
-                return (
-                  <Pressable
-                    key={al.id}
-                    accessibilityRole="button"
-                    onPress={() => {
-                      const firstAc =
-                        aircraftList.find((ac) => ac.airline_id === al.id)?.id ??
-                        flightForm.aircraftId;
-                      setFlightForm((s) => ({
-                        ...s,
-                        airlineId: al.id,
-                        aircraftId: firstAc,
-                      }));
-                    }}
-                    style={[adminStyles.chip, selected && adminStyles.chipSelected]}
-                  >
-                    <Text style={[adminStyles.chipText, selected && adminStyles.chipTextSelected]}>
-                      {al.iata_code} · {al.name}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-
-          <View style={adminStyles.fieldGroup}>
-            <Text style={adminStyles.label}>{bi('Tàu bay khai thác', 'Operating Aircraft')}</Text>
-            <View style={adminStyles.chipRow}>
-              {selectableAircraft.map((ac) => {
-                const selected = flightForm.aircraftId === ac.id;
-                return (
-                  <Pressable
-                    key={ac.id}
-                    accessibilityRole="button"
-                    onPress={() => setFlightForm((s) => ({ ...s, aircraftId: ac.id }))}
-                    style={[adminStyles.chip, selected && adminStyles.chipSelected]}
-                  >
-                    <Text style={[adminStyles.chipText, selected && adminStyles.chipTextSelected]}>
-                      {ac.registration_code} ({ac.model_name})
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
+          <CataloguePicker items={airlines} value={flightForm.airlineId} label={bi('Hãng hàng không', 'Airline')}
+            getLabel={al => `${al.iata_code} · ${al.name}`} onSelect={al => setFlightForm(s => ({ ...s, airlineId: al.id,
+              aircraftId: aircraftList.find(ac => ac.airline_id === al.id)?.id ?? '' }))} />
+          <CataloguePicker items={selectableAircraft} value={flightForm.aircraftId} label={bi('Tàu bay khai thác', 'Operating Aircraft')}
+            getLabel={ac => `${ac.registration_code} (${ac.model_name})`} onSelect={ac => setFlightForm(s => ({ ...s, aircraftId: ac.id }))} />
 
           <AdminTextField
             label={bi('Số hiệu chuyến bay (ví dụ: VN210)', 'Flight Number (e.g., VN210)')}
@@ -1584,47 +1507,10 @@ export function AdminFlightsScreen() {
             autoCapitalize="characters"
           />
 
-          <View style={adminStyles.fieldGroup}>
-            <Text style={adminStyles.label}>{bi('Sân bay khởi hành', 'Departure Airport')}</Text>
-            <View style={adminStyles.chipRow}>
-              {airports.map((ap) => {
-                const selected = flightForm.departureAirportId === ap.id;
-                return (
-                  <Pressable
-                    key={ap.id}
-                    accessibilityRole="button"
-                    onPress={() => setFlightForm((s) => ({ ...s, departureAirportId: ap.id }))}
-                    style={[adminStyles.chip, selected && adminStyles.chipSelected]}
-                  >
-                    <Text style={[adminStyles.chipText, selected && adminStyles.chipTextSelected]}>
-                      {ap.iata_code} ({ap.city})
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-
-          <View style={adminStyles.fieldGroup}>
-            <Text style={adminStyles.label}>{bi('Sân bay đến', 'Arrival Airport')}</Text>
-            <View style={adminStyles.chipRow}>
-              {airports.map((ap) => {
-                const selected = flightForm.arrivalAirportId === ap.id;
-                return (
-                  <Pressable
-                    key={ap.id}
-                    accessibilityRole="button"
-                    onPress={() => setFlightForm((s) => ({ ...s, arrivalAirportId: ap.id }))}
-                    style={[adminStyles.chip, selected && adminStyles.chipSelected]}
-                  >
-                    <Text style={[adminStyles.chipText, selected && adminStyles.chipTextSelected]}>
-                      {ap.iata_code} ({ap.city})
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
+          <CataloguePicker items={airports} value={flightForm.departureAirportId} label={bi('Sân bay khởi hành', 'Departure Airport')}
+            getLabel={ap => `${ap.iata_code} · ${ap.city} · ${ap.name}`} onSelect={ap => setFlightForm(s => ({ ...s, departureAirportId: ap.id }))} />
+          <CataloguePicker items={airports} value={flightForm.arrivalAirportId} label={bi('Sân bay đến', 'Arrival Airport')}
+            getLabel={ap => `${ap.iata_code} · ${ap.city} · ${ap.name}`} onSelect={ap => setFlightForm(s => ({ ...s, arrivalAirportId: ap.id }))} />
 
           {/* Lịch trình tàu bay & Kiểm tra trùng lịch */}
           <View style={{
@@ -2395,8 +2281,6 @@ export function AdminFlightsScreen() {
                     seatFeeDrafts={seatFeeDrafts}
                     setSeatFeeDrafts={setSeatFeeDrafts}
                     busy={busy}
-                    money={money}
-                    ta={ta}
                     bi={bi}
                     onUpdateSeat={(seat, nextBlocked) =>
                       handleUpdateFlightSeat(flight.id, seat, nextBlocked)

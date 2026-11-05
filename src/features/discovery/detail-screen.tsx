@@ -13,6 +13,7 @@ import { loadFlightOffer } from './data';
 import { cabinLabels, checkoutHrefForOffer, searchSchema, type FlightOffer } from './model';
 import { savePendingSelection } from '../booking/pending-selection-storage';
 import { FlightButton, flightColors, Page, styles } from './ui';
+import { AirlineLogo } from './airline-logo';
 
 function baggageText(value: unknown, t: (key: string, params?: Record<string, string | number>) => string) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return t('Xem điều kiện tại bước đặt vé.');
@@ -76,7 +77,7 @@ export function DetailScreen({ input }: { input: Record<string, string | string[
         <View style={d.flightCard}>
           <View style={d.flightCardHeader}>
             <Text style={d.flightRoute}>{t(offer.origin.city)} – {t(offer.destination.city)}</Text>
-            <View style={d.airline}><Text style={d.airlineName}>{offer.airline.name}</Text>
+            <View style={d.airline}><AirlineLogo name={offer.airline.name} logoPath={offer.airline.logo_path} /><Text style={d.airlineName}>{offer.airline.name}</Text>
               <Text style={d.flightNumber}>{offer.flight.flight_number}</Text></View>
           </View>
           <View style={d.times}>

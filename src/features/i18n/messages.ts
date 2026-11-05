@@ -19,6 +19,7 @@ export const en = {
   'seats.available': 'Available', 'seats.selected': 'Selected', 'seats.selectedOther': 'Selected for another traveller',
   'seats.held': 'Held', 'seats.booked': 'Booked', 'seats.blocked': 'Blocked',
   'seats.otherCabin': 'Other cabin',
+  'seats.exitRow': 'Emergency exit · Row {row}', 'seats.exitRowLegend': 'Exit row',
   'seats.infant': 'This infant has no separate seat on this flight.',
   'seats.exitRule': 'Exit rows: age 18+ and not accompanying an infant on this flight.',
   'seats.exit': 'Not eligible for an exit-row seat.', 'seats.unavailable': 'This seat or cabin is unavailable.',

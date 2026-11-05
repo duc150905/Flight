@@ -1,19 +1,18 @@
-import { loadAllRows, loadAllAuditLogs } from '../complete-data';
+import { loadAllRows } from '../complete-data';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Pressable, Text, View } from 'react-native';
-import { useAuth } from '@/features/auth/auth-provider';
 import { ActionButton, Notice } from '@/features/auth/ui';
 import { supabase } from '@/lib/supabase';
-import { permissionsStore } from '../permissions-store';
+import { loadAdminAccounts, type AdminAccount } from '../account-service';
+import { customerSearchText, passengerSearchText } from '../customer-search';
 import { useAdminI18n } from '../i18n';
 import {
   filterAndPaginate,
   formatAdminError,
   type BookingPassengerRow,
   type BookingRow,
-  type ProfileRow,
 } from '../model';
 import {
   AdminLoadingState,
@@ -28,39 +27,34 @@ type CustomerTab = 'profiles' | 'passengers';
 
 async function loadCustomersBundle() {
   if (!supabase) throw new Error('Chưa cấu hình kết nối Supabase.');
-  const [profRes, bkRes, paxRes, auditLogs] = await Promise.all([
-    loadAllRows((from, to) => (supabase!.from('profiles').select('*').order('created_at', { ascending: false })).order('id').range(from, to)),
+  const [accounts, bkRes, paxRes] = await Promise.all([
+    loadAdminAccounts(supabase),
     loadAllRows((from, to) => (supabase!
       .from('bookings')
       .select('id,user_id,booking_code,status,total_amount,currency,contact_email,contact_phone')).order('id').range(from, to)),
     loadAllRows((from, to) => (supabase!.from('booking_passengers').select('*').order('created_at', { ascending: false })).order('id').range(from, to)),
-    loadAllAuditLogs(supabase),
   ]);
 
-  if (profRes.error) throw profRes.error;
   if (bkRes.error) throw bkRes.error;
   if (paxRes.error) throw paxRes.error;
 
-  const adminActorIds = new Set<string>();
-  for (const log of auditLogs) {
-    if (log.actor_user_id) adminActorIds.add(log.actor_user_id);
-  }
-
   return {
-    profiles: profRes.data ?? [],
+    accounts,
     bookings: bkRes.data ?? [],
     passengers: paxRes.data ?? [],
-    adminActorIds: Array.from(adminActorIds),
   };
 }
 
 export function AdminCustomersScreen() {
   const params = useLocalSearchParams<{ q?: string }>();
-  const { session } = useAuth();
+  const initialQuery = typeof params.q === 'string' ? params.q : '';
+  return <AdminCustomersContent key={initialQuery} initialQuery={initialQuery} />;
+}
+function AdminCustomersContent({ initialQuery }: { initialQuery: string }) {
   const { language, ta, bi, money, airportTime } = useAdminI18n();
 
   const [tab, setTab] = useState<CustomerTab>('profiles');
-  const [query, setQuery] = useState(typeof params.q === 'string' ? params.q : '');
+  const [query, setQuery] = useState(initialQuery);
   const [page, setPage] = useState(1);
 
   const custQuery = useQuery({
@@ -70,36 +64,7 @@ export function AdminCustomersScreen() {
     refetchOnMount: 'always',
   });
 
-  const adminIdSet = new Set<string>(custQuery.data?.adminActorIds ?? []);
-  if (session?.user?.id) {
-    adminIdSet.add(session.user.id);
-  }
-  for (const id of permissionsStore.promotedIds) {
-    adminIdSet.add(id);
-  }
-  for (const id of permissionsStore.revokedIds) {
-    adminIdSet.delete(id);
-  }
-
-  // Exclude Admin accounts from Customer Profiles list
-  const existingProfIds = new Set((custQuery.data?.profiles ?? []).map((p) => p.id));
-  const mergedProfiles = [...(custQuery.data?.profiles ?? [])];
-  for (const evt of permissionsStore.auditEvents) {
-    const rawTargetId = evt.targetUserId || '';
-    const matchId = evt.subtitle.match(/ID:\s*#([a-f0-9]+)/i)?.[1];
-    const targetId = rawTargetId || (matchId ? `user_${matchId}` : '');
-    if (targetId && !existingProfIds.has(targetId)) {
-      existingProfIds.add(targetId);
-      mergedProfiles.push({
-        id: targetId,
-        full_name: evt.targetName || 'Flyora User',
-        contact_phone: '',
-        created_at: evt.createdAt,
-        updated_at: evt.createdAt,
-      } as ProfileRow);
-    }
-  }
-  const profiles = mergedProfiles.filter((pr) => !adminIdSet.has(pr.id));
+  const profiles = (custQuery.data?.accounts ?? []).filter(account => account.role === 'customer');
   const bookings = custQuery.data?.bookings ?? [];
   const passengers = custQuery.data?.passengers ?? [];
 
@@ -116,21 +81,14 @@ export function AdminCustomersScreen() {
     query,
     page,
     pageSize: 8,
-    getSearchText: (pr: ProfileRow) => {
-      const userBks = bookingsByUser.get(pr.id) ?? [];
-      const emails = userBks.map((b) => b.contact_email).join(' ');
-      return `${pr.full_name} ${pr.contact_phone ?? ''} ${pr.id} ${emails}`;
-    },
+    getSearchText: (pr: AdminAccount) => customerSearchText(pr, bookingsByUser.get(pr.id) ?? []),
   });
 
   const pagedPassengers = filterAndPaginate(passengers, {
     query,
     page,
     pageSize: 8,
-    getSearchText: (pax: BookingPassengerRow) => {
-      const bk = bookingById.get(pax.booking_id);
-      return `${pax.family_name} ${pax.given_names} ${pax.document_number ?? ''} ${pax.nationality_code ?? ''} ${bk?.booking_code ?? ''}`;
-    },
+    getSearchText: (pax: BookingPassengerRow) => passengerSearchText(pax, bookingById.get(pax.booking_id)),
   });
 
   return (
@@ -214,12 +172,12 @@ export function AdminCustomersScreen() {
               const confirmedSpend = userBookings
                 .filter((b) => b.status === 'confirmed')
                 .reduce((sum, b) => sum + (b.total_amount || 0), 0);
-              const latestEmail = userBookings[0]?.contact_email ?? '—';
+              const accountEmail = pr.email || '—';
 
               return (
                 <View key={pr.id} style={adminStyles.itemCard}>
                   <View style={adminStyles.rowBetween}>
-                    <Text style={adminStyles.bold}>{pr.full_name}</Text>
+                    <Text style={adminStyles.bold}>{pr.fullName}</Text>
                     <AdminStatusBadge
                       active
                       customLabel={bi(
@@ -230,14 +188,14 @@ export function AdminCustomersScreen() {
                   </View>
 
                   <Text style={adminStyles.muted}>
-                    📞 {pr.contact_phone ?? bi('Chưa cập nhật SĐT', 'No phone')} · 📧 {latestEmail}
+                    📞 {pr.phone ?? bi('Chưa cập nhật SĐT', 'No phone')} · 📧 {accountEmail}
                   </Text>
 
                   <Text style={adminStyles.muted}>
                     {bi('Tổng chi tiêu đã xác nhận:', 'Confirmed spend:')}{' '}
                     <Text style={adminStyles.bold}>{money(confirmedSpend)}</Text> ·{' '}
                     {bi('Ngày tham gia:', 'Joined:')}{' '}
-                    {airportTime(pr.created_at, 'Asia/Ho_Chi_Minh')}
+                    {airportTime(pr.createdAt, 'Asia/Ho_Chi_Minh')}
                   </Text>
 
                   {userBookings.length > 0 && (
@@ -246,7 +204,7 @@ export function AdminCustomersScreen() {
                         accessibilityRole="button"
                         onPress={() =>
                           router.push(
-                            `/admin/bookings?q=${encodeURIComponent(userBookings[0].booking_code)}` as Href,
+                            `/admin/bookings?ownerId=${encodeURIComponent(pr.id)}` as Href,
                           )
                         }
                         style={adminStyles.secondaryBtnSmall}

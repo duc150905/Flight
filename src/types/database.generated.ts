@@ -1165,33 +1165,47 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_mock_payment_state: { Args: { p_booking_id: string }; Returns: Json }
-      get_payment_state: { Args: { p_booking_id: string }; Returns: Json }
-      admin_vnpay_review: { Args: Record<PropertyKey, never>; Returns: Json }
-      start_mock_payment: { Args: { p_booking_id: string; p_request_id: string }; Returns: Json }
-      resolve_mock_payment: { Args: { p_payment_id: string; p_request_id: string; p_outcome: string }; Returns: Json }
-      cancel_booking: { Args: { p_booking_id: string; p_request_id: string; p_expected_fee: number }; Returns: Json }
-      refund_mock_booking: { Args: { p_booking_id: string; p_request_id: string; p_outcome: string }; Returns: Json }
-      create_booking: { Args: { p_request_id: string; p_request: Json }; Returns: Json }
-      get_pending_booking: { Args: { p_booking_id: string }; Returns: Json }
-      find_booking_request: { Args: { p_request_id: string }; Returns: Json }
-      quote_checkout: { Args: { p_request: Json }; Returns: Json }
+      admin_finish_suspension: {
+        Args: { p_operation_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      admin_list_accounts: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          pending_suspended: boolean
+          phone: string
+          role: string
+          suspended: boolean
+        }[]
+      }
       admin_list_audit_logs: {
         Args: {
-          p_entity_id?: string | null
-          p_entity_type?: string | null
+          p_entity_id?: string
+          p_entity_type?: string
           p_limit?: number
           p_offset?: number
         }
         Returns: {
           action: string
-          actor_user_id: string | null
+          actor_user_id: string
           created_at: string
-          entity_id: string | null
+          entity_id: string
           entity_type: string
           id: string
           safe_changes: Json
         }[]
+      }
+      admin_payment_ledger_page: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: Json
+      }
+      admin_prepare_suspension: {
+        Args: { p_suspended: boolean; p_user_id: string }
+        Returns: string
       }
       admin_save_flight_fare: {
         Args: {
@@ -1207,7 +1221,7 @@ export type Database = {
           p_child_fee_amount?: number
           p_child_tax_amount?: number
           p_fare_code?: string
-          p_fare_id?: string | null
+          p_fare_id?: string
           p_flight_id?: string
           p_infant_base_amount?: number
           p_infant_fee_amount?: number
@@ -1215,7 +1229,36 @@ export type Database = {
           p_is_active?: boolean
           p_name?: string
         }
-        Returns: Database["public"]["Tables"]["flight_fares"]["Row"]
+        Returns: {
+          adult_base_amount: number
+          adult_fee_amount: number
+          adult_tax_amount: number
+          baggage_allowance: Json
+          cabin_class: Database["public"]["Enums"]["cabin_class"]
+          cancellation_allowed: boolean
+          cancellation_cutoff_minutes: number
+          cancellation_fee_amount: number
+          child_base_amount: number
+          child_fee_amount: number
+          child_tax_amount: number
+          created_at: string
+          currency: string
+          fare_code: string
+          flight_id: string
+          id: string
+          infant_base_amount: number
+          infant_fee_amount: number
+          infant_tax_amount: number
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "flight_fares"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       admin_save_flight_instance: {
         Args: {
@@ -1225,47 +1268,192 @@ export type Database = {
           p_arrival_at?: string
           p_departure_airport_id?: string
           p_departure_at?: string
-          p_flight_id?: string | null
+          p_flight_id?: string
           p_flight_number?: string
           p_publish?: boolean
-          p_sales_close_at?: string | null
+          p_sales_close_at?: string
           p_status?: Database["public"]["Enums"]["flight_status"]
         }
-        Returns: Database["public"]["Tables"]["flight_instances"]["Row"]
+        Returns: {
+          aircraft_id: string
+          airline_id: string
+          arrival_airport_id: string
+          arrival_at: string
+          created_at: string
+          departure_airport_id: string
+          departure_at: string
+          flight_number: string
+          id: string
+          published_at: string | null
+          sales_close_at: string
+          status: Database["public"]["Enums"]["flight_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "flight_instances"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_set_account_role: {
+        Args: { p_role: string; p_user_id: string }
+        Returns: undefined
       }
       admin_set_flight_sales: {
         Args: {
           p_flight_id: string
           p_open_sales: boolean
-          p_sales_close_at?: string | null
+          p_sales_close_at?: string
         }
-        Returns: Database["public"]["Tables"]["flight_instances"]["Row"]
+        Returns: {
+          aircraft_id: string
+          airline_id: string
+          arrival_airport_id: string
+          arrival_at: string
+          created_at: string
+          departure_airport_id: string
+          departure_at: string
+          flight_number: string
+          id: string
+          published_at: string | null
+          sales_close_at: string
+          status: Database["public"]["Enums"]["flight_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "flight_instances"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       admin_update_flight_seat: {
         Args: {
           p_flight_seat_id: string
-          p_is_blocked?: boolean | null
-          p_selection_fee_amount?: number | null
+          p_is_blocked?: boolean
+          p_selection_fee_amount?: number
         }
-        Returns: Database["public"]["Tables"]["flight_seats"]["Row"]
+        Returns: {
+          cabin_class: Database["public"]["Enums"]["cabin_class"]
+          column_number: number
+          created_at: string
+          currency: string
+          flight_id: string
+          id: string
+          is_blocked: boolean
+          is_exit_row: boolean
+          position: Database["public"]["Enums"]["seat_position"]
+          row_number: number
+          seat_code: string
+          seat_id: string
+          selection_fee_amount: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "flight_seats"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       admin_upsert_aircraft: {
         Args: {
-          p_aircraft_id?: string | null
+          p_aircraft_id?: string
           p_airline_id?: string
           p_is_active?: boolean
           p_model_name?: string
           p_registration_code?: string
         }
-        Returns: Database["public"]["Tables"]["aircraft"]["Row"]
+        Returns: {
+          airline_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          model_name: string
+          registration_code: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "aircraft"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       admin_upsert_aircraft_seats: {
-        Args: {
-          p_aircraft_id: string
-          p_seats: Json
-        }
+        Args: { p_aircraft_id: string; p_seats: Json }
         Returns: number
       }
+      admin_vnpay_review: { Args: never; Returns: Json }
+      admin_vnpay_review_page: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_query?: string
+          p_state?: string
+        }
+        Returns: Json
+      }
+      apply_vnpay_refund: {
+        Args: {
+          p_code: string
+          p_refund_id: string
+          p_state: string
+          p_transaction_no: string
+        }
+        Returns: undefined
+      }
+      apply_vnpay_result: {
+        Args: {
+          p_amount: number
+          p_code: string
+          p_pay_date: string
+          p_ref: string
+          p_success: boolean
+          p_transaction_no: string
+        }
+        Returns: Json
+      }
+      begin_vnpay_payment: {
+        Args: {
+          p_booking_id: string
+          p_ip: string
+          p_owner_id: string
+          p_request_id: string
+        }
+        Returns: Json
+      }
+      cancel_booking: {
+        Args: {
+          p_booking_id: string
+          p_expected_fee: number
+          p_request_id: string
+        }
+        Returns: Json
+      }
+      claim_booking_mail: { Args: { p_sender: string }; Returns: Json }
+      claim_vnpay_refund: {
+        Args: { p_booking_id: string; p_owner_id: string }
+        Returns: Json
+      }
+      claim_vnpay_refund_sync: { Args: { p_booking_id: string }; Returns: Json }
+      claim_vnpay_sync: {
+        Args: { p_booking_id: string; p_owner_id: string }
+        Returns: Json
+      }
+      create_booking: {
+        Args: { p_request: Json; p_request_id: string }
+        Returns: Json
+      }
+      find_booking_request: { Args: { p_request_id: string }; Returns: Json }
+      finish_booking_mail: {
+        Args: { p_booking_id: string; p_error: string; p_provider_id: string }
+        Returns: undefined
+      }
+      get_mock_payment_state: { Args: { p_booking_id: string }; Returns: Json }
+      get_payment_state: { Args: { p_booking_id: string }; Returns: Json }
+      get_pending_booking: { Args: { p_booking_id: string }; Returns: Json }
       get_seat_map: {
         Args: { p_flight_id: string }
         Returns: {
@@ -1282,6 +1470,20 @@ export type Database = {
         }[]
       }
       is_admin: { Args: never; Returns: boolean }
+      quote_checkout: { Args: { p_request: Json }; Returns: Json }
+      refund_mock_booking: {
+        Args: { p_booking_id: string; p_outcome: string; p_request_id: string }
+        Returns: Json
+      }
+      resolve_mock_payment: {
+        Args: { p_outcome: string; p_payment_id: string; p_request_id: string }
+        Returns: Json
+      }
+      start_mock_payment: {
+        Args: { p_booking_id: string; p_request_id: string }
+        Returns: Json
+      }
+      vnpay_worker_batch: { Args: never; Returns: Json }
     }
     Enums: {
       addon_category: "baggage" | "meal" | "insurance_demo"

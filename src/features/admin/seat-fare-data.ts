@@ -281,4 +281,3 @@ export function getSeatPositionInfo(
     isExit,
   };
 }
-

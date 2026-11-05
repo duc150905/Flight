@@ -1,5 +1,5 @@
 import { router, type Href } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Modal,
@@ -15,10 +15,11 @@ import {
 import { useAuth } from '@/features/auth/auth-provider';
 import { ActionButton, Notice } from '@/features/auth/ui';
 import { supabase } from '@/lib/supabase';
-import { loadAllAuditLogs, loadAllRows } from '../complete-data';
+import { loadAdminAccountAudit, setAdminAccountRole, setAdminAccountSuspended } from '../account-service';
+import { useAdminAccounts } from '../use-admin-accounts';
 import { useAdminI18n } from '../i18n';
-import { filterAndPaginate, type ProfileRow } from '../model';
-import { permissionsStore, type LocalPermissionEvent } from '../permissions-store';
+import { filterAndPaginate } from '../model';
+
 import {
   AdminLoadingState,
   AdminPaginationBar,
@@ -32,14 +33,6 @@ type RoleFilter = 'all' | 'admin' | 'customer';
 
 type SystemRoleKey = 'admin' | 'customer';
 
-type BookingContactRow = {
-  id: string;
-  user_id: string;
-  contact_email: string | null;
-  contact_phone: string | null;
-  created_at: string;
-};
-
 type RealAccount = {
   id: string;
   name: string;
@@ -48,7 +41,7 @@ type RealAccount = {
   role: SystemRoleKey;
   status: 'active' | 'suspended';
   createdAt: string;
-  lastActive: string;
+  pendingSuspended: boolean | null;
   initials: string;
   avatarBg: string;
   avatarColor: string;
@@ -87,7 +80,7 @@ const SYSTEM_ROLES: Record<
       'Quản lý toàn bộ chuyến bay (Thêm, sửa, mở/đóng bán vé, cấu hình ghế)',
       'Quản lý đội tàu bay và sơ đồ ghế 4 hạng cabin (First, Business, Premium, Economy)',
       'Quản lý danh mục sân bay, hãng bay, điểm đến, gói dịch vụ phụ trợ',
-      'Tra cứu toàn bộ đơn đặt vé hành khách và phê duyệt xử lý hoàn tiền trực tuyến',
+      'Tra cứu toàn bộ đơn đặt vé, hành khách và theo dõi trạng thái hoàn tiền',
       'Xem báo cáo tài chính, biểu đồ doanh thu và nhật ký kiểm toán bất biến (Audit logs)',
       'Cấp quyền và quản lý tài khoản Quản trị viên trong hệ thống',
     ],
@@ -95,7 +88,7 @@ const SYSTEM_ROLES: Record<
       'Full control over flight schedules, sales status, and seat availability',
       'Fleet management and 4-cabin aircraft seat configuration',
       'Master catalogues management: airports, airlines, destinations, add-on products',
-      'Inspect bookings, traveler manifests, and process refund requests',
+      'Inspect bookings, traveler manifests, and refund reconciliation status',
       'Access financial analytics, revenue charts, and immutable audit logs',
       'Grant and manage admin privileges across user accounts',
     ],
@@ -113,13 +106,13 @@ const SYSTEM_ROLES: Record<
     icon: '👤',
     permissionsVi: [
       'Tìm kiếm chuyến bay một chiều, khứ hồi và nhiều chặng',
-      'Đặt vé máy bay, chọn ghế ngồi và mua kèm dịch vụ bổ sung (hành lý, suất ăn)',
+      'Đặt vé máy bay, chọn ghế ngồi và mua kèm dịch vụ bổ sung (hành lý)',
       'Thanh toán đơn hàng trực tuyến và nhận mã vé điện tử tức thì',
       'Xem lịch sử đơn đặt vé trong Vé của tôi và cập nhật thông tin cá nhân',
     ],
     permissionsEn: [
       'Search one-way, round-trip, and multi-city flights',
-      'Book flight tickets, pick seats, and add extra baggage or meals',
+      'Book flight tickets, pick seats, and add extra baggage',
       'Online payment and electronic booking confirmation in My Bookings',
       'Manage personal profile and travel history',
     ],
@@ -183,34 +176,6 @@ function formatRelativeTime(
   }
 }
 
-async function loadStaffAndPermissionsBundle() {
-  if (!supabase) throw new Error('Chưa cấu hình kết nối Supabase.');
-  const [profilesRes, bookingsRes, auditLogs] = await Promise.all([
-    loadAllRows<ProfileRow>((from, to) =>
-      supabase!.from('profiles').select('*').order('created_at', { ascending: false }).order('id').range(from, to),
-    ),
-    loadAllRows<BookingContactRow>((from, to) =>
-      supabase!.from('bookings').select('id, user_id, contact_email, contact_phone, created_at').order('id').range(from, to),
-    ),
-    loadAllAuditLogs(supabase),
-  ]);
-
-  if (profilesRes.error) throw profilesRes.error;
-
-  const adminActorIds = new Set<string>();
-  for (const log of auditLogs) {
-    if (log.actor_user_id) adminActorIds.add(log.actor_user_id);
-  }
-
-  return {
-    profiles: profilesRes.data ?? [],
-    bookings: bookingsRes.data ?? [],
-    auditLogs: auditLogs ?? [],
-    adminActorIds: Array.from(adminActorIds),
-    fetchedAtMs: Date.now(),
-  };
-}
-
 export function AdminPermissionsScreen() {
   const { bi, airportTime } = useAdminI18n();
   const { session } = useAuth();
@@ -228,309 +193,63 @@ export function AdminPermissionsScreen() {
   const [activityModalVisible, setActivityModalVisible] = useState(false);
   const [editingAccount, setEditingAccount] = useState<RealAccount | null>(null);
 
-  // Local admin promotion & suspension sets (persisted in module cache + AsyncStorage)
-  const [promotedAdminIds, setPromotedAdminIds] = useState<Set<string>>(() => new Set(permissionsStore.promotedIds));
-  const [revokedAdminIds, setRevokedAdminIds] = useState<Set<string>>(() => new Set(permissionsStore.revokedIds));
-  const [suspendedIds, setSuspendedIds] = useState<Set<string>>(() => new Set(permissionsStore.suspendedIds));
-  const [localAuditEvents, setLocalAuditEvents] = useState<LocalPermissionEvent[]>(() => [...permissionsStore.auditEvents]);
-
-  useEffect(() => {
-    permissionsStore.load().then((stored) => {
-      setPromotedAdminIds(new Set(stored.promoted));
-      setRevokedAdminIds(new Set(stored.revoked));
-      setSuspendedIds(new Set(stored.suspended));
-      setLocalAuditEvents([...stored.events]);
-    });
-  }, []);
-
   const [formSuccess, setFormSuccess] = useState('');
-
-  const queryBundle = useQuery({
-    queryKey: ['admin-permissions-bundle'],
-    queryFn: loadStaffAndPermissionsBundle,
-    staleTime: 0,
-    refetchOnMount: 'always',
+  const [formError, setFormError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const queryBundle = useAdminAccounts();
+  const auditQuery = useQuery({ queryKey: ['admin-permissions-audit', session?.user.id], queryFn: () => {
+    if (!supabase) throw new Error('Supabase is not configured.');
+    return loadAdminAccountAudit(supabase);
+  } });
+  const rawAuditLogs = auditQuery.data ?? [];
+  const accounts: RealAccount[] = queryBundle.accounts.map(account => {
+    const palette = getAvatarColors(account.id);
+    const name = account.fullName || bi('Người dùng Flyora', 'Flyora User');
+    return { ...account, name, status: account.suspended ? 'suspended' : 'active',
+      initials: getInitials(name), avatarBg: palette.bg, avatarColor: palette.color };
   });
-
-  const rawProfiles = useMemo(() => queryBundle.data?.profiles ?? [], [queryBundle.data?.profiles]);
-  const rawBookings = queryBundle.data?.bookings ?? [];
-  const rawAuditLogs = queryBundle.data?.auditLogs ?? [];
-  const dbAdminActorIds = queryBundle.data?.adminActorIds ?? [];
-
-  // Map bookings and emails by user
-  const bookingsByUser = new Map<string, BookingContactRow[]>();
-  for (const b of rawBookings) {
-    const list = bookingsByUser.get(b.user_id) ?? [];
-    list.push(b);
-    bookingsByUser.set(b.user_id, list);
-  }
-
-  // Profile lookup
-  const profileById = new Map<string, ProfileRow>();
-  for (const p of rawProfiles) {
-    profileById.set(p.id, p);
-  }
-
-  // Effective Admin ID Set: (db admins + current user + promoted) - revoked
-  const effectiveAdminIdSet = new Set<string>(dbAdminActorIds);
-  if (session?.user?.id) {
-    effectiveAdminIdSet.add(session.user.id);
-  }
-  for (const id of promotedAdminIds) {
-    effectiveAdminIdSet.add(id);
-  }
-  for (const id of revokedAdminIds) {
-    effectiveAdminIdSet.delete(id);
-  }
-
-  const [selfName, setSelfName] = useState<string>('');
-
-  useEffect(() => {
-    if (!session?.user?.id || !supabase) return;
-    supabase
-      .from('profiles')
-      .select('full_name')
-      .eq('id', session.user.id)
-      .maybeSingle()
-      .then(({ data: prof }) => {
-        if (prof?.full_name?.trim()) {
-          setSelfName(prof.full_name.trim());
-        }
-      });
-  }, [session?.user?.id]);
-
-  // Resolve current user display name (prefer database profile full_name over email prefix)
-  const currentProfile = session?.user?.id ? profileById.get(session.user.id) : undefined;
-  const adminActorProfile = dbAdminActorIds
-    .map((id) => profileById.get(id))
-    .find((p) => Boolean(p?.full_name?.trim()));
-
-  const candidateName =
-    selfName ||
-    currentProfile?.full_name?.trim() ||
-    (session?.user?.user_metadata?.full_name as string | undefined)?.trim() ||
-    adminActorProfile?.full_name?.trim();
-
-  const isGenericOrHash = !candidateName || /^bnvawg/i.test(candidateName) || candidateName === 'Admin';
-  const currentUserName = isGenericOrHash ? (session?.user?.email?.split('@')[0] ?? 'Admin') : candidateName;
-
-  useEffect(() => {
-    permissionsStore.syncActorName(session?.user?.id ?? null, currentUserName);
-    const caGiaProfile = rawProfiles.find(
-      (p) => p.full_name?.trim() === 'Ca Gia' || p.id.toLowerCase().startsWith('1c2fbe'),
-    );
-    if (caGiaProfile?.full_name?.trim()) {
-      permissionsStore.syncTargetName('1c2fbe', caGiaProfile.full_name.trim());
-    }
-  }, [session?.user?.id, currentUserName, rawProfiles]);
-
-  // Build Real Account objects
-  const accounts: RealAccount[] = rawProfiles.map((p) => {
-    const userBks = bookingsByUser.get(p.id) ?? [];
-    const isCurrent = session?.user?.id === p.id;
-    const bEmail = userBks.find((b) => b.contact_email?.trim())?.contact_email;
-    const email = isCurrent
-      ? session?.user?.email ?? 'admin@flyora.vn'
-      : bEmail || (p.contact_phone ? `${p.contact_phone.replace(/\D/g, '')}@flyora.vn` : `user_${p.id.slice(0, 6)}@flyora.vn`);
-
-    const phone = p.contact_phone || userBks.find((b) => b.contact_phone?.trim())?.contact_phone || '';
-    const isAdmin = effectiveAdminIdSet.has(p.id);
-    const isSuspended = suspendedIds.has(p.id);
-
-    // Latest activity
-    let latestTime = p.created_at;
-    if (userBks.length > 0 && userBks[0].created_at > latestTime) {
-      latestTime = userBks[0].created_at;
-    }
-
-    const colors = getAvatarColors(p.id + p.full_name);
-
-    return {
-      id: p.id,
-      name: p.full_name?.trim() || bi('Người dùng Flyora', 'Flyora User'),
-      email,
-      phone,
-      role: isAdmin ? 'admin' : 'customer',
-      status: isSuspended ? 'suspended' : 'active',
-      createdAt: p.created_at,
-      lastActive: latestTime,
-      initials: getInitials(p.full_name || 'Flyora'),
-      avatarBg: colors.bg,
-      avatarColor: colors.color,
-    };
-  });
-
-  // Merge any accounts from local permission store that are hidden by database RLS
-  const existingIds = new Set(accounts.map((a) => a.id));
-  for (const evt of localAuditEvents) {
-    const rawTargetId = evt.targetUserId || '';
-    const matchId = evt.subtitle.match(/ID:\s*#([a-f0-9]+)/i)?.[1];
-    const targetId = rawTargetId || (matchId ? `user_${matchId}` : '');
-    if (!targetId) continue;
-    if (existingIds.has(targetId)) {
-      const existing = accounts.find((a) => a.id === targetId);
-      if (existing) {
-        existing.role = effectiveAdminIdSet.has(targetId) ? 'admin' : 'customer';
-        existing.status = suspendedIds.has(targetId) ? 'suspended' : 'active';
-      }
-      continue;
-    }
-    existingIds.add(targetId);
-    const isAdm = effectiveAdminIdSet.has(targetId);
-    const isSusp = suspendedIds.has(targetId);
-    const name = evt.targetName || 'Flyora User';
-    const colors = getAvatarColors(targetId + name);
-    accounts.push({
-      id: targetId,
-      name,
-      email: evt.targetEmail || 'user@flyora.vn',
-      phone: '',
-      role: isAdm ? 'admin' : 'customer',
-      status: isSusp ? 'suspended' : 'active',
-      createdAt: evt.createdAt,
-      lastActive: evt.createdAt,
-      initials: getInitials(name),
-      avatarBg: colors.bg,
-      avatarColor: colors.color,
-    });
-  }
-
+  const profileById = new Map(accounts.map(account => [account.id, { full_name: account.name }]));
   // Metrics
   const totalAccounts = accounts.length;
   const adminAccountsCount = accounts.filter((a) => a.role === 'admin').length;
   const customerAccountsCount = accounts.filter((a) => a.role === 'customer').length;
-  const totalAuditEvents = rawAuditLogs.length + localAuditEvents.length;
+  const totalAuditEvents = rawAuditLogs.length;
 
   // Filter accounts
-  const filteredAccounts = accounts.filter((acc) => {
-    if (roleFilter !== 'all' && acc.role !== roleFilter) return false;
-    if (!query.trim()) return true;
-    const q = query.trim().toLowerCase();
-    return (
-      acc.name.toLowerCase().includes(q) ||
-      acc.email.toLowerCase().includes(q) ||
-      acc.phone.toLowerCase().includes(q) ||
-      acc.id.toLowerCase().includes(q)
-    );
-  });
+  const filteredAccounts = accounts.filter(acc => roleFilter === 'all' || acc.role === roleFilter);
 
   const pagedAccounts = filterAndPaginate(filteredAccounts, {
-    query: '',
+    query,
     page,
     pageSize: 8,
     getSearchText: (a: RealAccount) => `${a.name} ${a.email} ${a.phone} ${a.id}`,
   });
 
-  // Grant Admin privilege to a user
-  const handleGrantAdmin = (account: RealAccount) => {
-    permissionsStore.grantAdmin({
-      actorId: session?.user?.id ?? null,
-      actorName: currentUserName,
-      targetUserId: account.id,
-      targetName: account.name,
-      targetEmail: account.email,
-      title: bi(
-        `${currentUserName} đã cấp quyền Quản trị viên cho ${account.name}`,
-        `${currentUserName} granted Administrator role to ${account.name}`,
-      ),
-      subtitle: `${account.email} · ID: #${account.id.slice(0, 8)}`,
-      timeLabel: bi('Vừa xong', 'Just now'),
-    });
-
-    setPromotedAdminIds(new Set(permissionsStore.promotedIds));
-    setRevokedAdminIds(new Set(permissionsStore.revokedIds));
-    setLocalAuditEvents([...permissionsStore.auditEvents]);
-
-    setFormSuccess(
-      bi(
-        `Đã cấp quyền Quản trị viên cho tài khoản "${account.name}" thành công!`,
-        `Successfully granted Administrator role to "${account.name}"!`,
-      ),
-    );
-    setInviteModalVisible(false);
-    setEditingAccount(null);
+  const mutateAccount = async (operation: () => Promise<void>) => {
+    if (saving) return;
+    setSaving(true); setFormError(''); setFormSuccess('');
+    try {
+      await operation();
+      await Promise.all([queryBundle.refetch(), auditQuery.refetch()]);
+      setFormSuccess(bi('Đã lưu thay đổi trên máy chủ.', 'Changes saved on the server.'));
+      setInviteModalVisible(false); setEditingAccount(null);
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : String(error));
+      await queryBundle.refetch();
+      setEditingAccount(null);
+    } finally { setSaving(false); }
   };
-
-  // Revoke Admin privilege
-  const handleRevokeAdmin = (account: RealAccount) => {
-    if (account.id === session?.user?.id) {
-      alert(bi('Bạn không thể tự thu hồi quyền quản trị của chính mình.', 'You cannot revoke your own admin rights.'));
-      return;
-    }
-
-    permissionsStore.revokeAdmin({
-      actorId: session?.user?.id ?? null,
-      actorName: currentUserName,
-      targetUserId: account.id,
-      targetName: account.name,
-      targetEmail: account.email,
-      title: bi(
-        `${currentUserName} đã thu hồi quyền Quản trị viên của ${account.name}`,
-        `${currentUserName} revoked Administrator role from ${account.name}`,
-      ),
-      subtitle: `${account.email} · ${bi('Chuyển thành tài khoản Khách hàng', 'Reverted to Customer')}`,
-      timeLabel: bi('Vừa xong', 'Just now'),
-    });
-
-    setRevokedAdminIds(new Set(permissionsStore.revokedIds));
-    setPromotedAdminIds(new Set(permissionsStore.promotedIds));
-    setLocalAuditEvents([...permissionsStore.auditEvents]);
-
-    setFormSuccess(
-      bi(
-        `Đã chuyển tài khoản "${account.name}" về vai trò Khách hàng.`,
-        `Reverted "${account.name}" to Customer role.`,
-      ),
-    );
-    setEditingAccount(null);
-  };
-
-  // Toggle account active / suspended
-  const handleToggleSuspend = (account: RealAccount) => {
-    if (account.id === session?.user?.id) {
-      alert(bi('Bạn không thể tự tạm dừng tài khoản của chính mình.', 'You cannot suspend your own account.'));
-      return;
-    }
-
-    const isNowSuspended = !permissionsStore.suspendedIds.has(account.id);
-    permissionsStore.toggleSuspend({
-      actorId: session?.user?.id ?? null,
-      actorName: currentUserName,
-      targetUserId: account.id,
-      targetName: account.name,
-      targetEmail: account.email,
-      title: isNowSuspended
-        ? bi(
-            `${currentUserName} đã tạm dừng tài khoản ${account.name}`,
-            `${currentUserName} suspended account ${account.name}`,
-          )
-        : bi(
-            `${currentUserName} đã kích hoạt lại tài khoản ${account.name}`,
-            `${currentUserName} re-activated account ${account.name}`,
-          ),
-      subtitle: `${account.email} · ID: #${account.id.slice(0, 8)}`,
-      timeLabel: bi('Vừa xong', 'Just now'),
-      isSuspended: isNowSuspended,
-    });
-
-    setSuspendedIds(new Set(permissionsStore.suspendedIds));
-    setLocalAuditEvents([...permissionsStore.auditEvents]);
-
-    if (isNowSuspended) {
-      setFormSuccess(bi(`Đã tạm dừng tài khoản "${account.name}".`, `Suspended "${account.name}".`));
-    } else {
-      setFormSuccess(bi(`Đã kích hoạt lại tài khoản "${account.name}".`, `Re-activated "${account.name}".`));
-    }
-    setEditingAccount(null);
-  };
+  const handleGrantAdmin = (account: RealAccount) => { if (supabase) void mutateAccount(() => setAdminAccountRole(supabase!, account.id, 'admin')); };
+  const handleRevokeAdmin = (account: RealAccount) => { if (supabase) void mutateAccount(() => setAdminAccountRole(supabase!, account.id, 'customer')); };
+  const handleToggleSuspend = (account: RealAccount) => { if (supabase) void mutateAccount(() => setAdminAccountSuspended(supabase!, account.id, account.pendingSuspended ?? (account.status !== 'suspended'))); };
 
   // Export CSV
   const handleExportCSV = () => {
-    const headers = 'ID,Name,Email,Phone,Role,Status,RegisteredAt,LastActive\n';
+    const headers = 'ID,Name,Email,Phone,Role,Status,RegisteredAt\n';
     const rows = accounts
       .map(
         (a) =>
-          `"${a.id}","${a.name}","${a.email}","${a.phone}","${a.role}","${a.status}","${a.createdAt}","${a.lastActive}"`,
+          `"${a.id}","${a.name}","${a.email}","${a.phone}","${a.role}","${a.status}","${a.createdAt}"`,
       )
       .join('\n');
     const content = headers + rows;
@@ -548,70 +267,10 @@ export function AdminPermissionsScreen() {
   };
 
   // Filter candidates for Invite Modal (default to customers, with search)
-  const candidateAccounts = accounts.filter((acc) => {
-    if (!inviteSearchQuery.trim()) return true;
-    const q = inviteSearchQuery.trim().toLowerCase();
-    return (
-      acc.name.toLowerCase().includes(q) ||
-      acc.email.toLowerCase().includes(q) ||
-      acc.phone.toLowerCase().includes(q) ||
-      acc.id.toLowerCase().includes(q)
-    );
-  });
+  const candidateAccounts = filterAndPaginate(accounts, { query: inviteSearchQuery, page: 1, pageSize: Math.max(accounts.length, 1), getSearchText: account => `${account.name} ${account.email} ${account.phone} ${account.id}` }).items;
 
-  // Unified activities list (local actions first, then database audit logs)
+  // Only immutable server audit events are shown.
   const allActivities = [
-    ...localAuditEvents.map((evt) => {
-      const actor = evt.actorId ? profileById.get(evt.actorId) : undefined;
-      const realActorName =
-        actor?.full_name?.trim() ||
-        (session?.user?.id === evt.actorId ? currentUserName : undefined) ||
-        (evt.actorName && !/^bnvawg/i.test(evt.actorName) && evt.actorName !== 'Admin'
-          ? evt.actorName
-          : currentUserName);
-
-      // Dynamically resolve target name from the latest profile data
-      let targetId = evt.targetUserId;
-      if (!targetId && evt.subtitle) {
-        const match = evt.subtitle.match(/ID:\s*#([a-f0-9]+)/i);
-        if (match) {
-          const shortId = match[1].toLowerCase();
-          const found = rawProfiles.find((p) => p.id.toLowerCase().startsWith(shortId));
-          if (found) targetId = found.id;
-        }
-      }
-      const targetProfile = targetId ? profileById.get(targetId) : undefined;
-      const realTargetName = targetProfile?.full_name?.trim() || evt.targetName;
-
-      let displayTitle = evt.title;
-      if (realActorName) {
-        displayTitle = displayTitle
-          .replace(/^bnvawg87z\b/i, realActorName)
-          .replace(/^Admin\b/i, realActorName);
-        if (evt.actorName && evt.actorName !== realActorName) {
-          displayTitle = displayTitle.replace(new RegExp(`^${evt.actorName}\\b`, 'i'), realActorName);
-        }
-      }
-      if (displayTitle.includes('Ca Gia Bảo')) {
-        const caGiaUser = rawProfiles.find(
-          (p) => p.full_name?.trim() === 'Ca Gia' || p.id.toLowerCase().startsWith('1c2fbe'),
-        );
-        if (caGiaUser?.full_name?.trim()) {
-          displayTitle = displayTitle.replace(/Ca Gia Bảo/g, caGiaUser.full_name.trim());
-        }
-      }
-      if (realTargetName && evt.targetName && evt.targetName !== realTargetName) {
-        displayTitle = displayTitle.split(evt.targetName).join(realTargetName);
-      }
-
-      return {
-        id: evt.id,
-        title: displayTitle,
-        subtitle: evt.subtitle,
-        time: evt.time || evt.timeLabel || '',
-        dotColor: evt.dotColor,
-      };
-    }),
     ...rawAuditLogs.map((log) => {
       const actor = log.actor_user_id ? profileById.get(log.actor_user_id) : undefined;
       const actorName =
@@ -670,7 +329,7 @@ export function AdminPermissionsScreen() {
             }}
             style={permStyles.primaryActionBtn}
           >
-            <Text style={permStyles.primaryActionText}>👤+ {bi('Mời admin', 'Invite Admin')}</Text>
+            <Text style={permStyles.primaryActionText}>👤+ {bi('Cấp quyền admin', 'Grant admin')}</Text>
           </Pressable>
         </View>
       }
@@ -685,6 +344,10 @@ export function AdminPermissionsScreen() {
       </View>
 
       <AdminToast text={formSuccess} success onClose={() => setFormSuccess('')} />
+      {!!formError && <Notice text={formError} />}
+      {!!queryBundle.error && <Notice text={queryBundle.error.message} />}
+      {!!auditQuery.error && <Notice text={auditQuery.error.message} />}
+      {saving && <Notice text={bi('Đang lưu…', 'Saving…')} />}
 
       {/* Top System Security Notice Card (Without MFA) */}
       <View style={permStyles.securityBanner}>
@@ -902,7 +565,7 @@ export function AdminPermissionsScreen() {
                 {bi('VAI TRÒ', 'ROLE')}
               </Text>
               <Text style={[permStyles.tableHeadText, { flex: 1.5 }]}>
-                {bi('HOẠT ĐỘNG GẦN NHẤT', 'LAST ACTIVE')}
+                {bi('NGÀY ĐĂNG KÝ', 'REGISTERED')}
               </Text>
               <Text style={[permStyles.tableHeadText, { flex: 1.2 }]}>
                 {bi('TRẠNG THÁI', 'STATUS')}
@@ -986,7 +649,7 @@ export function AdminPermissionsScreen() {
                   {/* LAST ACTIVE COLUMN */}
                   <View style={[permStyles.colLastActive, { flex: isDesktop ? 1.5 : undefined }]}>
                     <Text style={permStyles.lastActiveText}>
-                      {formatRelativeTime(acc.lastActive, airportTime, bi)}
+                      {airportTime(acc.createdAt, 'Asia/Ho_Chi_Minh')}
                     </Text>
                   </View>
 
@@ -1032,31 +695,36 @@ export function AdminPermissionsScreen() {
                       { flex: isDesktop ? 1.4 : undefined, justifyContent: 'flex-end' },
                     ]}
                   >
-                    {acc.role === 'customer' ? (
-                      /* Grant Admin right in the list! */
-                      <Pressable
-                        accessibilityRole="button"
-                        onPress={() => handleGrantAdmin(acc)}
-                        style={permStyles.rowGrantBtn}
-                      >
-                        <Text style={permStyles.rowGrantBtnText}>
-                          + {bi('Cấp quyền Admin', 'Grant Admin')}
-                        </Text>
-                      </Pressable>
-                    ) : isCurrentUser ? (
+                    {isCurrentUser ? (
                       <View style={permStyles.currentLoggedBox}>
                         <Text style={permStyles.currentLoggedText}>
                           {bi('Đang đăng nhập', 'Logged In')}
                         </Text>
                       </View>
                     ) : (
-                      <Pressable
-                        accessibilityRole="button"
-                        onPress={() => setEditingAccount(acc)}
-                        style={permStyles.actionDotsBtn}
-                      >
-                        <Text style={permStyles.actionDotsText}>•••</Text>
-                      </Pressable>
+                      <>
+                        {acc.role === 'customer' && (
+                          <Pressable
+                            accessibilityRole="button"
+                            disabled={saving}
+                            onPress={() => handleGrantAdmin(acc)}
+                            style={permStyles.rowGrantBtn}
+                          >
+                            <Text style={permStyles.rowGrantBtnText}>
+                              + {bi('Cấp quyền Admin', 'Grant Admin')}
+                            </Text>
+                          </Pressable>
+                        )}
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={bi(`Quản lý tài khoản ${acc.email}`, `Manage account ${acc.email}`)}
+                          disabled={saving}
+                          onPress={() => setEditingAccount(acc)}
+                          style={permStyles.actionDotsBtn}
+                        >
+                          <Text style={permStyles.actionDotsText}>{bi('Quản lý', 'Manage')}</Text>
+                        </Pressable>
+                      </>
                     )}
                   </View>
                 </View>
@@ -1425,6 +1093,7 @@ export function AdminPermissionsScreen() {
                       ) : (
                         <Pressable
                           accessibilityRole="button"
+                          disabled={saving}
                           onPress={() => handleGrantAdmin(acc)}
                           style={permStyles.selectGrantBtn}
                         >
@@ -1488,6 +1157,7 @@ export function AdminPermissionsScreen() {
 
                   <Pressable
                     accessibilityRole="button"
+                    disabled={saving}
                     onPress={() => editingAccount && handleRevokeAdmin(editingAccount)}
                     style={permStyles.revokeRoleBtn}
                   >
@@ -1508,13 +1178,14 @@ export function AdminPermissionsScreen() {
               ) : (
                 <Pressable
                   accessibilityRole="button"
+                  disabled={saving}
                   onPress={() => editingAccount && handleGrantAdmin(editingAccount)}
                   style={permStyles.grantRoleBtn}
                 >
                   <Text style={{ fontSize: 16 }}>🛡️</Text>
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={permStyles.grantRoleTitle}>
-                      {bi('Cấp lại quyền Quản trị viên', 'Re-grant Administrator Role')}
+                      {bi('Cấp quyền Quản trị viên', 'Grant Administrator Role')}
                     </Text>
                     <Text style={permStyles.grantRoleSub}>
                       {bi('Cho phép tài khoản này truy cập lại Flyora Admin Console.', 'Allow this account to access Admin Console.')}
@@ -1527,11 +1198,14 @@ export function AdminPermissionsScreen() {
 
               <ActionButton
                 title={
-                  editingAccount?.status === 'active'
+                  editingAccount?.pendingSuspended != null
+                    ? bi('Thử lại thay đổi trạng thái', 'Retry status update')
+                    : editingAccount?.status === 'active'
                     ? bi('Tạm dừng tài khoản này', 'Suspend this account')
                     : bi('Kích hoạt lại tài khoản này', 'Re-activate this account')
                 }
                 secondary
+                disabled={saving}
                 onPress={() => editingAccount && handleToggleSuspend(editingAccount)}
               />
             </View>
@@ -1963,9 +1637,13 @@ const permStyles = StyleSheet.create({
   },
   colActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     alignItems: 'center',
   },
   rowGrantBtn: {
+    minHeight: 48,
+    justifyContent: 'center',
     backgroundColor: '#ECFEFF',
     borderWidth: 1,
     borderColor: '#0891B2',
@@ -1988,6 +1666,8 @@ const permStyles = StyleSheet.create({
     color: '#94A3B8',
   },
   actionDotsBtn: {
+    minHeight: 48,
+    justifyContent: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
@@ -1997,7 +1677,6 @@ const permStyles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
     color: '#475569',
-    letterSpacing: 1,
   },
   cardFooterRow: {
     flexDirection: 'row',

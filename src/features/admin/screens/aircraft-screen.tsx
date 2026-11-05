@@ -5,6 +5,7 @@ import { ActionButton, Notice, colors } from '@/features/auth/ui';
 import { cabinLabels } from '@/features/discovery/model';
 import { supabase } from '@/lib/supabase';
 import { useAdminI18n } from '../i18n';
+import { loadAircraftAndSeats } from '../aircraft-data';
 import {
   buildStandardSeatTemplate,
   filterAndPaginate,
@@ -158,23 +159,6 @@ function groupSeatsIntoRows(seats: VisualSeatItem[]) {
   return Array.from(rowMap.values()).sort((a, b) => a.rowNumber - b.rowNumber);
 }
 
-async function loadAircraftAndSeats() {
-  if (!supabase) throw new Error('Chưa cấu hình kết nối Supabase.');
-  const [airlines, aircraft, seats] = await Promise.all([
-    supabase.from('airlines').select('*').order('iata_code'),
-    supabase.from('aircraft').select('*').order('registration_code'),
-    supabase.from('seats').select('*').order('row_number').order('column_number'),
-  ]);
-  if (airlines.error) throw airlines.error;
-  if (aircraft.error) throw aircraft.error;
-  if (seats.error) throw seats.error;
-  return {
-    airlines: airlines.data ?? [],
-    aircraft: aircraft.data ?? [],
-    seats: seats.data ?? [],
-  };
-}
-
 export function AdminAircraftScreen() {
   const { ta, bi, language } = useAdminI18n();
   const queryClient = useQueryClient();
@@ -205,7 +189,10 @@ export function AdminAircraftScreen() {
 
   const dataQuery = useQuery({
     queryKey: ['admin-aircraft'],
-    queryFn: loadAircraftAndSeats,
+    queryFn: () => {
+      if (!supabase) throw new Error('Chưa cấu hình kết nối Supabase.');
+      return loadAircraftAndSeats(supabase);
+    },
   });
 
   const airlines = dataQuery.data?.airlines ?? [];
@@ -573,8 +560,8 @@ export function AdminAircraftScreen() {
                         </Text>
                         <Text style={adminStyles.muted}>
                           {bi(
-                            'Nhập số hàng cho từng hạng khoang hoặc chọn mẫu gợi ý bên dưới. Sơ đồ mặt cắt tàu bay sẽ tự động cập nhật trực quan theo từng hàng.',
-                            'Enter row counts per cabin or pick a preset below. The aircraft cabin diagram updates visually row by row.',
+                            'Lưu sẽ thay toàn bộ cấu hình: ghế bị bỏ được ngừng dùng, ghế giữ lại giữ nguyên ID. Chỉ sửa khi tàu bay chưa có chuyến công bố hoặc kho ghế chuyến bay.',
+                            'Saving replaces the full template: omitted seats become inactive and retained seats keep their IDs. Editable only before any published flight or flight seat inventory exists.',
                           )}
                         </Text>
                       </View>
