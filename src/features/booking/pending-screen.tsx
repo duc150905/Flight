@@ -123,7 +123,10 @@ export function PendingBookingView({ booking, seconds, refreshing = false, error
             <CheckoutText>{ps.requiresSeat && seat ? `${t('Seat')}: ${seat.seatCode}` : t('Infant travels on the accompanying adult’s lap.')}</CheckoutText>
             {seat && <CheckoutText muted message={seat.amount === 0 ? 'Seat assigned at no extra charge.' : 'Paid seat selection included in total.'} />}
             <CheckoutText muted>{t('Included baggage')}: {ps.allowance.cabin_kg} kg {t('Cabin baggage')} · {ps.allowance.checked_kg} kg {t('Checked baggage')}</CheckoutText>
-            {extras.map((extra, i) => <CheckoutText key={i}>{t(extra.name)} · {extra.weightKg} kg</CheckoutText>)}
+            {extras.map((extra, i) => <View key={i} style={styles.group}>
+              <CheckoutText>{extra.category === 'meal' ? `${t('Meal')}: ` : ''}{t(extra.name)}{extra.weightKg !== null ? ` · ${extra.weightKg} kg` : ''}</CheckoutText>
+              <MoneyText amount={extra.amount} />
+            </View>)}
           </View>;
         })}
       </View>)}
@@ -134,7 +137,7 @@ export function PendingBookingView({ booking, seconds, refreshing = false, error
       <CheckoutText>{booking.contact.phone}</CheckoutText>
     </CheckoutCard>
     <CheckoutCard><CheckoutText title message="Price breakdown" />
-      {(['base', 'tax', 'fee', 'baggage', 'seat'] as const).map(field => <View style={styles.price} key={field}>
+      {(['base', 'tax', 'fee', 'baggage', 'meal', 'seat'] as const).map(field => <View style={styles.price} key={field}>
         <CheckoutText message={`quote.${field}`} /><MoneyText amount={booking[field]} />
       </View>)}
     </CheckoutCard>

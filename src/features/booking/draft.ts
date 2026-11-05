@@ -5,7 +5,7 @@ import { bookingContactSchema, type BookingContactInput } from './contact.ts';
 import { createBookingPassengerSchema, type PassengerDetailsInput } from './passenger.ts';
 import type { CheckoutItinerary } from './itinerary-data.ts';
 import { selectedItinerarySchema } from './selection.ts';
-import type { BaggageChoice, BaggageOffer, MealChoice, SeatChoice } from './baggage.ts';
+import type { BaggageChoice, BaggageOffer, MealChoice, MealOffer, SeatChoice } from './baggage.ts';
 import { seatEligibility, type MapSeat } from './seats.ts';
 
 export type CheckoutDraft = {
@@ -19,7 +19,7 @@ export type CheckoutDraftState = CheckoutDraft & {
   seats: SeatChoice[];
   revision: number;
   setBaggage: (passengerId: string, flightId: string, offer: BaggageOffer | null) => void;
-  setMeal: (passengerId: string, flightId: string, meal: { id: string; name: string; description?: string | null } | null) => void;
+  setMeal: (passengerId: string, flightId: string, meal: MealOffer | null) => void;
   setSeat: (passengerId: string, flightId: string, seat: MapSeat | null) => void;
   itinerary: CheckoutItinerary | null;
   beginCheckout: (itinerary: CheckoutItinerary) => void;
@@ -50,13 +50,14 @@ export function createCheckoutDraftStore() {
     },
     setMeal: (passengerId, flightId, meal) => {
       const state = get();
-      if (!state.passengers.some(p => p.id === passengerId) || !state.itinerary?.legs.some(l => l.flightId === flightId)) {
+      if (!state.passengers.some(p => p.id === passengerId) || !state.itinerary?.legs.some(l => l.flightId === flightId)
+        || (meal && (meal.flightId !== flightId || !Number.isSafeInteger(meal.amount) || meal.amount < 0 || meal.currency !== 'VND'))) {
         throw new Error('extras.invalid');
       }
       const currentMeals = state.meals ?? [];
       const remaining = currentMeals.filter(m => m.passengerId !== passengerId || m.flightId !== flightId);
       set({
-        meals: meal ? [...remaining, { passengerId, flightId, offerId: meal.id, name: meal.name, description: meal.description }] : remaining,
+        meals: meal ? [...remaining, { passengerId, flightId, offerId: meal.id, productId: meal.productId, name: meal.name, description: meal.description, amount: meal.amount, currency: meal.currency }] : remaining,
         revision: state.revision + 1,
       });
     },

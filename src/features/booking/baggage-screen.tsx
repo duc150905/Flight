@@ -1,11 +1,12 @@
 import { router, useFocusEffect } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { MoneyText } from '../currency/ui';
 import { useLanguage } from '../i18n/provider';
-import { isBaggageCurrent } from './baggage';
+import { isBaggageCurrent, isMealCurrent } from './baggage';
 import { useCheckout, useCheckoutStore } from './checkout-provider';
 import { loadBaggage } from './extras-data';
 import { Option, Tabs } from './options-ui';
@@ -29,14 +30,17 @@ export function BaggageScreen() {
   const leg = itinerary.legs.find(l => l.flightId === flight) ?? itinerary.legs[0];
   const passenger = draft.passengers.find(p => p.id === person) ?? draft.passengers[0];
   const current = draft.baggage.find(b => b.flightId === leg.flightId && b.passengerId === passenger.id);
-  const stale = draft.baggage.some(b => !query.data || !isBaggageCurrent(b, query.data.offers));
+  const currentMeal = draft.meals.find(m => m.flightId === leg.flightId && m.passengerId === passenger.id);
+  const stale = draft.baggage.some(b => !query.data || !isBaggageCurrent(b, query.data.offers))
+    || draft.meals.some(m => !query.data || !isMealCurrent(m, query.data.meals));
   const allowance = query.data?.allowances[leg.flightId];
   async function next() {
     setError(''); const revision = store.getState().revision; const token = guard.begin();
     const fresh = await query.refetch();
     if (!guard.isCurrent(token)) return;
     if (fresh.error || !fresh.data) { setError('extras.loadError'); return; }
-    if (revision !== store.getState().revision || store.getState().baggage.some(b => !isBaggageCurrent(b, fresh.data.offers))) {
+    if (revision !== store.getState().revision || store.getState().baggage.some(b => !isBaggageCurrent(b, fresh.data.offers))
+      || store.getState().meals.some(m => !isMealCurrent(m, fresh.data.meals))) {
       setError('extras.changed'); return;
     }
     router.push('/checkout/seats');
@@ -46,7 +50,7 @@ export function BaggageScreen() {
     <Tabs label="Your flights" selected={leg.flightId} onSelect={setFlight} values={itinerary.legs.map(l => ({ id: l.flightId, text: `${l.origin.iata_code} → ${l.destination.iata_code}` }))} />
     <Tabs label="Travellers" selected={passenger.id} onSelect={setPerson} values={draft.passengers.map((p, i) => ({ id: p.id, text: `${i + 1}. ${p.values.givenNames} ${p.values.familyName}` }))} />
 
-    {/* Traveloka-style Add-on Category Tabs */}
+    {/* Short labels keep both service tabs readable on phone screens. */}
     <View style={screenStyles.categoryTabRow}>
       <Pressable
         accessibilityRole="tab"
@@ -54,15 +58,12 @@ export function BaggageScreen() {
         onPress={() => setActiveCategory('baggage')}
         style={[screenStyles.categoryTab, activeCategory === 'baggage' && screenStyles.categoryTabActive]}
       >
-        <Text style={{ fontSize: 16 }}>🧳</Text>
+        <View style={screenStyles.categoryIcon}>
+          <SymbolView name={{ ios: 'suitcase', android: 'luggage', web: 'luggage' }} size={20} tintColor={activeCategory === 'baggage' ? '#0F766E' : '#64748B'} />
+        </View>
         <Text style={[screenStyles.categoryTabText, activeCategory === 'baggage' && screenStyles.categoryTabTextActive]}>
           {t('Baggage')}
         </Text>
-        {Boolean(current) && (
-          <View style={screenStyles.categoryBadge}>
-            <Text style={screenStyles.categoryBadgeText}>+{current?.weightKg}kg</Text>
-          </View>
-        )}
       </Pressable>
 
       <Pressable
@@ -71,9 +72,11 @@ export function BaggageScreen() {
         onPress={() => setActiveCategory('meals')}
         style={[screenStyles.categoryTab, activeCategory === 'meals' && screenStyles.categoryTabActive]}
       >
-        <Text style={{ fontSize: 16 }}>🍱</Text>
+        <View style={screenStyles.categoryIcon}>
+          <SymbolView name={{ ios: 'fork.knife', android: 'restaurant', web: 'restaurant' }} size={20} tintColor={activeCategory === 'meals' ? '#0F766E' : '#64748B'} />
+        </View>
         <Text style={[screenStyles.categoryTabText, activeCategory === 'meals' && screenStyles.categoryTabTextActive]}>
-          {t('In-flight Meals')}
+          {t('Meals')}
         </Text>
 
       </Pressable>
@@ -104,32 +107,36 @@ export function BaggageScreen() {
       <>
         <CheckoutCard>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Text style={{ fontSize: 24 }}>🍱</Text>
+            <View style={screenStyles.categoryIcon}>
+              <SymbolView name={{ ios: 'fork.knife', android: 'restaurant', web: 'restaurant' }} size={24} tintColor="#0F766E" />
+            </View>
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 15, fontWeight: '700', color: '#0F172A' }}>
                 {t('Flight catering menu')}
               </Text>
               <Text style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>
-                {t('Meal pre-ordering is not available yet.')}
+                {t('Select one meal per traveller and flight, or continue without a meal.')}
               </Text>
             </View>
           </View>
         </CheckoutCard>
 
         <CheckoutCard>
-          <CheckoutText title message="Menu for reference only" />
-          <CheckoutText muted message="Meals cannot be added to your booking yet." />
+          <CheckoutText title message="Meals" />
+          <CheckoutText muted message="Select your meal preference for each flight and traveller." />
+          <Option title={t('No extra meal selected')} selected={!currentMeal}
+            onPress={() => { setError(''); draft.setMeal(passenger.id, leg.flightId, null); }} />
           {query.data?.meals?.filter(m => m.flightId === leg.flightId).map(m => (
-            <View key={m.id} style={screenStyles.mealCard}>
-              <Text style={screenStyles.mealTitle}>{t(m.name)}</Text>
-              {!!m.description && <Text style={screenStyles.mealDescription}>{m.description}</Text>}
-              <CheckoutText muted message="Reference price" />
+            <Option key={m.id} title={t(m.name)} selected={currentMeal?.offerId === m.id && isMealCurrent(currentMeal, [m])}
+              onPress={() => { setError(''); draft.setMeal(passenger.id, leg.flightId, m); }}>
+              {!!m.description && <CheckoutText muted>{t(m.description)}</CheckoutText>}
               <MoneyText amount={m.amount} />
-            </View>
+            </Option>
           ))}
           {query.data && !query.data.meals?.some(m => m.flightId === leg.flightId) && (
             <CheckoutText muted message="No meal menu is available for this flight." />
           )}
+          <CheckoutText muted message="Please check ingredients and allergens before choosing a meal. Special dietary requests are not guaranteed." />
         </CheckoutCard>
       </>
     )}
@@ -145,7 +152,10 @@ export function BaggageScreen() {
             🧳 {current ? `+${current.weightKg}kg` : t('Hành lý tiêu chuẩn')}
           </Text>
         </View>
-
+        {currentMeal && <View style={screenStyles.summaryChip}>
+          <Text style={screenStyles.summaryChipText}>{t('Selected meal')}: {t(currentMeal.name)}</Text>
+          <MoneyText amount={currentMeal.amount} />
+        </View>}
       </View>
     </View>
   </CheckoutShell>;
@@ -162,12 +172,14 @@ const screenStyles = StyleSheet.create({
   },
   categoryTab: {
     flex: 1,
+    minWidth: 0,
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     borderRadius: 10,
   },
   categoryTabActive: {
@@ -179,7 +191,10 @@ const screenStyles = StyleSheet.create({
     elevation: 2,
   },
   categoryTabText: {
+    flexShrink: 1,
+    textAlign: 'center',
     fontSize: 14,
+    lineHeight: 20,
     fontWeight: '600',
     color: '#64748B',
   },
@@ -187,16 +202,12 @@ const screenStyles = StyleSheet.create({
     color: '#0F766E',
     fontWeight: '700',
   },
-  categoryBadge: {
-    backgroundColor: '#0F766E',
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  categoryBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
+  categoryIcon: {
+    width: 24,
+    height: 24,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   mealCard: {
     backgroundColor: '#FFFFFF',

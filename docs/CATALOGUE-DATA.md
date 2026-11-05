@@ -27,6 +27,8 @@ node scripts/generate-catalogue-seed.mjs --translations
 
 New destinations are active but not featured, preserving the eight existing home cards and their bundled photos. The current generator only inserts baggage products/offers; reference meals and insurance are left untouched, respecting the current database capability triggers. Older flights may retain historical meal offers; new flights receive the two baggage offers only. Internal legacy enum/code values (`insurance_demo`, `DEMO_STANDARD`, etc.) remain for compatibility, while customer-facing names are normalized. The F0 carrier/24-seat regional aircraft are fictional Flyora fixtures; the other carrier names and airport geography are real. Tax/fee amounts are configured test data, not statutory tax rates or actual carrier pricing. No actual insurance coverage is issued by this application.
 
+After the meal checkout capability migration is deployed, run the separate guarded `supabase/seeds/meal-catalogue.sql` after every expansion batch to attach six meal choices to all published future open flights. See [Meal checkout](MEAL-CHECKOUT.md) for generation, repeated rollback verification, prices and mobile acceptance. The standalone step preserves all existing products/offers; the flight generator above continues to insert baggage only.
+
 ## Applied to flight-dev on 04 November 2026
 
 Coverage: 05 November–04 December 2026 inclusive, 48 directional routes daily.

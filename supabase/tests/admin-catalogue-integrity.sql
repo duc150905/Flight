@@ -8,6 +8,7 @@ do $$
 declare
   al uuid; dep uuid; arr uuid; ac uuid; f public.flight_instances;
   original_seat uuid; fare public.flight_fares; b uuid; blocked boolean; n integer;
+  baggage_product uuid; meal_product uuid; meal_offer uuid;
   template jsonb := '[{"seat_code":"1A","row_number":1,"column_number":1,"cabin_class":"economy","position":"window"},{"seat_code":"2A","row_number":2,"column_number":1,"cabin_class":"economy","position":"window"}]';
   six_abreast jsonb := '[{"seat_code":"1A","row_number":1,"column_number":1,"cabin_class":"economy","position":"window"},{"seat_code":"1B","row_number":1,"column_number":2,"cabin_class":"economy","position":"middle"},{"seat_code":"1C","row_number":1,"column_number":3,"cabin_class":"economy","position":"aisle"},{"seat_code":"1D","row_number":1,"column_number":4,"cabin_class":"economy","position":"aisle"},{"seat_code":"1E","row_number":1,"column_number":5,"cabin_class":"economy","position":"middle"},{"seat_code":"1F","row_number":1,"column_number":6,"cabin_class":"economy","position":"window"}]';
   four_abreast jsonb := '[{"seat_code":"1A","row_number":1,"column_number":1,"cabin_class":"business","position":"window"},{"seat_code":"1C","row_number":1,"column_number":2,"cabin_class":"business","position":"aisle"},{"seat_code":"1D","row_number":1,"column_number":3,"cabin_class":"business","position":"aisle"},{"seat_code":"1F","row_number":1,"column_number":4,"cabin_class":"business","position":"window"}]';
@@ -80,25 +81,52 @@ begin
     perform public.admin_save_flight_instance(f.id,al,ac,f.flight_number,dep,arr,f.departure_at,f.arrival_at,f.sales_close_at,'scheduled',false);
     raise exception 'REGRESSION: active booking allowed unpublication';
   exception when check_violation then null; end;
-  -- New baggage configuration is exactly one; no historic snapshots are rewritten.
+  -- Each supported category permits one choice; historic snapshots stay unchanged.
   insert into public.addon_products(code,name,category,weight_kg) values ('ROLLBACK_BAG','Rollback baggage','baggage',20) returning id into b;
+  baggage_product := b;
   begin
     insert into public.flight_addon_offers(flight_id,product_id,unit_amount,max_quantity_per_passenger) values(f.id,b,100,2);
     raise exception 'REGRESSION: baggage quantity 2 accepted';
   exception when check_violation then null; end;
+  insert into public.addon_products(code,name,category) values ('ROLLBACK_MEAL','Rollback meal','meal') returning id into meal_product;
+  update public.addon_products set is_active=false where id=meal_product;
+  update public.addon_products set is_active=true,name='Updated meal' where id=meal_product;
+  if not exists(select 1 from public.addon_products where id=meal_product and is_active and name='Updated meal' and weight_kg is null) then
+    raise exception 'REGRESSION: meal editing or activation failed';
+  end if;
+  insert into public.flight_addon_offers(flight_id,product_id,unit_amount,max_quantity_per_passenger)
+    values(f.id,meal_product,100,1) returning id into meal_offer;
+  update public.flight_addon_offers set unit_amount=150,is_active=false where id=meal_offer;
+  update public.flight_addon_offers set is_active=true where id=meal_offer;
   begin
-    insert into public.addon_products(code,name,category) values ('ROLLBACK_MEAL','Rollback meal','meal');
-    raise exception 'REGRESSION: unsupported meal configuration accepted';
+    update public.flight_addon_offers set max_quantity_per_passenger=2 where id=meal_offer;
+    raise exception 'REGRESSION: meal quantity 2 accepted';
   exception when check_violation then null; end;
-  insert into public.addon_products(code,name,category,is_active) values ('ROLLBACK_MEAL_INACTIVE','Read-only meal','meal',false) returning id into b;
+  begin
+    update public.addon_products set category='baggage',weight_kg=20 where id=meal_product;
+    raise exception 'REGRESSION: existing meal product category changed';
+  exception when check_violation then null; end;
+  begin
+    update public.flight_addon_offers set product_id=baggage_product where id=meal_offer;
+    raise exception 'REGRESSION: existing meal offer category changed';
+  exception when check_violation then null; end;
+  begin
+    insert into public.addon_products(code,name,category) values ('ROLLBACK_INS_ACTIVE','Unsupported insurance','insurance_demo');
+    raise exception 'REGRESSION: active insurance authoring accepted';
+  exception when check_violation then null; end;
+  insert into public.addon_products(code,name,category,is_active) values ('ROLLBACK_INS_INACTIVE','Read-only insurance','insurance_demo',false) returning id into b;
   update public.addon_products set is_active=false where id=b; -- idempotent seed no-op
   begin
     update public.addon_products set is_active=true where id=b;
-    raise exception 'REGRESSION: unsupported meal activation accepted';
+    raise exception 'REGRESSION: unsupported insurance activation accepted';
   exception when check_violation then null; end;
   begin
-    update public.addon_products set name='Changed read-only meal' where id=b;
-    raise exception 'REGRESSION: unsupported meal editing accepted';
+    update public.addon_products set name='Changed read-only insurance' where id=b;
+    raise exception 'REGRESSION: unsupported insurance editing accepted';
+  exception when check_violation then null; end;
+  begin
+    insert into public.flight_addon_offers(flight_id,product_id,unit_amount,max_quantity_per_passenger) values(f.id,b,100,1);
+    raise exception 'REGRESSION: unsupported insurance offer accepted';
   exception when check_violation then null; end;
   begin
     update public.airlines set logo_path='airlines/arbitrary-new.png' where id=al;

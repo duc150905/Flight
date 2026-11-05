@@ -7,18 +7,21 @@ import { parseBookingReceipt,type BookingReceipt } from './create-booking.ts';
 const uuid = databaseIdSchema(); const money = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const schema = z.object({
   contact: z.object({ name: z.string(), email: z.string(), phone: z.string() }),
-  base: money, tax: money, fee: money, baggage: money, seat: money,
+  base: money, tax: money, fee: money, baggage: money, seat: money, meal: money.default(0), baggageOnly: money.optional(),
   passengers: z.array(z.object({ id: uuid, ordinal: z.number().int().positive(), givenNames: z.string(), familyName: z.string(), gender: z.string().nullable() })).min(1).max(18),
   segments: z.array(z.object({ id: uuid, flightId: uuid, journeyIndex: z.number().int().positive(), legIndex: z.number().int().positive(),
     snapshot: z.object({ flight_number: z.string(), airline_name: z.string(), departure_iata: z.string(), arrival_iata: z.string(), departure_at: z.iso.datetime({ offset: true }), arrival_at: z.iso.datetime({ offset: true }), departure_timezone: z.string(), arrival_timezone: z.string(), fare_name: z.string() }) })).min(1).max(12),
   passengerSegments: z.array(z.object({ id: uuid, passengerId: uuid, flightId: uuid, passengerType: z.enum(['adult', 'child', 'infant']), requiresSeat: z.boolean(), accompanyingPassengerId: uuid.nullable(),
     allowance: z.object({ cabin_pieces: money, cabin_kg: z.number().nonnegative(), checked_pieces: money, checked_kg: z.number().nonnegative() }) })).min(1).max(216),
   seats: z.array(z.object({ passengerSegmentId: uuid, flightId: uuid, seatCode: z.string(), amount: money, status: z.enum(['held', 'confirmed', 'released', 'expired']) })).max(216),
-  addons: z.array(z.object({ passengerSegmentId: uuid, flightId: uuid, name: z.string(), weightKg: z.number().nullable(), amount: money })).max(216),
+  addons: z.array(z.object({ passengerSegmentId: uuid, flightId: uuid, name: z.string(), category: z.string().optional(), weightKg: z.number().nullable(), amount: money })).max(432),
 });
 export function parsePendingBooking(raw: unknown) {
-  const receipt = parseBookingReceipt(raw); const details = schema.parse(raw);
-  if (details.base + details.tax + details.fee + details.baggage + details.seat !== receipt.total
+  const receipt = parseBookingReceipt(raw); const parsed = schema.parse(raw);
+  // The RPC retains aggregate `baggage` for installed older APKs; this client shows both components.
+  const details = { ...parsed, baggage: parsed.baggageOnly ?? parsed.baggage };
+  if ((parsed.baggageOnly !== undefined && parsed.baggageOnly + parsed.meal !== parsed.baggage)
+    || details.base + details.tax + details.fee + details.baggage + details.meal + details.seat !== receipt.total
     || details.passengerSegments.length !== details.passengers.length * details.segments.length
     || new Set(details.passengers.map(p => p.id)).size !== details.passengers.length
     || new Set(details.segments.map(s => s.flightId)).size !== details.segments.length

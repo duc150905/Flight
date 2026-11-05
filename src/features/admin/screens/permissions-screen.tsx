@@ -181,6 +181,7 @@ export function AdminPermissionsScreen() {
   const { session } = useAuth();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 900;
+  const isPhone = width < 600;
 
   const [tab, setTab] = useState<PermissionTab>('accounts');
   const [query, setQuery] = useState('');
@@ -312,11 +313,11 @@ export function AdminPermissionsScreen() {
         'Manage real user accounts across Flyora and configure Administrator access.',
       )}
       rightAction={
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <View style={[permStyles.headerActions, isPhone && permStyles.stackedActions]}>
           <Pressable
             accessibilityRole="button"
             onPress={() => router.push('/admin/reports' as Href)}
-            style={permStyles.secondaryActionBtn}
+            style={[permStyles.secondaryActionBtn, isPhone && permStyles.fullWidthAction]}
           >
             <Text style={permStyles.secondaryActionText}>⚡ {bi('Nhật ký kiểm toán', 'Audit Logs')}</Text>
           </Pressable>
@@ -327,7 +328,7 @@ export function AdminPermissionsScreen() {
               setInviteSearchQuery('');
               setInviteModalVisible(true);
             }}
-            style={permStyles.primaryActionBtn}
+            style={[permStyles.primaryActionBtn, isPhone && permStyles.fullWidthAction]}
           >
             <Text style={permStyles.primaryActionText}>👤+ {bi('Cấp quyền admin', 'Grant admin')}</Text>
           </Pressable>
@@ -350,11 +351,11 @@ export function AdminPermissionsScreen() {
       {saving && <Notice text={bi('Đang lưu…', 'Saving…')} />}
 
       {/* Top System Security Notice Card (Without MFA) */}
-      <View style={permStyles.securityBanner}>
+      <View style={[permStyles.securityBanner, isPhone && permStyles.securityBannerCompact]}>
         <View style={permStyles.securityBannerIconBox}>
           <Text style={{ fontSize: 18 }}>🛡️</Text>
         </View>
-        <View style={{ flex: 1, gap: 2 }}>
+        <View style={[permStyles.securityBannerCopy, isPhone && permStyles.securityBannerCopyCompact]}>
           <Text style={permStyles.securityBannerTitle}>
             {bi('Hệ thống phân quyền Flyora Back-office', 'Flyora Back-Office Access Control')}
           </Text>
@@ -368,7 +369,7 @@ export function AdminPermissionsScreen() {
         <Pressable
           accessibilityRole="button"
           onPress={() => router.push('/admin/reports' as Href)}
-          style={permStyles.securityLinkBtn}
+          style={[permStyles.securityLinkBtn, isPhone && permStyles.fullWidthAction]}
         >
           <Text style={permStyles.securityLinkText}>
             {bi('Xem nhật ký ›', 'View Logs ›')}
@@ -378,7 +379,7 @@ export function AdminPermissionsScreen() {
 
       {/* 4 KPI Cards (Real Data, Zero MFA) */}
       <View style={permStyles.kpiGrid}>
-        <View style={permStyles.kpiCard}>
+        <View style={[permStyles.kpiCard, isPhone && permStyles.kpiCardCompact]}>
           <View style={permStyles.kpiHeaderRow}>
             <View style={[permStyles.kpiIconBox, { backgroundColor: '#ECFEFF' }]}>
               <Text style={{ fontSize: 16 }}>👥</Text>
@@ -395,7 +396,7 @@ export function AdminPermissionsScreen() {
           </Text>
         </View>
 
-        <View style={permStyles.kpiCard}>
+        <View style={[permStyles.kpiCard, isPhone && permStyles.kpiCardCompact]}>
           <View style={permStyles.kpiHeaderRow}>
             <View style={[permStyles.kpiIconBox, { backgroundColor: '#EDE9FE' }]}>
               <Text style={{ fontSize: 16 }}>🛡️</Text>
@@ -412,7 +413,7 @@ export function AdminPermissionsScreen() {
           </Text>
         </View>
 
-        <View style={permStyles.kpiCard}>
+        <View style={[permStyles.kpiCard, isPhone && permStyles.kpiCardCompact]}>
           <View style={permStyles.kpiHeaderRow}>
             <View style={[permStyles.kpiIconBox, { backgroundColor: '#FEF3C7' }]}>
               <Text style={{ fontSize: 16 }}>👤</Text>
@@ -429,7 +430,7 @@ export function AdminPermissionsScreen() {
           </Text>
         </View>
 
-        <View style={permStyles.kpiCard}>
+        <View style={[permStyles.kpiCard, isPhone && permStyles.kpiCardCompact]}>
           <View style={permStyles.kpiHeaderRow}>
             <View style={[permStyles.kpiIconBox, { backgroundColor: '#DCFCE7' }]}>
               <Text style={{ fontSize: 16 }}>⚡</Text>
@@ -448,7 +449,7 @@ export function AdminPermissionsScreen() {
       </View>
 
       {/* Tabs */}
-      <View style={permStyles.tabRow}>
+      <View style={[permStyles.tabRow, isPhone && permStyles.stackedActions]}>
         <Pressable
           accessibilityRole="button"
           accessibilityState={{ selected: tab === 'accounts' }}
@@ -479,8 +480,8 @@ export function AdminPermissionsScreen() {
       ) : tab === 'accounts' ? (
         /* TAB 1: DANH SÁCH TÀI KHOẢN THẬT */
         <View style={permStyles.card}>
-          <View style={permStyles.cardHeaderRow}>
-            <View style={{ gap: 2 }}>
+          <View style={[permStyles.cardHeaderRow, isPhone && permStyles.stackedActions]}>
+            <View style={permStyles.cardHeaderCopy}>
               <Text style={permStyles.cardTitle}>
                 {bi('Danh sách tài khoản hệ thống', 'System User Accounts')}
               </Text>
@@ -780,7 +781,7 @@ export function AdminPermissionsScreen() {
                   </View>
 
                   <View style={{ flex: 1, gap: 2 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <Text style={permStyles.roleNameText}>
                         {bi(roleDef.nameVi, roleDef.nameEn)}
                       </Text>
@@ -1044,6 +1045,7 @@ export function AdminPermissionsScreen() {
                       key={acc.id}
                       style={[
                         permStyles.candidateCard,
+                        isPhone && permStyles.candidateCardCompact,
                         isAlreadyAdmin && { backgroundColor: '#F8FAFC' },
                       ]}
                     >
@@ -1053,8 +1055,8 @@ export function AdminPermissionsScreen() {
                         </Text>
                       </View>
 
-                      <View style={{ flex: 1, gap: 2 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <View style={[permStyles.candidateCopy, isPhone && permStyles.candidateCopyCompact]}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                           <Text style={permStyles.candidateName}>{acc.name}</Text>
                           {isCurrent && (
                             <View style={permStyles.youBadge}>
@@ -1307,6 +1309,9 @@ export function AdminPermissionsScreen() {
 }
 
 const permStyles = StyleSheet.create({
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
+  stackedActions: { flexDirection: 'column', alignItems: 'stretch' },
+  fullWidthAction: { width: '100%', alignItems: 'center' },
   subTagText: {
     fontSize: 11,
     fontWeight: '800',
@@ -1314,6 +1319,8 @@ const permStyles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   primaryActionBtn: {
+    minHeight: 48,
+    justifyContent: 'center',
     backgroundColor: '#0891B2',
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -1325,6 +1332,8 @@ const permStyles = StyleSheet.create({
     fontSize: 13,
   },
   secondaryActionBtn: {
+    minHeight: 48,
+    justifyContent: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',
@@ -1347,6 +1356,9 @@ const permStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#CFFAFE',
   },
+  securityBannerCompact: { flexWrap: 'wrap', alignItems: 'flex-start' },
+  securityBannerCopy: { flex: 1, gap: 2 },
+  securityBannerCopyCompact: { minWidth: 180 },
   securityBannerIconBox: {
     width: 36,
     height: 36,
@@ -1366,6 +1378,8 @@ const permStyles = StyleSheet.create({
     lineHeight: 17,
   },
   securityLinkBtn: {
+    minHeight: 48,
+    justifyContent: 'center',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
@@ -1393,11 +1407,13 @@ const permStyles = StyleSheet.create({
     borderColor: '#E2E8F0',
     gap: 4,
   },
+  kpiCardCompact: { flexBasis: '100%', flexGrow: 0 },
   kpiHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 6,
+    gap: 8,
   },
   kpiIconBox: {
     width: 28,
@@ -1407,6 +1423,7 @@ const permStyles = StyleSheet.create({
     justifyContent: 'center',
   },
   kpiBadge: {
+    flexShrink: 1,
     fontSize: 10,
     fontWeight: '700',
     color: '#0891B2',
@@ -1433,6 +1450,7 @@ const permStyles = StyleSheet.create({
     paddingBottom: 2,
   },
   tabItem: {
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -1446,6 +1464,7 @@ const permStyles = StyleSheet.create({
     borderBottomColor: '#0891B2',
   },
   tabText: {
+    flexShrink: 1,
     fontSize: 13,
     fontWeight: '600',
     color: '#64748B',
@@ -1469,6 +1488,7 @@ const permStyles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 10,
   },
+  cardHeaderCopy: { flexShrink: 1, gap: 2 },
   cardTitle: {
     fontSize: 15,
     fontWeight: '800',
@@ -1484,6 +1504,8 @@ const permStyles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   statusChip: {
+    minHeight: 48,
+    justifyContent: 'center',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
@@ -1505,6 +1527,7 @@ const permStyles = StyleSheet.create({
     fontWeight: '800',
   },
   searchBox: {
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -1610,6 +1633,7 @@ const permStyles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   rolePillText: {
+    flexShrink: 1,
     fontSize: 11,
     fontWeight: '700',
   },
@@ -1697,12 +1721,16 @@ const permStyles = StyleSheet.create({
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   cardFooterMeta: {
     fontSize: 11,
     color: '#64748B',
   },
   csvBtn: {
+    minHeight: 48,
+    justifyContent: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -1894,6 +1922,10 @@ const permStyles = StyleSheet.create({
     color: '#0F172A',
   },
   modalCloseBtn: {
+    minHeight: 48,
+    minWidth: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: 4,
   },
   modalCloseText: {
@@ -1915,7 +1947,11 @@ const permStyles = StyleSheet.create({
     borderColor: '#E2E8F0',
     backgroundColor: '#FFFFFF',
   },
+  candidateCardCompact: { flexWrap: 'wrap' },
+  candidateCopy: { flex: 1, minWidth: 0, gap: 2 },
+  candidateCopyCompact: { minWidth: '70%' },
   candidateName: {
+    flexShrink: 1,
     fontSize: 13,
     fontWeight: '700',
     color: '#0F172A',
@@ -1929,6 +1965,8 @@ const permStyles = StyleSheet.create({
     color: '#94A3B8',
   },
   selectGrantBtn: {
+    minHeight: 48,
+    justifyContent: 'center',
     backgroundColor: '#0891B2',
     paddingHorizontal: 10,
     paddingVertical: 6,

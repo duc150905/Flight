@@ -140,7 +140,7 @@ export const addonProductInputSchema = z
           .regex(/^[A-Z0-9_]{2,32}$/, 'Mã dịch vụ gồm 2–32 ký tự chữ hoa, số hoặc gạch dưới.'),
       ),
     name: z.string().trim().min(2, 'Nhập tên gói dịch vụ.').max(120),
-    category: z.enum(['baggage', 'meal', 'insurance_demo']).refine(value=>value==='baggage','Checkout currently supports checked baggage only.'),
+    category: z.enum(['baggage', 'meal', 'insurance_demo']).refine(value=>value!=='insurance_demo','Insurance is read-only: checkout supports baggage and meals only.'),
     description: z
       .string()
       .trim()
@@ -171,7 +171,7 @@ export const flightAddonOfferInputSchema = z.object({
     .number()
     .int()
     .min(1, 'Số lượng tối đa mỗi hành khách ít nhất là 1.')
-    .max(1, 'Checkout supports one baggage choice per passenger per leg; max quantity must be 1')
+    .max(1, 'Checkout supports one choice per category per passenger per leg; max quantity must be 1')
     .default(1),
   isActive: z.boolean().default(true),
 });
@@ -309,7 +309,9 @@ export function formatAdminError(error: unknown, language: 'vi' | 'en' = 'vi'): 
     [/last unblocked seat/i, 'Hãy ngừng bán các gói vé của khoang trước khi khóa ghế cuối cùng còn sử dụng được.', 'Deactivate cabin fares before blocking its last unblocked seat.'],
     [/unblocked seat inventory|no.*seat inventory.*cabin/i, 'Khoang của gói vé cần có ghế sử dụng được trên chuyến bay này.', 'The fare cabin must have unblocked seat inventory on this flight.'],
     [/supports (checked )?baggage only|Meals and insurance.*read.only/i, 'Hiện chỉ có hành lý ký gửi được bán trong luồng đặt vé. Suất ăn và bảo hiểm đang ở chế độ chỉ xem.', 'Checkout currently supports checked baggage only. Meals and insurance are read-only.'],
-    [/max quantity must be 1|maximum: 1|Too big: expected number to be <=1/i, 'Mỗi hành khách chỉ chọn một gói hành lý cho từng chặng.', 'Each passenger can select one baggage package per leg.'],
+    [/baggage and meals only|Insurance.*read.only/i, 'Luồng đặt vé hỗ trợ hành lý và suất ăn. Bảo hiểm đang ở chế độ chỉ xem.', 'Checkout supports baggage and meals. Insurance is read-only.'],
+    [/Cannot change.*add.on (product|offer) category|add.on (product|offer) category.*cannot.*chang/i, 'Không thể thay đổi phân loại của sản phẩm hoặc gói bán đã tạo. Hãy tạo bản ghi mới nếu cần phân loại khác.', 'Cannot change an existing add-on category. Create a new product or offer for a different category.'],
+    [/max quantity must be 1|maximum: 1|Too big: expected number to be <=1/i, 'Mỗi hành khách được chọn tối đa một gói hành lý và một suất ăn cho từng chặng.', 'Each passenger can select up to one baggage package and one meal per leg.'],
     [/Use an HTTPS (image|logo) URL/i, 'Hãy dùng URL ảnh HTTPS hoặc ảnh điểm đến có sẵn được hỗ trợ. Logo hãng mới cần URL HTTPS.', 'Use an HTTPS image URL or a supported bundled destination image. New airline logos require HTTPS.'],
     [/duplicate seat codes/i, 'Mã ghế bị trùng trong sơ đồ. Hãy kiểm tra lại.', 'The seat template contains duplicate seat codes.'],
   ];
