@@ -26,6 +26,7 @@ import {
   AdminShell,
   AdminStatusBadge,
   AdminTextField,
+  AdminToast,
   adminStyles,
 } from '../ui';
 
@@ -203,6 +204,7 @@ export function AdminAircraftScreen() {
   const refreshAll = async () => {
     await queryClient.invalidateQueries({ queryKey: ['admin-aircraft'] });
     await queryClient.invalidateQueries({ queryKey: ['admin-f09-summary'] });
+    await queryClient.invalidateQueries({ queryKey: ['checkout-seat-map'] });
   };
 
   const openAircraftEditor = (ac?: AircraftRow) => {
@@ -363,8 +365,8 @@ export function AdminAircraftScreen() {
         )}
       />
 
-      <Notice text={success} success />
-      <Notice text={error} />
+      <AdminToast text={success} success onClose={() => setSuccess('')} />
+      <AdminToast text={error} error onClose={() => setError('')} />
 
       {dataQuery.isPending && <AdminLoadingState />}
       {dataQuery.isError && (

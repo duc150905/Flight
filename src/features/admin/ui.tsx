@@ -1163,6 +1163,136 @@ export function AdminLoadingState({ text }: { text?: string }) {
   );
 }
 
+export function AdminToast({
+  text,
+  success = false,
+  error = false,
+  onClose,
+  duration = 4500,
+}: {
+  text?: string | null;
+  success?: boolean;
+  error?: boolean;
+  onClose?: () => void;
+  duration?: number;
+}) {
+  const [animOpacity] = useState(() => new Animated.Value(0));
+  const [animTranslateY] = useState(() => new Animated.Value(20));
+
+  useEffect(() => {
+    if (!text) return;
+    Animated.parallel([
+      Animated.timing(animOpacity, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+      Animated.timing(animTranslateY, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+    ]).start();
+
+    if (!onClose || duration <= 0) return;
+    const timer = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(animOpacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+        Animated.timing(animTranslateY, {
+          toValue: 20,
+          duration: 200,
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+      ]).start(() => {
+        onClose();
+      });
+    }, duration);
+
+    return () => clearTimeout(timer);
+  }, [text, onClose, duration, animOpacity, animTranslateY]);
+
+  if (!text) return null;
+
+  const isSuccess = success || !error;
+
+  return (
+    <Animated.View
+      style={{
+        position: Platform.OS === 'web' ? ('fixed' as any) : 'absolute',
+        bottom: 24,
+        right: 24,
+        zIndex: 99999,
+        maxWidth: 440,
+        minWidth: 280,
+        backgroundColor: isSuccess ? '#0F766E' : '#B91C1C',
+        borderColor: isSuccess ? '#14B8A6' : '#EF4444',
+        borderWidth: 1,
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.22,
+        shadowRadius: 14,
+        elevation: 10,
+        opacity: animOpacity,
+        transform: [{ translateY: animTranslateY }],
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+        <Text style={{ fontSize: 18 }}>{isSuccess ? '✅' : '⚠️'}</Text>
+        <Text
+          style={{
+            color: '#FFFFFF',
+            fontSize: 14,
+            fontWeight: '600',
+            lineHeight: 20,
+          }}
+        >
+          {text}
+        </Text>
+      </View>
+      {onClose && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Đóng thông báo"
+          onPress={() => {
+            Animated.parallel([
+              Animated.timing(animOpacity, {
+                toValue: 0,
+                duration: 150,
+                useNativeDriver: Platform.OS !== 'web',
+              }),
+              Animated.timing(animTranslateY, {
+                toValue: 20,
+                duration: 150,
+                useNativeDriver: Platform.OS !== 'web',
+              }),
+            ]).start(() => {
+              onClose();
+            });
+          }}
+          style={{
+            padding: 4,
+            borderRadius: 6,
+            backgroundColor: 'rgba(255, 255, 255, 0.15)',
+          }}
+        >
+          <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '700' }}>✕</Text>
+        </Pressable>
+      )}
+    </Animated.View>
+  );
+}
+
 export const adminStyles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: consolePalette.canvasBg },
   rootLayout: {

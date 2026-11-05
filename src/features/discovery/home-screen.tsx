@@ -1,10 +1,13 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useStore } from 'zustand';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
+import { cacheKeys, cacheTimes } from '@/features/cache/policy';
 import {
   ActivityIndicator,
+  Animated,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -40,8 +43,10 @@ export function HomeScreen() {
   const isDesktop = width >= 900;
   const isTablet = width >= 640 && width < 900;
 
-  const airportsQuery = useQuery({ queryKey: ['airports'], queryFn: listAirports });
-  const destinationsQuery = useQuery({ queryKey: ['featured-destinations'], queryFn: listDestinations });
+  const airportsQuery = useQuery({ queryKey: cacheKeys.airports, queryFn: listAirports,
+    staleTime: cacheTimes.catalogue });
+  const destinationsQuery = useQuery({ queryKey: cacheKeys.destinations, queryFn: listDestinations,
+    staleTime: cacheTimes.catalogue });
   const airports = airportsQuery.data ?? emptyAirports;
   const destinations = destinationsQuery.data ?? emptyDestinations;
   const airportById = useMemo(() => new Map(airports.map(airport => [airport.id, airport])), [airports]);
@@ -49,6 +54,26 @@ export function HomeScreen() {
   const { searchOpen, openSearch, closeSearch } = useStore(searchStore);
   const [initialDestinationId, setInitialDestinationId] = useState('');
   const [aiChatOpen, setAiChatOpen] = useState(false);
+
+  const [fadeAnim] = useState(() => new Animated.Value(1));
+  const [slideAnim] = useState(() => new Animated.Value(0));
+
+  useEffect(() => {
+    fadeAnim.setValue(0.2);
+    slideAnim.setValue(12);
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+    ]).start();
+  }, [searchOpen, fadeAnim, slideAnim]);
 
   useFocusEffect(
     useCallback(() => {
@@ -61,12 +86,24 @@ export function HomeScreen() {
 
   const destinationCardWidth = isDesktop ? '23.4%' : isTablet ? '31.4%' : '47.5%';
 
-  if (searchOpen) return <SearchFlow airports={airports} loading={airportsQuery.isPending}
-    error={airportsQuery.isError} onRetry={() => void airportsQuery.refetch()}
-    onClose={closeSearch} initialDestinationId={initialDestinationId} />;
+  if (searchOpen) {
+    return (
+      <Animated.View style={{ flex: 1, opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+        <SearchFlow
+          airports={airports}
+          loading={airportsQuery.isPending}
+          error={airportsQuery.isError}
+          onRetry={() => void airportsQuery.refetch()}
+          onClose={closeSearch}
+          initialDestinationId={initialDestinationId}
+        />
+      </Animated.View>
+    );
+  }
 
   return (
-    <SafeAreaView style={home.safe} edges={['top', 'left', 'right']}>
+    <Animated.View style={{ flex: 1, opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+      <SafeAreaView style={home.safe} edges={['top', 'left', 'right']}>
       {/* Pinned Top Header */}
       <View style={[home.stickyHeaderWrapper, isDesktop && home.headerWrapperDesktop]}>
         <View style={[home.header, isDesktop && home.headerDesktop]}>
@@ -200,7 +237,8 @@ export function HomeScreen() {
         airports={airports}
       />
     </SafeAreaView>
-  );
+  </Animated.View>
+);
 }
 
 function DestinationCard({

@@ -68,3 +68,11 @@ Giới hạn: chưa nghiệm thu nhìn/thao tác trên Android hoặc trình duy
 5. Đăng xuất/đổi sang khách thường: dữ liệu và màn admin của người trước không được hiện lại. Chỉ thử cấp/thu hồi/khóa bằng tài khoản thử riêng.
 
 **Bổ sung từ kiểm thử của người dùng:** hàng khách hàng trước đó chỉ hiện “Cấp quyền Admin”, không mở được hộp quản lý trạng thái. Đã thêm nút “Quản lý” cho mọi tài khoản khác người đang đăng nhập; trong hộp có “Tạm dừng tài khoản này” hoặc “Kích hoạt lại tài khoản này”. Hai nút trên hàng có khoảng cách và tự xuống dòng khi thiếu chỗ.
+
+## Hợp nhất main trong ngày05/11
+
+Đã đối chiếu thêm các PR36/37/38 trên main: giữ cache công khai có whitelist, tối ưu tìm chuyến và giao diện danh mục/lịch bay/kho ghế/thanh toán mới. Khi đổi chủ tài khoản, hủy và xóa query riêng tư, đồng thời giữ cache công khai; cache admin riêng theo người dùng tiếp tục được giữ nguyên ranh giới.
+
+Phần suất ăn mới trên main chưa có trong payload báo giá/tạo đơn trên server. Vì vậy giữ thực đơn ở chế độ tham khảo có nhãn rõ, bỏ lựa chọn không được lưu và bỏ fallback tự dựng suất ăn miễn phí. Giá/hành lý/ghế tiếp tục theo báo giá server; không triển khai nghiệp vụ bán suất ăn trong lần merge này. Có regression test bảo đảm danh mục suất ăn chung không tự trở thành offer của mọi chuyến.
+
+Theo yêu cầu người dùng, công việc điều tra hoàn tiền mới được giữ ở nhánh `codex/vnpay-refund-investigation`, không gộp vào lần tích hợp admin/main này.

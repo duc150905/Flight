@@ -1,10 +1,18 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { invalidateFlightSearch } from '@/features/cache/policy';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { ActionButton, Notice } from '@/features/auth/ui';
 import { supabase } from '@/lib/supabase';
+import { getTimezoneOffsetString, parseZonedFlight } from '../geo-data';
 import { useAdminI18n } from '../i18n';
+import {
+  CABIN_TEMPLATES,
+  CabinClass,
+  getCabinInfo,
+  getSeatPositionInfo,
+} from '../seat-fare-data';
 import {
   filterAndPaginate,
   formatAdminError,
@@ -26,14 +34,39 @@ import {
   AdminShell,
   AdminStatusBadge,
   AdminTextField,
+  AdminToast,
   adminStyles,
 } from '../ui';
 
 import { CataloguePicker } from '../catalogue-picker';
 import { loadFlightsBundle, loadFlightSeats as fetchFlightSeats } from '../catalogue-data';
-
-type CabinClass = 'economy' | 'premium_economy' | 'business' | 'first';
 type FlightStatus = 'draft' | 'scheduled' | 'delayed' | 'departed' | 'arrived' | 'cancelled';
+
+const FLIGHT_STATUS_OPTIONS: { key: FlightStatus; vi: string; en: string; icon: string }[] = [
+  { key: 'scheduled', vi: 'Đã lên lịch (SCHEDULED)', en: 'Scheduled', icon: '🕒' },
+  { key: 'draft', vi: 'Bản nháp (DRAFT)', en: 'Draft', icon: '📝' },
+  { key: 'delayed', vi: 'Bị hoãn (DELAYED)', en: 'Delayed', icon: '⏳' },
+  { key: 'cancelled', vi: 'Đã hủy (CANCELLED)', en: 'Cancelled', icon: '❌' },
+];
+
+function formatFlightStatus(status: FlightStatus, bi: (vi: string, en: string) => string) {
+  switch (status) {
+    case 'scheduled':
+      return bi('Đã lên lịch', 'Scheduled');
+    case 'draft':
+      return bi('Bản nháp', 'Draft');
+    case 'delayed':
+      return bi('Bị hoãn', 'Delayed');
+    case 'cancelled':
+      return bi('Đã hủy', 'Cancelled');
+    case 'departed':
+      return bi('Đã cất cánh', 'Departed');
+    case 'arrived':
+      return bi('Đã hạ cánh', 'Arrived');
+    default:
+      return String(status).toUpperCase();
+  }
+}
 
 type BaggageAllowanceShape = {
   cabin_pieces?: number;
@@ -61,6 +94,720 @@ function isFlightSalesOpen(flight: FlightInstanceRow, nowMs: number): boolean {
 }
 
 
+function FlightSeatsManager({
+  flight,
+  seats,
+  seatFeeDrafts,
+  setSeatFeeDrafts,
+  busy,
+  bi,
+  onUpdateSeat,
+  onReloadSeats,
+}: {
+  flight: FlightInstanceRow;
+  seats: FlightSeatRow[];
+  seatFeeDrafts: Record<string, string>;
+  setSeatFeeDrafts: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  busy: boolean;
+  bi: (v: string, e: string) => string;
+  onUpdateSeat: (seat: FlightSeatRow, nextBlocked?: boolean) => Promise<void>;
+  onReloadSeats: () => Promise<void>;
+}) {
+  const [search, setSearch] = useState('');
+  const [cabinFilter, setCabinFilter] = useState<'all' | CabinClass>('all');
+  const [posFilter, setPosFilter] = useState<'all' | 'window' | 'aisle' | 'middle' | 'exit'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'blocked'>('all');
+  const [page, setPage] = useState(1);
+  const [showBatchTools, setShowBatchTools] = useState(false);
+  const [batchFeeInput, setBatchFeeInput] = useState('');
+  const [batchLoading, setBatchLoading] = useState(false);
+  const [batchMsg, setBatchMsg] = useState('');
+
+  // Stats
+  const totalSeats = seats.length;
+  const blockedCount = useMemo(() => seats.filter((s) => s.is_blocked).length, [seats]);
+  const availableCount = totalSeats - blockedCount;
+  const feeCount = useMemo(() => seats.filter((s) => s.selection_fee_amount > 0).length, [seats]);
+
+  const cabinCounts = useMemo(() => {
+    const c: Record<CabinClass, number> = {
+      first: 0,
+      business: 0,
+      premium_economy: 0,
+      economy: 0,
+    };
+    for (const s of seats) {
+      if (c[s.cabin_class] !== undefined) c[s.cabin_class]++;
+    }
+    return c;
+  }, [seats]);
+
+  // Filtering
+  const filteredSeats = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return seats.filter((s) => {
+      if (cabinFilter !== 'all' && s.cabin_class !== cabinFilter) return false;
+      if (posFilter === 'exit' && !s.is_exit_row) return false;
+      if (posFilter !== 'all' && posFilter !== 'exit' && s.position !== posFilter) return false;
+      if (statusFilter === 'available' && s.is_blocked) return false;
+      if (statusFilter === 'blocked' && !s.is_blocked) return false;
+      if (q) {
+        const codeMatch = s.seat_code.toLowerCase().includes(q);
+        const rowMatch = String(s.row_number) === q;
+        const posInfo = getSeatPositionInfo(s.position, s.is_exit_row, bi);
+        const cabinInfo = getCabinInfo(s.cabin_class, bi);
+        return (
+          codeMatch ||
+          rowMatch ||
+          posInfo.fullLabel.toLowerCase().includes(q) ||
+          cabinInfo.label.toLowerCase().includes(q) ||
+          String(s.selection_fee_amount).includes(q)
+        );
+      }
+      return true;
+    });
+  }, [seats, cabinFilter, posFilter, statusFilter, search, bi]);
+
+  const PAGE_SIZE = 24;
+  const totalPages = Math.max(1, Math.ceil(filteredSeats.length / PAGE_SIZE));
+  const validPage = Math.min(Math.max(1, page), totalPages);
+  const pagedSeats = useMemo(() => {
+    const start = (validPage - 1) * PAGE_SIZE;
+    return filteredSeats.slice(start, start + PAGE_SIZE);
+  }, [filteredSeats, validPage]);
+
+  // Batch actions
+  const handleBatchBlock = async (block: boolean) => {
+    if (!supabase || filteredSeats.length === 0) return;
+    setBatchLoading(true);
+    setBatchMsg('');
+    try {
+      const targets = filteredSeats.filter((s) => s.is_blocked !== block);
+      for (const seat of targets) {
+        await adminUpdateFlightSeat(supabase, {
+          flightSeatId: seat.id,
+          isBlocked: block,
+          selectionFeeAmount: seat.selection_fee_amount,
+        });
+      }
+      setBatchMsg(
+        bi(
+          `Đã ${block ? 'khóa' : 'mở'} ${targets.length} ghế thành công!`,
+          `Successfully ${block ? 'blocked' : 'unblocked'} ${targets.length} seats!`,
+        ),
+      );
+      await onReloadSeats();
+    } catch {
+      setBatchMsg(bi('Lỗi khi cập nhật ghế hàng loạt.', 'Batch update failed.'));
+    } finally {
+      setBatchLoading(false);
+    }
+  };
+
+  const handleBatchSetFee = async () => {
+    const feeVal = Number(batchFeeInput);
+    if (!supabase || isNaN(feeVal) || feeVal < 0 || filteredSeats.length === 0) return;
+    setBatchLoading(true);
+    setBatchMsg('');
+    try {
+      for (const seat of filteredSeats) {
+        await adminUpdateFlightSeat(supabase, {
+          flightSeatId: seat.id,
+          isBlocked: seat.is_blocked,
+          selectionFeeAmount: feeVal,
+        });
+      }
+      setBatchMsg(
+        bi(
+          `Đã cập nhật phí ${feeVal.toLocaleString('vi-VN')} đ cho ${filteredSeats.length} ghế!`,
+          `Updated fee for ${filteredSeats.length} seats!`,
+        ),
+      );
+      await onReloadSeats();
+    } catch {
+      setBatchMsg(bi('Lỗi khi đặt phí hàng loạt.', 'Batch fee update failed.'));
+    } finally {
+      setBatchLoading(false);
+    }
+  };
+
+  return (
+    <View style={[adminStyles.card, { marginTop: 8, gap: 12 }]}>
+      {/* Title */}
+      <View style={{ gap: 2 }}>
+        <Text style={adminStyles.bold}>
+          {bi(
+            `Kho ghế chuyến bay ${flight.flight_number} (${totalSeats} ghế)`,
+            `Seat Inventory for ${flight.flight_number} (${totalSeats} seats)`,
+          )}
+        </Text>
+        <Text style={adminStyles.muted}>
+          {bi(
+            'Quản lý kho ghế theo số ghế (1A, 12C...), hạng khoang (Thương gia, Phổ thông...) và vị trí (cửa sổ, lối đi, thoát hiểm).',
+            'Manage seats by seat code (1A, 12C...), cabin class, and seat position (window, aisle, exit row).',
+          )}
+        </Text>
+      </View>
+
+      {totalSeats === 0 ? (
+        <Text style={adminStyles.muted}>
+          {bi(
+            'Chưa có kho ghế (hãy bật Công bố mở bán chuyến bay để tự động tạo kho ghế từ tàu bay).',
+            'No seat inventory initialized yet (publish the flight to initialize from aircraft template).',
+          )}
+        </Text>
+      ) : (
+        <>
+          {/* Summary Metric Pills */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <View
+              style={{
+                backgroundColor: '#F8FAFC',
+                borderColor: '#E2E8F0',
+                borderWidth: 1,
+                borderRadius: 8,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                minWidth: 100,
+              }}
+            >
+              <Text style={{ fontSize: 11, color: '#64748B' }}>
+                {bi('Tổng kho ghế', 'Total Seats')}
+              </Text>
+              <Text style={{ fontSize: 16, fontWeight: '800', color: '#0F172A' }}>
+                💺 {totalSeats}
+              </Text>
+            </View>
+            <View
+              style={{
+                backgroundColor: '#F0FDF4',
+                borderColor: '#BBF7D0',
+                borderWidth: 1,
+                borderRadius: 8,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                minWidth: 100,
+              }}
+            >
+              <Text style={{ fontSize: 11, color: '#166534' }}>
+                {bi('Đang mở chọn', 'Available')}
+              </Text>
+              <Text style={{ fontSize: 16, fontWeight: '800', color: '#15803D' }}>
+                🟢 {availableCount}
+              </Text>
+            </View>
+            <View
+              style={{
+                backgroundColor: '#FEF2F2',
+                borderColor: '#FECACA',
+                borderWidth: 1,
+                borderRadius: 8,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                minWidth: 100,
+              }}
+            >
+              <Text style={{ fontSize: 11, color: '#991B1B' }}>
+                {bi('Đang khóa', 'Blocked')}
+              </Text>
+              <Text style={{ fontSize: 16, fontWeight: '800', color: '#B91C1C' }}>
+                🔒 {blockedCount}
+              </Text>
+            </View>
+            <View
+              style={{
+                backgroundColor: '#F0FDFA',
+                borderColor: '#99F6E4',
+                borderWidth: 1,
+                borderRadius: 8,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                minWidth: 100,
+              }}
+            >
+              <Text style={{ fontSize: 11, color: '#0F766E' }}>
+                {bi('Có phí chọn', 'With Fee')}
+              </Text>
+              <Text style={{ fontSize: 16, fontWeight: '800', color: '#0D9488' }}>
+                🏷️ {feeCount}
+              </Text>
+            </View>
+          </View>
+
+          {/* Cabin Breakdown Filter Chips */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            {(['first', 'business', 'premium_economy', 'economy'] as CabinClass[]).map((cb) => {
+              const cInfo = getCabinInfo(cb, bi);
+              const count = cabinCounts[cb] ?? 0;
+              if (count === 0 && cb === 'first') return null;
+              const isSelected = cabinFilter === cb;
+              return (
+                <Pressable
+                  key={cb}
+                  accessibilityRole="button"
+                  onPress={() => {
+                    setCabinFilter(isSelected ? 'all' : cb);
+                    setPage(1);
+                  }}
+                  style={[
+                    adminStyles.chip,
+                    isSelected && {
+                      backgroundColor: cInfo.bgColor,
+                      borderColor: cInfo.color,
+                      borderWidth: 1.5,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      adminStyles.chipText,
+                      isSelected && { color: cInfo.color, fontWeight: '700' },
+                    ]}
+                  >
+                    {cInfo.icon} {cInfo.shortLabel}: {count} {bi('ghế', 'seats')}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* Search and Position Filters */}
+          <View style={{ gap: 8 }}>
+            <TextInput
+              value={search}
+              onChangeText={(t) => {
+                setSearch(t);
+                setPage(1);
+              }}
+              placeholder={bi(
+                '🔍 Tìm mã ghế (VD: 1A, 12, Cửa sổ, Thoát hiểm, 60000)...',
+                '🔍 Search seat (e.g. 1A, 12, Window, Exit, 60000)...',
+              )}
+              style={[adminStyles.input, { backgroundColor: '#FFFFFF' }]}
+            />
+
+            <View style={adminStyles.chipRow}>
+              {[
+                { key: 'all', label: bi('Tất cả vị trí', 'All positions') },
+                { key: 'window', label: bi('🪟 Cửa sổ', '🪟 Window') },
+                { key: 'aisle', label: bi('🚶 Lối đi', '🚶 Aisle') },
+                { key: 'middle', label: bi('👥 Ở giữa', '👥 Middle') },
+                { key: 'exit', label: bi('🚪 Thoát hiểm', '🚪 Exit Row') },
+              ].map((pos) => {
+                const isSelected = posFilter === pos.key;
+                return (
+                  <Pressable
+                    key={pos.key}
+                    accessibilityRole="button"
+                    onPress={() => {
+                      setPosFilter(pos.key as any);
+                      setPage(1);
+                    }}
+                    style={[adminStyles.chip, isSelected && adminStyles.chipSelected]}
+                  >
+                    <Text
+                      style={[
+                        adminStyles.chipText,
+                        isSelected && adminStyles.chipTextSelected,
+                      ]}
+                    >
+                      {pos.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+
+              {[
+                { key: 'all', label: bi('Tất cả TT', 'All status') },
+                { key: 'available', label: bi('🟢 Mở chọn', '🟢 Available') },
+                { key: 'blocked', label: bi('🔒 Đang khóa', '🔒 Blocked') },
+              ].map((st) => {
+                const isSelected = statusFilter === st.key;
+                return (
+                  <Pressable
+                    key={st.key}
+                    accessibilityRole="button"
+                    onPress={() => {
+                      setStatusFilter(st.key as any);
+                      setPage(1);
+                    }}
+                    style={[adminStyles.chip, isSelected && adminStyles.chipSelected]}
+                  >
+                    <Text
+                      style={[
+                        adminStyles.chipText,
+                        isSelected && adminStyles.chipTextSelected,
+                      ]}
+                    >
+                      {st.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Batch Tools Bar */}
+          <View style={{ gap: 6 }}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setShowBatchTools((v) => !v)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                paddingVertical: 4,
+              }}
+            >
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F766E' }}>
+                ⚡{' '}
+                {bi(
+                  `Công cụ thao tác nhanh (${filteredSeats.length} ghế đang lọc)`,
+                  `Batch Actions (${filteredSeats.length} matching seats)`,
+                )}{' '}
+                {showBatchTools ? '▲' : '▼'}
+              </Text>
+            </Pressable>
+
+            {showBatchTools && (
+              <View
+                style={{
+                  backgroundColor: '#F8FAFC',
+                  borderColor: '#CBD5E1',
+                  borderWidth: 1,
+                  borderRadius: 10,
+                  padding: 12,
+                  gap: 10,
+                }}
+              >
+                {batchMsg ? (
+                  <Text style={{ fontSize: 13, color: '#0F766E', fontWeight: '700' }}>
+                    {batchMsg}
+                  </Text>
+                ) : null}
+
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={batchLoading || busy}
+                    onPress={() => void handleBatchBlock(true)}
+                    style={adminStyles.dangerBtnSmall}
+                  >
+                    <Text style={adminStyles.dangerBtnText}>
+                      🔒 {bi(`Khóa tất cả ${filteredSeats.length} ghế này`, `Block all ${filteredSeats.length} seats`)}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={batchLoading || busy}
+                    onPress={() => void handleBatchBlock(false)}
+                    style={adminStyles.primaryBtnSmall}
+                  >
+                    <Text style={adminStyles.primaryBtnText}>
+                      🟢 {bi(`Mở tất cả ${filteredSeats.length} ghế này`, `Unblock all ${filteredSeats.length} seats`)}
+                    </Text>
+                  </Pressable>
+                </View>
+
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: 8,
+                  }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#475569' }}>
+                    {bi('Đặt phí đồng loạt (VND):', 'Set uniform fee (VND):')}
+                  </Text>
+                  <TextInput
+                    value={batchFeeInput}
+                    onChangeText={setBatchFeeInput}
+                    placeholder="50000"
+                    keyboardType="numeric"
+                    style={[
+                      adminStyles.input,
+                      { width: 120, minHeight: 34, paddingVertical: 4, backgroundColor: '#FFFFFF' },
+                    ]}
+                  />
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={batchLoading || busy || !batchFeeInput}
+                    onPress={() => void handleBatchSetFee()}
+                    style={adminStyles.secondaryBtnSmall}
+                  >
+                    <Text style={adminStyles.secondaryBtnText}>
+                      {bi(
+                        `Áp dụng cho ${filteredSeats.length} ghế`,
+                        `Apply to ${filteredSeats.length} seats`,
+                      )}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* Seat Cards List */}
+          {filteredSeats.length === 0 ? (
+            <Text style={{ fontSize: 13, color: '#64748B', fontStyle: 'italic', paddingVertical: 8 }}>
+              {bi('Không tìm thấy ghế nào phù hợp với bộ lọc.', 'No seats match current filters.')}
+            </Text>
+          ) : (
+            <View style={{ gap: 8 }}>
+              {pagedSeats.map((seat) => {
+                const cabinInfo = getCabinInfo(seat.cabin_class, bi);
+                const posInfo = getSeatPositionInfo(seat.position, seat.is_exit_row, bi);
+
+                return (
+                  <View
+                    key={seat.id}
+                    style={{
+                      backgroundColor: seat.is_blocked ? '#FFF5F5' : '#FFFFFF',
+                      borderColor: seat.is_blocked ? '#FEB2B2' : '#E2E8F0',
+                      borderWidth: 1.5,
+                      borderRadius: 12,
+                      padding: 12,
+                      gap: 10,
+                    }}
+                  >
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: 8,
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                        {/* Seat Code Box */}
+                        <View
+                          style={{
+                            backgroundColor: cabinInfo.bgColor,
+                            borderColor: cabinInfo.borderColor,
+                            borderWidth: 1.5,
+                            borderRadius: 8,
+                            minWidth: 54,
+                            height: 42,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 18,
+                              fontWeight: '800',
+                              color: cabinInfo.color,
+                            }}
+                          >
+                            {seat.seat_code}
+                          </Text>
+                        </View>
+
+                        {/* Seat Meta */}
+                        <View style={{ gap: 3 }}>
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: 6,
+                              flexWrap: 'wrap',
+                            }}
+                          >
+                            <Text
+                              style={{
+                                fontSize: 13,
+                                fontWeight: '700',
+                                color: cabinInfo.color,
+                              }}
+                            >
+                              {cabinInfo.icon} {cabinInfo.shortLabel}
+                            </Text>
+                            <Text style={{ fontSize: 12, color: '#475569', fontWeight: '600' }}>
+                              · {posInfo.label}
+                            </Text>
+                            {seat.is_exit_row && (
+                              <View
+                                style={{
+                                  backgroundColor: '#FEF3C7',
+                                  borderColor: '#FCD34D',
+                                  borderWidth: 1,
+                                  paddingHorizontal: 6,
+                                  paddingVertical: 2,
+                                  borderRadius: 4,
+                                }}
+                              >
+                                <Text
+                                  style={{
+                                    fontSize: 11,
+                                    fontWeight: '700',
+                                    color: '#B45309',
+                                  }}
+                                >
+                                  🚪 {bi('Thoát hiểm / Chân rộng', 'Exit Row')}
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                          <Text style={{ fontSize: 12, color: '#64748B' }}>
+                            {bi(
+                              `Hàng ${seat.row_number} · Cột ${seat.column_number}`,
+                              `Row ${seat.row_number} · Column ${seat.column_number}`,
+                            )}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Status Badge */}
+                      <View
+                        style={{
+                          backgroundColor: seat.is_blocked ? '#FEE2E2' : '#DCFCE7',
+                          borderColor: seat.is_blocked ? '#F87171' : '#86EFAC',
+                          borderWidth: 1,
+                          borderRadius: 6,
+                          paddingHorizontal: 8,
+                          paddingVertical: 4,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            fontWeight: '700',
+                            color: seat.is_blocked ? '#991B1B' : '#166534',
+                          }}
+                        >
+                          {seat.is_blocked
+                            ? bi('🔒 Đang khóa (Blocked)', '🔒 Blocked')
+                            : bi('🟢 Mở chọn (Available)', '🟢 Available')}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Controls Row */}
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'flex-end',
+                        flexWrap: 'wrap',
+                        gap: 8,
+                        borderTopWidth: 1,
+                        borderTopColor: '#F1F5F9',
+                        paddingTop: 8,
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: '#475569' }}>
+                          {bi('Phí chọn ghế:', 'Fee:')}
+                        </Text>
+                        <TextInput
+                          value={
+                            seatFeeDrafts[seat.id] ?? String(seat.selection_fee_amount)
+                          }
+                          onChangeText={(t) =>
+                            setSeatFeeDrafts((prev) => ({ ...prev, [seat.id]: t }))
+                          }
+                          keyboardType="numeric"
+                          style={[
+                            adminStyles.input,
+                            {
+                              width: 100,
+                              minHeight: 34,
+                              paddingVertical: 4,
+                              textAlign: 'right',
+                            },
+                          ]}
+                        />
+                        <Text style={{ fontSize: 12, color: '#64748B' }}>đ</Text>
+                        <Pressable
+                          accessibilityRole="button"
+                          disabled={busy}
+                          onPress={() => void onUpdateSeat(seat)}
+                          style={adminStyles.secondaryBtnSmall}
+                        >
+                          <Text style={adminStyles.secondaryBtnText}>
+                            {bi('Lưu phí', 'Save Fee')}
+                          </Text>
+                        </Pressable>
+                      </View>
+
+                      <Pressable
+                        accessibilityRole="button"
+                        disabled={busy}
+                        onPress={() => void onUpdateSeat(seat, !seat.is_blocked)}
+                        style={
+                          seat.is_blocked
+                            ? adminStyles.primaryBtnSmall
+                            : adminStyles.dangerBtnSmall
+                        }
+                      >
+                        <Text
+                          style={
+                            seat.is_blocked
+                              ? adminStyles.primaryBtnText
+                              : adminStyles.dangerBtnText
+                          }
+                        >
+                          {seat.is_blocked ? bi('Mở khóa', 'Unblock') : bi('Khóa ghế', 'Block')}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+
+          {/* Pagination Bar */}
+          {totalPages > 1 && (
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingVertical: 8,
+                flexWrap: 'wrap',
+                gap: 8,
+              }}
+            >
+              <Text style={{ fontSize: 13, color: '#64748B' }}>
+                {bi(
+                  `Trang ${validPage} / ${totalPages} (Tổng ${filteredSeats.length} ghế)`,
+                  `Page ${validPage} of ${totalPages} (${filteredSeats.length} seats)`,
+                )}
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 6 }}>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={validPage <= 1}
+                  onPress={() => setPage((p) => Math.max(1, p - 1))}
+                  style={[adminStyles.secondaryBtnSmall, validPage <= 1 && { opacity: 0.5 }]}
+                >
+                  <Text style={adminStyles.secondaryBtnText}>
+                    ← {bi('Trang trước', 'Previous')}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={validPage >= totalPages}
+                  onPress={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  style={[
+                    adminStyles.secondaryBtnSmall,
+                    validPage >= totalPages && { opacity: 0.5 },
+                  ]}
+                >
+                  <Text style={adminStyles.secondaryBtnText}>{bi('Trang sau', 'Next')} →</Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
+        </>
+      )}
+    </View>
+  );
+}
+
 export function AdminFlightsScreen() {
   const params = useLocalSearchParams<{ q?: string }>();
   const initialQuery = typeof params.q === 'string' ? params.q : '';
@@ -79,12 +826,13 @@ function AdminFlightsContent({ initialQuery }: { initialQuery: string }) {
     },
   });
 
-  const airports = flightsQuery.data?.airports ?? [];
+  const airports = useMemo(() => flightsQuery.data?.airports ?? [], [flightsQuery.data?.airports]);
   const airlines = flightsQuery.data?.airlines ?? [];
   const aircraftList = flightsQuery.data?.aircraftList ?? [];
-  const flights = flightsQuery.data?.flights ?? [];
+  const flights = useMemo(() => flightsQuery.data?.flights ?? [], [flightsQuery.data?.flights]);
   const faresByFlight = flightsQuery.data?.faresByFlight ?? {};
   const referenceNowMs = flightsQuery.data?.fetchedAtMs ?? 0;
+  const airportById = useMemo(() => new Map(airports.map((a) => [a.id, a])), [airports]);
 
   const [seatsByFlight, setSeatsByFlight] = useState<Record<string, FlightSeatRow[]>>({});
   const [busy, setBusy] = useState(false);
@@ -111,11 +859,189 @@ function AdminFlightsContent({ initialQuery }: { initialQuery: string }) {
     publish: true,
   });
 
+  const [showAdvancedIso, setShowAdvancedIso] = useState(false);
+
+  // Operational timezone based on selected departure airport
+  const depAirport = airportById.get(flightForm.departureAirportId);
+  const operationalTz = depAirport?.timezone || 'Asia/Ho_Chi_Minh';
+  const tzOffset = useMemo(
+    () => getTimezoneOffsetString(flightForm.departureAt || new Date(), operationalTz),
+    [flightForm.departureAt, operationalTz],
+  );
+
+  const depZoned = useMemo(
+    () => parseZonedFlight(flightForm.departureAt, operationalTz),
+    [flightForm.departureAt, operationalTz],
+  );
+  const arrZoned = useMemo(
+    () => parseZonedFlight(flightForm.arrivalAt, operationalTz),
+    [flightForm.arrivalAt, operationalTz],
+  );
+  const closeZoned = useMemo(
+    () => (flightForm.salesCloseAt ? parseZonedFlight(flightForm.salesCloseAt, operationalTz) : null),
+    [flightForm.salesCloseAt, operationalTz],
+  );
+
+  const flightDate = depZoned.dateStr || '2026-06-15';
+  const departureTime = depZoned.timeStr || '08:00';
+  const arrivalTime = arrZoned.timeStr || '10:10';
+  const salesCloseTime = closeZoned?.timeStr || '06:30';
+
+  const updateDateTime = (updates: {
+    date?: string;
+    depTime?: string;
+    arrTime?: string;
+    closeTime?: string;
+  }) => {
+    const nextDate = updates.date ?? flightDate;
+    const nextDepTime = updates.depTime ?? departureTime;
+    const nextArrTime = updates.arrTime ?? arrivalTime;
+    const nextCloseTime = updates.closeTime !== undefined ? updates.closeTime : salesCloseTime;
+
+    let nextArrDate = nextDate;
+    if (nextArrTime < nextDepTime && nextArrTime.length === 5 && nextDepTime.length === 5) {
+      const d = new Date(`${nextDate}T00:00:00Z`);
+      d.setUTCDate(d.getUTCDate() + 1);
+      nextArrDate = d.toISOString().slice(0, 10);
+    }
+
+    const currentOffset = tzOffset || '+07:00';
+    setFlightForm((prev) => ({
+      ...prev,
+      departureAt: `${nextDate}T${nextDepTime}:00${currentOffset}`,
+      arrivalAt: `${nextArrDate}T${nextArrTime}:00${currentOffset}`,
+      salesCloseAt: nextCloseTime ? `${nextDate}T${nextCloseTime}:00${currentOffset}` : '',
+    }));
+  };
+
+  const sameAircraftFlights = useMemo(() => {
+    if (!flightForm.aircraftId || !flightDate) return [];
+    return flights
+      .filter((f) => {
+        if (f.aircraft_id !== flightForm.aircraftId) return false;
+        if (f.id === flightForm.flightId) return false;
+        if (f.status === 'cancelled') return false;
+        const depZ = parseZonedFlight(f.departure_at, operationalTz);
+        const arrZ = parseZonedFlight(f.arrival_at, operationalTz);
+        return depZ.dateStr === flightDate || arrZ.dateStr === flightDate;
+      })
+      .map((f) => {
+        const depZ = parseZonedFlight(f.departure_at, operationalTz);
+        const arrZ = parseZonedFlight(f.arrival_at, operationalTz);
+        return {
+          ...f,
+          zonedDepDate: depZ.dateStr,
+          zonedDepTime: depZ.timeStr,
+          zonedArrDate: arrZ.dateStr,
+          zonedArrTime: arrZ.timeStr,
+          zonedDepMin: depZ.minutes,
+          zonedArrMin:
+            arrZ.dateStr === depZ.dateStr ? arrZ.minutes : arrZ.minutes + 1440,
+        };
+      })
+      .sort((a, b) => new Date(a.departure_at).getTime() - new Date(b.departure_at).getTime());
+  }, [flights, flightForm.aircraftId, flightDate, flightForm.flightId, operationalTz]);
+
+  const conflictingFlight = useMemo(() => {
+    if (!flightForm.departureAt || !flightForm.arrivalAt) return null;
+    const curDep = new Date(flightForm.departureAt).getTime();
+    const curArr = new Date(flightForm.arrivalAt).getTime();
+    if (isNaN(curDep) || isNaN(curArr) || curArr <= curDep) return null;
+
+    return (
+      sameAircraftFlights.find((f) => {
+        const fDep = new Date(f.departure_at).getTime();
+        const fArr = new Date(f.arrival_at).getTime();
+        return curDep < fArr && curArr > fDep;
+      }) ?? null
+    );
+  }, [flightForm.departureAt, flightForm.arrivalAt, sameAircraftFlights]);
+
+  const freeSlots = useMemo(() => {
+    if (!flightForm.aircraftId || !flightDate) return [];
+    if (sameAircraftFlights.length === 0) {
+      return [
+        { label: bi('Sáng sớm: 06:00 ➔ 08:15', 'Early: 06:00 ➔ 08:15'), dep: '06:00', arr: '08:15' },
+        { label: bi('Buổi sáng: 09:00 ➔ 11:15', 'Morning: 09:00 ➔ 11:15'), dep: '09:00', arr: '11:15' },
+        { label: bi('Buổi trưa: 12:00 ➔ 14:15', 'Noon: 12:00 ➔ 14:15'), dep: '12:00', arr: '14:15' },
+        { label: bi('Buổi chiều: 15:00 ➔ 17:15', 'Afternoon: 15:00 ➔ 17:15'), dep: '15:00', arr: '17:15' },
+        { label: bi('Buổi tối: 18:30 ➔ 20:45', 'Evening: 18:30 ➔ 20:45'), dep: '18:30', arr: '20:45' },
+      ];
+    }
+
+    const suggestions: { label: string; dep: string; arr: string }[] = [];
+    const DAY_START_MIN = 5 * 60 + 30; // 05:30
+    const DAY_END_MIN = 23 * 60 + 30; // 23:30
+    const TURNAROUND_MIN = 40; // 40 minutes turnaround buffer
+    const MIN_FLIGHT_MIN = 60; // minimum flight duration
+
+    const formatFromMin = (min: number) => {
+      const h = Math.floor(min / 60) % 24;
+      const m = min % 60;
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    };
+
+    // Slot 1: Before first flight
+    const firstFlight = sameAircraftFlights[0];
+    const firstDepMin = firstFlight.zonedDepMin;
+    if (firstDepMin - DAY_START_MIN >= MIN_FLIGHT_MIN + TURNAROUND_MIN) {
+      const depMin = DAY_START_MIN;
+      const maxArrMin = firstDepMin - TURNAROUND_MIN;
+      const arrMin = Math.min(depMin + 130, maxArrMin);
+      if (arrMin > depMin) {
+        suggestions.push({
+          label: bi(
+            `Trước ${firstFlight.flight_number}: ${formatFromMin(depMin)} ➔ ${formatFromMin(arrMin)}`,
+            `Before ${firstFlight.flight_number}: ${formatFromMin(depMin)} ➔ ${formatFromMin(arrMin)}`,
+          ),
+          dep: formatFromMin(depMin),
+          arr: formatFromMin(arrMin),
+        });
+      }
+    }
+
+    // Slots between consecutive flights
+    for (let i = 0; i < sameAircraftFlights.length - 1; i++) {
+      const prevFlight = sameAircraftFlights[i];
+      const nextFlight = sameAircraftFlights[i + 1];
+      const earliestDep = prevFlight.zonedArrMin + TURNAROUND_MIN;
+      const latestArr = nextFlight.zonedDepMin - TURNAROUND_MIN;
+      const gap = latestArr - earliestDep;
+      if (gap >= MIN_FLIGHT_MIN) {
+        const arr = Math.min(earliestDep + 130, latestArr);
+        suggestions.push({
+          label: bi(
+            `Sau ${prevFlight.flight_number}: ${formatFromMin(earliestDep)} ➔ ${formatFromMin(arr)}`,
+            `After ${prevFlight.flight_number}: ${formatFromMin(earliestDep)} ➔ ${formatFromMin(arr)}`,
+          ),
+          dep: formatFromMin(earliestDep),
+          arr: formatFromMin(arr),
+        });
+      }
+    }
+
+    // Slot after last flight
+    const lastFlight = sameAircraftFlights[sameAircraftFlights.length - 1];
+    const lastArrMin = lastFlight.zonedArrMin + TURNAROUND_MIN;
+    if (DAY_END_MIN - lastArrMin >= MIN_FLIGHT_MIN) {
+      const depMin = lastArrMin;
+      const arrMin = Math.min(depMin + 130, DAY_END_MIN);
+      suggestions.push({
+        label: bi(
+          `Sau ${lastFlight.flight_number}: ${formatFromMin(depMin)} ➔ ${formatFromMin(arrMin)}`,
+          `After ${lastFlight.flight_number}: ${formatFromMin(depMin)} ➔ ${formatFromMin(arrMin)}`,
+        ),
+        dep: formatFromMin(depMin),
+        arr: formatFromMin(arrMin),
+      });
+    }
+
+    return suggestions;
+  }, [sameAircraftFlights, flightForm.aircraftId, flightDate, bi]);
+
   // Expanded panels per flight
   const [expandedFareFlightId, setExpandedFareFlightId] = useState<string | null>(null);
   const [expandedSeatFlightId, setExpandedSeatFlightId] = useState<string | null>(null);
-  const [seatPage, setSeatPage] = useState(1);
-  const [seatQuery, setSeatQuery] = useState('');
   const [seatFeeDrafts, setSeatFeeDrafts] = useState<Record<string, string>>({});
 
   // Fare form state
@@ -148,10 +1074,10 @@ function AdminFlightsContent({ initialQuery }: { initialQuery: string }) {
   const refreshAll = async () => {
     await queryClient.invalidateQueries({ queryKey: ['admin-flights-bundle'] });
     await queryClient.invalidateQueries({ queryKey: ['admin-f09-summary'] });
+    await invalidateFlightSearch(queryClient);
   };
 
   const loadFlightSeats = async (flightId: string) => {
-    if (expandedSeatFlightId !== flightId) { setSeatPage(1); setSeatQuery(''); }
     if (!supabase) return;
     setBusy(true);
     setError(null);
@@ -174,19 +1100,22 @@ function AdminFlightsContent({ initialQuery }: { initialQuery: string }) {
     const firstAirline = airlines[0]?.id ?? '';
     const matchingAircraft =
       aircraftList.find((ac) => ac.airline_id === firstAirline)?.id ?? aircraftList[0]?.id ?? '';
-    const depAirport = airports[0]?.id ?? '';
-    const arrAirport = airports[1]?.id ?? airports[0]?.id ?? '';
+    const depAirportId = airports[0]?.id ?? '';
+    const arrAirportId = airports[1]?.id ?? airports[0]?.id ?? '';
+    const airportObj = airportById.get(depAirportId);
+    const tz = airportObj?.timezone || 'Asia/Ho_Chi_Minh';
+    const offset = getTimezoneOffsetString(new Date(), tz);
 
     setFlightForm({
       flightId: null,
       airlineId: firstAirline,
       aircraftId: matchingAircraft,
       flightNumber: '',
-      departureAirportId: depAirport,
-      arrivalAirportId: arrAirport,
-      departureAt: '2026-06-15T08:00:00+07:00',
-      arrivalAt: '2026-06-15T10:10:00+07:00',
-      salesCloseAt: '2026-06-15T06:30:00+07:00',
+      departureAirportId: depAirportId,
+      arrivalAirportId: arrAirportId,
+      departureAt: `2026-06-15T08:00:00${offset}`,
+      arrivalAt: `2026-06-15T10:10:00${offset}`,
+      salesCloseAt: `2026-06-15T06:30:00${offset}`,
       status: 'scheduled',
       publish: true,
     });
@@ -196,6 +1125,19 @@ function AdminFlightsContent({ initialQuery }: { initialQuery: string }) {
   };
 
   const openEditFlight = (item: FlightInstanceRow) => {
+    const airportObj = airportById.get(item.departure_airport_id);
+    const tz = airportObj?.timezone || 'Asia/Ho_Chi_Minh';
+    const offset = getTimezoneOffsetString(item.departure_at, tz);
+    const depZ = parseZonedFlight(item.departure_at, tz);
+    const arrZ = parseZonedFlight(item.arrival_at, tz);
+    const depIso = `${depZ.dateStr}T${depZ.timeStr}:00${offset}`;
+    const arrIso = `${arrZ.dateStr}T${arrZ.timeStr}:00${offset}`;
+    let closeIso = '';
+    if (item.sales_close_at) {
+      const closeZ = parseZonedFlight(item.sales_close_at, tz);
+      closeIso = `${closeZ.dateStr}T${closeZ.timeStr}:00${offset}`;
+    }
+
     setFlightForm({
       flightId: item.id,
       airlineId: item.airline_id,
@@ -203,9 +1145,9 @@ function AdminFlightsContent({ initialQuery }: { initialQuery: string }) {
       flightNumber: item.flight_number,
       departureAirportId: item.departure_airport_id,
       arrivalAirportId: item.arrival_airport_id,
-      departureAt: item.departure_at,
-      arrivalAt: item.arrival_at,
-      salesCloseAt: item.sales_close_at ?? '',
+      departureAt: depIso,
+      arrivalAt: arrIso,
+      salesCloseAt: closeIso,
       status: item.status,
       publish: item.published_at != null,
     });
@@ -215,6 +1157,15 @@ function AdminFlightsContent({ initialQuery }: { initialQuery: string }) {
   };
 
   const handleSaveFlight = async () => {
+    if (conflictingFlight) {
+      setError(
+        bi(
+          `Tàu bay này đang bị trùng lịch với chuyến bay ${conflictingFlight.flight_number} (${conflictingFlight.zonedDepTime} ➔ ${conflictingFlight.zonedArrTime}). Vui lòng chọn khung giờ khác!`,
+          `Schedule conflict with flight ${conflictingFlight.flight_number} (${conflictingFlight.zonedDepTime} ➔ ${conflictingFlight.zonedArrTime}). Please choose another time!`,
+        ),
+      );
+      return;
+    }
     setBusy(true);
     setError(null);
     setInfo(null);
@@ -274,34 +1225,63 @@ function AdminFlightsContent({ initialQuery }: { initialQuery: string }) {
   };
 
   const openCreateFare = (flightId: string) => {
+    const tpl = CABIN_TEMPLATES.economy;
+    const p = tpl.presets[0];
     setFareForm({
       fareId: null,
       flightId,
-      fareCode: 'ECO_SAVER',
+      fareCode: p.code,
       cabinClass: 'economy',
-      name: 'Phổ thông Tiết kiệm',
-      adultBaseAmount: '1290000',
-      childBaseAmount: '980000',
-      infantBaseAmount: '150000',
-      adultTaxAmount: '180000',
-      childTaxAmount: '120000',
+      name: bi(p.nameVi, p.nameEn),
+      adultBaseAmount: String(p.adultBase),
+      childBaseAmount: String(p.childBase),
+      infantBaseAmount: String(p.infantBase),
+      adultTaxAmount: String(p.adultTax),
+      childTaxAmount: String(Math.round(p.adultTax * 0.7)),
       infantTaxAmount: '0',
-      adultFeeAmount: '100000',
-      childFeeAmount: '80000',
+      adultFeeAmount: String(p.adultFee),
+      childFeeAmount: String(Math.round(p.adultFee * 0.8)),
       infantFeeAmount: '0',
-      cabinPieces: '1',
-      cabinKg: '7',
-      checkedPieces: '1',
-      checkedKg: '23',
-      cancellationAllowed: true,
-      cancellationCutoffMinutes: '180',
-      cancellationFeeAmount: '300000',
+      cabinPieces: String(p.cabinPieces),
+      cabinKg: String(p.cabinKg),
+      checkedPieces: String(p.checkedPieces),
+      checkedKg: String(p.checkedKg),
+      cancellationAllowed: p.cancellationAllowed,
+      cancellationCutoffMinutes: String(p.cancellationCutoffMinutes),
+      cancellationFeeAmount: String(p.cancellationFeeAmount),
       isActive: true,
     });
     setExpandedFareFlightId(flightId);
     setShowFareForm(true);
     setError(null);
     setInfo(null);
+  };
+
+  const applyCabinClassPreset = (cb: CabinClass, presetIdx = 0) => {
+    const tpl = CABIN_TEMPLATES[cb];
+    const p = tpl.presets[presetIdx] ?? tpl.presets[0];
+    setFareForm((s) => ({
+      ...s,
+      cabinClass: cb,
+      fareCode: p.code,
+      name: bi(p.nameVi, p.nameEn),
+      adultBaseAmount: String(p.adultBase),
+      childBaseAmount: String(p.childBase),
+      infantBaseAmount: String(p.infantBase),
+      adultTaxAmount: String(p.adultTax),
+      childTaxAmount: String(Math.round(p.adultTax * 0.7)),
+      infantTaxAmount: '0',
+      adultFeeAmount: String(p.adultFee),
+      childFeeAmount: String(Math.round(p.adultFee * 0.8)),
+      infantFeeAmount: '0',
+      cabinPieces: String(p.cabinPieces),
+      cabinKg: String(p.cabinKg),
+      checkedPieces: String(p.checkedPieces),
+      checkedKg: String(p.checkedKg),
+      cancellationAllowed: p.cancellationAllowed,
+      cancellationCutoffMinutes: String(p.cancellationCutoffMinutes),
+      cancellationFeeAmount: String(p.cancellationFeeAmount),
+    }));
   };
 
   const openEditFare = (fare: FlightFareRow) => {
@@ -456,8 +1436,6 @@ function AdminFlightsContent({ initialQuery }: { initialQuery: string }) {
     (ac) => !flightForm.airlineId || ac.airline_id === flightForm.airlineId,
   );
 
-  const displayError =
-    error || (flightsQuery.isError ? formatAdminError(flightsQuery.error, language) : null);
 
   return (
     <AdminShell
@@ -472,9 +1450,12 @@ function AdminFlightsContent({ initialQuery }: { initialQuery: string }) {
         setPage(1);
       }}
     >
-      {!!displayError && (
+      <AdminToast text={info} success onClose={() => setInfo(null)} />
+      <AdminToast text={error} error onClose={() => setError(null)} />
+
+      {flightsQuery.isError && !error && (
         <View style={adminStyles.card}>
-          <Notice text={displayError} />
+          <Notice text={formatAdminError(flightsQuery.error, language)} />
           <Pressable
             accessibilityRole="button"
             onPress={() => void flightsQuery.refetch()}
@@ -484,7 +1465,6 @@ function AdminFlightsContent({ initialQuery }: { initialQuery: string }) {
           </Pressable>
         </View>
       )}
-      {!!info && <Notice text={info} success />}
 
       <AdminSearchFilterBar
         query={query}
@@ -532,45 +1512,299 @@ function AdminFlightsContent({ initialQuery }: { initialQuery: string }) {
           <CataloguePicker items={airports} value={flightForm.arrivalAirportId} label={bi('Sân bay đến', 'Arrival Airport')}
             getLabel={ap => `${ap.iata_code} · ${ap.city} · ${ap.name}`} onSelect={ap => setFlightForm(s => ({ ...s, arrivalAirportId: ap.id }))} />
 
-          <AdminTextField
-            label={bi('Giờ khởi hành (ISO 8601)', 'Departure Timestamp (ISO 8601)')}
-            value={flightForm.departureAt}
-            onChangeText={(text) => setFlightForm((s) => ({ ...s, departureAt: text }))}
-            placeholder="2026-06-15T08:00:00+07:00"
-            helperText={bi(
-              'Gợi ý: Nhập định dạng YYYY-MM-DDTHH:mm:ss+07:00',
-              'Format: YYYY-MM-DDTHH:mm:ss+07:00',
+          {/* Lịch trình tàu bay & Kiểm tra trùng lịch */}
+          <View style={{
+            backgroundColor: conflictingFlight ? '#FEF2F2' : '#F0FDFA',
+            borderColor: conflictingFlight ? '#FCA5A5' : '#5EEAD4',
+            borderWidth: 1.5,
+            borderRadius: 12,
+            padding: 14,
+            gap: 10,
+            marginVertical: 4,
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+              <Text style={{
+                fontSize: 14,
+                fontWeight: '700',
+                color: conflictingFlight ? '#B91C1C' : '#0F766E',
+              }}>
+                {conflictingFlight ? '⚠️ ' + bi('TRÙNG LỊCH TÀU BAY!', 'AIRCRAFT SCHEDULE CONFLICT!') : '✈️ ' + bi('Lịch trình tàu bay trong ngày', 'Aircraft Daily Schedule')}
+              </Text>
+              <Text style={{ fontSize: 12, color: conflictingFlight ? '#991B1B' : '#115E59' }}>
+                {bi('Ngày:', 'Date:')} {flightDate}
+              </Text>
+            </View>
+
+            {conflictingFlight && (
+              <Text style={{ fontSize: 13, color: '#991B1B', lineHeight: 18, fontWeight: '600' }}>
+                {bi(
+                  `Chuyến bay này đang bị trùng giờ với chuyến ${conflictingFlight.flight_number} (${conflictingFlight.zonedDepTime} ➔ ${conflictingFlight.zonedArrTime}). Vui lòng chọn khung giờ khác!`,
+                  `Conflicts with flight ${conflictingFlight.flight_number} (${conflictingFlight.zonedDepTime} ➔ ${conflictingFlight.zonedArrTime}). Please select another time slot!`,
+                )}
+              </Text>
             )}
-          />
 
-          <AdminTextField
-            label={bi('Giờ hạ cánh (ISO 8601)', 'Arrival Timestamp (ISO 8601)')}
-            value={flightForm.arrivalAt}
-            onChangeText={(text) => setFlightForm((s) => ({ ...s, arrivalAt: text }))}
-            placeholder="2026-06-15T10:10:00+07:00"
-          />
+            {/* Các chuyến bay hiện có trong ngày */}
+            <View style={{ gap: 6 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: conflictingFlight ? '#7F1D1D' : '#134E4A' }}>
+                {bi('Các chuyến bay đã xếp cho tàu bay này trong ngày:', 'Scheduled flights for this aircraft today:')}
+              </Text>
+              {sameAircraftFlights.length === 0 ? (
+                <Text style={{ fontSize: 13, color: '#0D9488', fontStyle: 'italic' }}>
+                  {bi('✨ Tàu bay hoàn toàn rảnh rỗi cả ngày (Chưa có chuyến bay nào).', '✨ Aircraft is completely free all day (No flights scheduled).')}
+                </Text>
+              ) : (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {sameAircraftFlights.map((f) => (
+                    <View
+                      key={f.id}
+                      style={{
+                        backgroundColor: '#FFFFFF',
+                        borderColor: '#CCFBF1',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, color: '#134E4A', fontWeight: '600' }}>
+                        🛫 {f.flight_number}: {f.zonedDepTime} ➔ {f.zonedArrTime}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
 
-          <AdminTextField
-            label={bi('Thời điểm đóng bán vé (tùy chọn)', 'Sales Close Timestamp (optional)')}
-            value={flightForm.salesCloseAt}
-            onChangeText={(text) => setFlightForm((s) => ({ ...s, salesCloseAt: text }))}
-            placeholder="2026-06-15T06:30:00+07:00"
-          />
+            {/* Gợi ý khung giờ rảnh */}
+            <View style={{ gap: 6, marginTop: 4 }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: conflictingFlight ? '#991B1B' : '#0F766E' }}>
+                💡 {bi('Gợi ý khung giờ tàu bay rảnh (Bấm vào để chọn nhanh):', 'Suggested free slots (Tap to apply):')}
+              </Text>
+              {freeSlots.length === 0 ? (
+                <Text style={{ fontSize: 12, color: '#64748B' }}>
+                  {bi('Tàu bay đã kín lịch các khung giờ chính trong ngày.', 'No large free gaps found for this aircraft today.')}
+                </Text>
+              ) : (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {freeSlots.map((slot, idx) => (
+                    <Pressable
+                      key={idx}
+                      accessibilityRole="button"
+                      onPress={() => {
+                        const [h, m] = slot.dep.split(':').map(Number);
+                        let closeH = h - 1;
+                        if (closeH < 0) closeH += 24;
+                        const autoClose = `${String(closeH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                        updateDateTime({ depTime: slot.dep, arrTime: slot.arr, closeTime: autoClose });
+                      }}
+                      style={{
+                        backgroundColor: '#FFFFFF',
+                        borderColor: '#0D9488',
+                        borderWidth: 1.5,
+                        borderRadius: 8,
+                        paddingHorizontal: 10,
+                        paddingVertical: 6,
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#0D9488' }}>
+                        ⚡ {slot.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+            </View>
+          </View>
 
+          {/* Chọn ngày bay thân thiện */}
+          <View style={adminStyles.fieldGroup}>
+            <Text style={adminStyles.label}>{bi('Ngày bay (YYYY-MM-DD)', 'Flight Date (YYYY-MM-DD)')}</Text>
+            <TextInput
+              value={flightDate}
+              onChangeText={(val) => updateDateTime({ date: val })}
+              style={adminStyles.input}
+              placeholder="2026-06-15"
+            />
+            <View style={adminStyles.chipRow}>
+              {[
+                { label: bi('Hôm nay', 'Today'), days: 0 },
+                { label: bi('Ngày mai', 'Tomorrow'), days: 1 },
+                { label: bi('+3 ngày', '+3 days'), days: 3 },
+                { label: bi('+1 tuần', '+1 week'), days: 7 },
+                { label: bi('+1 tháng', '+1 month'), days: 30 },
+              ].map((preset) => (
+                <Pressable
+                  key={preset.days}
+                  accessibilityRole="button"
+                  onPress={() => {
+                    const d = new Date();
+                    d.setDate(d.getDate() + preset.days);
+                    const yyyy = d.getFullYear();
+                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                    const dd = String(d.getDate()).padStart(2, '0');
+                    updateDateTime({ date: `${yyyy}-${mm}-${dd}` });
+                  }}
+                  style={adminStyles.chip}
+                >
+                  <Text style={adminStyles.chipText}>{preset.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          {/* Giờ cất cánh & Giờ hạ cánh */}
+          <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+            <View style={[adminStyles.fieldGroup, { flex: 1, minWidth: 160 }]}>
+              <Text style={adminStyles.label}>{bi('Giờ cất cánh (HH:mm)', 'Departure Time (HH:mm)')}</Text>
+              <TextInput
+                value={departureTime}
+                onChangeText={(val) => updateDateTime({ depTime: val })}
+                style={adminStyles.input}
+                placeholder="08:00"
+              />
+              <View style={adminStyles.chipRow}>
+                {['06:00', '08:00', '10:30', '13:00', '15:30', '18:00', '20:30'].map((time) => (
+                  <Pressable
+                    key={time}
+                    accessibilityRole="button"
+                    onPress={() => updateDateTime({ depTime: time })}
+                    style={[adminStyles.chip, departureTime === time && adminStyles.chipSelected]}
+                  >
+                    <Text style={[adminStyles.chipText, departureTime === time && adminStyles.chipTextSelected]}>
+                      {time}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            <View style={[adminStyles.fieldGroup, { flex: 1, minWidth: 160 }]}>
+              <Text style={adminStyles.label}>{bi('Giờ hạ cánh (HH:mm)', 'Arrival Time (HH:mm)')}</Text>
+              <TextInput
+                value={arrivalTime}
+                onChangeText={(val) => updateDateTime({ arrTime: val })}
+                style={adminStyles.input}
+                placeholder="10:10"
+              />
+              <View style={adminStyles.chipRow}>
+                {[
+                  { label: '+1h15m', minutes: 75 },
+                  { label: '+2h10m (SGN-HAN)', minutes: 130 },
+                  { label: '+2h30m', minutes: 150 },
+                ].map((preset) => (
+                  <Pressable
+                    key={preset.minutes}
+                    accessibilityRole="button"
+                    onPress={() => {
+                      const [h, m] = departureTime.split(':').map(Number);
+                      if (!isNaN(h) && !isNaN(m)) {
+                        const total = h * 60 + m + preset.minutes;
+                        const newH = Math.floor(total / 60) % 24;
+                        const newM = total % 60;
+                        const formatted = `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+                        updateDateTime({ arrTime: formatted });
+                      }
+                    }}
+                    style={adminStyles.chip}
+                  >
+                    <Text style={adminStyles.chipText}>{preset.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          </View>
+
+          {/* Thời điểm đóng bán vé */}
+          <View style={adminStyles.fieldGroup}>
+            <Text style={adminStyles.label}>
+              {bi('Thời điểm đóng bán vé (tùy chọn - HH:mm)', 'Sales Close Time (optional - HH:mm)')}
+            </Text>
+            <TextInput
+              value={salesCloseTime}
+              onChangeText={(val) => updateDateTime({ closeTime: val })}
+              style={adminStyles.input}
+              placeholder="06:30"
+            />
+            <View style={adminStyles.chipRow}>
+              {[
+                { label: bi('Trước bay 1 tiếng', '1h before'), minutes: 60 },
+                { label: bi('Trước bay 1.5 tiếng', '1.5h before'), minutes: 90 },
+                { label: bi('Trước bay 2 tiếng', '2h before'), minutes: 120 },
+              ].map((preset) => (
+                <Pressable
+                  key={preset.minutes}
+                  accessibilityRole="button"
+                  onPress={() => {
+                    const [h, m] = departureTime.split(':').map(Number);
+                    if (!isNaN(h) && !isNaN(m)) {
+                      let total = h * 60 + m - preset.minutes;
+                      if (total < 0) total += 24 * 60;
+                      const newH = Math.floor(total / 60) % 24;
+                      const newM = total % 60;
+                      const formatted = `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+                      updateDateTime({ closeTime: formatted });
+                    }
+                  }}
+                  style={adminStyles.chip}
+                >
+                  <Text style={adminStyles.chipText}>{preset.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          {/* Nút xem/tùy chỉnh chuỗi ISO 8601 nâng cao */}
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setShowAdvancedIso((v) => !v)}
+            style={{ alignSelf: 'flex-start', paddingVertical: 4 }}
+          >
+            <Text style={{ fontSize: 12, color: '#007E91', fontWeight: '600' }}>
+              {showAdvancedIso
+                ? bi('▲ Thu gọn định dạng ISO 8601', '▲ Hide ISO 8601 format')
+                : bi('▼ Xem & Tùy chỉnh chuỗi ISO 8601 nâng cao', '▼ View & Custom ISO 8601 string')}
+            </Text>
+          </Pressable>
+
+          {showAdvancedIso && (
+            <View style={{ gap: 8, padding: 10, backgroundColor: '#F8FAFC', borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0' }}>
+              <AdminTextField
+                label={bi('Giờ khởi hành (ISO 8601)', 'Departure Timestamp (ISO 8601)')}
+                value={flightForm.departureAt}
+                onChangeText={(text) => setFlightForm((s) => ({ ...s, departureAt: text }))}
+                placeholder="2026-06-15T08:00:00+07:00"
+              />
+              <AdminTextField
+                label={bi('Giờ hạ cánh (ISO 8601)', 'Arrival Timestamp (ISO 8601)')}
+                value={flightForm.arrivalAt}
+                onChangeText={(text) => setFlightForm((s) => ({ ...s, arrivalAt: text }))}
+                placeholder="2026-06-15T10:10:00+07:00"
+              />
+              <AdminTextField
+                label={bi('Thời điểm đóng bán vé (tùy chọn)', 'Sales Close Timestamp (optional)')}
+                value={flightForm.salesCloseAt}
+                onChangeText={(text) => setFlightForm((s) => ({ ...s, salesCloseAt: text }))}
+                placeholder="2026-06-15T06:30:00+07:00"
+              />
+            </View>
+          )}
+
+          {/* Trạng thái vận hành tiếng Việt */}
           <View style={adminStyles.fieldGroup}>
             <Text style={adminStyles.label}>{bi('Trạng thái vận hành', 'Flight Status')}</Text>
             <View style={adminStyles.chipRow}>
-              {(['draft', 'scheduled', 'delayed', 'cancelled'] as FlightStatus[]).map((st) => {
-                const selected = flightForm.status === st;
+              {FLIGHT_STATUS_OPTIONS.map((st) => {
+                const selected = flightForm.status === st.key;
                 return (
                   <Pressable
-                    key={st}
+                    key={st.key}
                     accessibilityRole="button"
-                    onPress={() => setFlightForm((s) => ({ ...s, status: st }))}
+                    onPress={() => setFlightForm((s) => ({ ...s, status: st.key }))}
                     style={[adminStyles.chip, selected && adminStyles.chipSelected]}
                   >
                     <Text style={[adminStyles.chipText, selected && adminStyles.chipTextSelected]}>
-                      {st.toUpperCase()}
+                      {st.icon} {bi(st.vi, st.en)}
                     </Text>
                   </Pressable>
                 );
@@ -621,6 +1855,74 @@ function AdminFlightsContent({ initialQuery }: { initialQuery: string }) {
               : bi('Thêm hạng vé mới (flight_fares)', 'Add Flight Fare')}
           </Text>
 
+          {/* HẠNG KHOANG */}
+          <View style={adminStyles.fieldGroup}>
+            <Text style={adminStyles.label}>{bi('Hạng khoang (cabin_class)', 'Cabin Class')}</Text>
+            <View style={adminStyles.chipRow}>
+              {(['economy', 'premium_economy', 'business', 'first'] as CabinClass[]).map((cb) => {
+                const selected = fareForm.cabinClass === cb;
+                const info = getCabinInfo(cb, bi);
+                return (
+                  <Pressable
+                    key={cb}
+                    accessibilityRole="button"
+                    onPress={() => applyCabinClassPreset(cb, 0)}
+                    style={[
+                      adminStyles.chip,
+                      selected && {
+                        backgroundColor: info.bgColor,
+                        borderColor: info.color,
+                        borderWidth: 1.5,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        adminStyles.chipText,
+                        selected && { color: info.color, fontWeight: '700' },
+                      ]}
+                    >
+                      {info.icon} {info.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/* Quick preset packages for selected cabin */}
+            <View style={{ gap: 4, marginTop: 4 }}>
+              <Text style={{ fontSize: 12, color: '#0F766E', fontWeight: '700' }}>
+                💡 {bi(`Gói giá vé mẫu cho ${getCabinInfo(fareForm.cabinClass, bi).shortLabel} (Bấm để áp dụng nhanh tên & giá):`, `Preset packages for ${getCabinInfo(fareForm.cabinClass, bi).shortLabel} (Tap to apply):`)}
+              </Text>
+              <View style={adminStyles.chipRow}>
+                {CABIN_TEMPLATES[fareForm.cabinClass].presets.map((preset, idx) => {
+                  const isSelected = fareForm.fareCode === preset.code;
+                  return (
+                    <Pressable
+                      key={preset.code}
+                      accessibilityRole="button"
+                      onPress={() => applyCabinClassPreset(fareForm.cabinClass, idx)}
+                      style={[
+                        adminStyles.chip,
+                        isSelected && adminStyles.chipSelected,
+                        { borderColor: isSelected ? '#0D9488' : '#CBD5E1' },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          adminStyles.chipText,
+                          isSelected && adminStyles.chipTextSelected,
+                        ]}
+                      >
+                        ⚡ {bi(preset.nameVi, preset.nameEn)} ({preset.code})
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+
           <AdminTextField
             label={bi('Mã hạng vé (fare_code)', 'Fare Code')}
             value={fareForm.fareCode}
@@ -628,27 +1930,6 @@ function AdminFlightsContent({ initialQuery }: { initialQuery: string }) {
             placeholder="ECO_SAVER"
             autoCapitalize="characters"
           />
-
-          <View style={adminStyles.fieldGroup}>
-            <Text style={adminStyles.label}>{bi('Hạng khoang (cabin_class)', 'Cabin Class')}</Text>
-            <View style={adminStyles.chipRow}>
-              {(['economy', 'premium_economy', 'business', 'first'] as CabinClass[]).map((cb) => {
-                const selected = fareForm.cabinClass === cb;
-                return (
-                  <Pressable
-                    key={cb}
-                    accessibilityRole="button"
-                    onPress={() => setFareForm((s) => ({ ...s, cabinClass: cb }))}
-                    style={[adminStyles.chip, selected && adminStyles.chipSelected]}
-                  >
-                    <Text style={[adminStyles.chipText, selected && adminStyles.chipTextSelected]}>
-                      {cb}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
 
           <AdminTextField
             label={bi('Tên hiển thị hạng vé', 'Fare Display Name')}
@@ -803,8 +2084,6 @@ function AdminFlightsContent({ initialQuery }: { initialQuery: string }) {
             const ac = aircraftList.find((a) => a.id === flight.aircraft_id);
             const flightFares = faresByFlight[flight.id] ?? [];
             const flightSeats = seatsByFlight[flight.id] ?? [];
-            const pagedSeats = filterAndPaginate(flightSeats, { query: seatQuery, page: seatPage, pageSize: 24, statusFilter: 'all',
-              getSearchText: seat => `${seat.seat_code} ${seat.cabin_class} ${seat.position}`, getIsActive: seat => !seat.is_blocked });
             const isSalesOpen = isFlightSalesOpen(flight, referenceNowMs);
 
             return (
@@ -819,8 +2098,8 @@ function AdminFlightsContent({ initialQuery }: { initialQuery: string }) {
                       active={isSalesOpen}
                       customLabel={
                         isSalesOpen
-                          ? bi(`Đang mở bán (${flight.status})`, `Open (${flight.status})`)
-                          : bi(`Ngừng mở bán (${flight.status})`, `Closed (${flight.status})`)
+                          ? bi(`Đang mở bán (${formatFlightStatus(flight.status, bi)})`, `Open (${flight.status})`)
+                          : bi(`Ngừng mở bán (${formatFlightStatus(flight.status, bi)})`, `Closed (${flight.status})`)
                       }
                     />
                   </View>
@@ -996,87 +2275,18 @@ function AdminFlightsContent({ initialQuery }: { initialQuery: string }) {
                 )}
 
                 {expandedSeatFlightId === flight.id && (
-                  <View style={[adminStyles.card, { marginTop: 8 }]}>
-                    <Text style={adminStyles.bold}>
-                      {bi(
-                        `Kho ghế chuyến bay ${flight.flight_number} (${flightSeats.length} ghế)`,
-                        `Seat Inventory for ${flight.flight_number} (${flightSeats.length} seats)`,
-                      )}
-                    </Text>
-                    <Text style={adminStyles.muted}>
-                      {bi(
-                        'Khóa/mở khóa ghế trống và điều chỉnh phí chọn ghế (VND). Không thể khóa ghế đang giữ hoặc đã đặt.',
-                        'Block/unblock available seats and adjust seat selection fee (VND). Held or booked seats cannot be blocked.',
-                      )}
-                    </Text>
-
-                    <AdminTextField label={bi('Tìm ghế / khoang', 'Find seat / cabin')} value={seatQuery}
-                      onChangeText={text => { setSeatQuery(text); setSeatPage(1); }} />
-                    {flightSeats.length === 0 ? (
-                      <Text style={adminStyles.muted}>
-                        {bi(
-                          'Chưa có kho ghế. Cần cấu hình ghế mẫu trên tàu bay và lưu lại chuyến.',
-                          'No seat inventory. Configure the aircraft seat template and save the flight again.',
-                        )}
-                      </Text>
-                    ) : (
-                      pagedSeats.items.map((seat) => (
-                        <View key={seat.id} style={adminStyles.rowBetween}>
-                          <Text style={adminStyles.label}>
-                            {seat.seat_code} · {seat.cabin_class} ·{' '}
-                            {seat.is_blocked
-                              ? bi('Đang khóa (Blocked)', 'Blocked')
-                              : bi('Mở chọn (Available)', 'Available')}
-                          </Text>
-                          <View style={adminStyles.rowGap}>
-                            <TextInput
-                              value={seatFeeDrafts[seat.id] ?? String(seat.selection_fee_amount)}
-                              onChangeText={(t) =>
-                                setSeatFeeDrafts((prev) => ({ ...prev, [seat.id]: t }))
-                              }
-                              keyboardType="numeric"
-                              style={[adminStyles.input, { width: 110, minHeight: 36 }]}
-                            />
-                            <Pressable
-                              accessibilityRole="button"
-                              disabled={busy}
-                              onPress={() => void handleUpdateFlightSeat(flight.id, seat)}
-                              style={adminStyles.secondaryBtnSmall}
-                            >
-                              <Text style={adminStyles.secondaryBtnText}>
-                                {bi('Lưu phí', 'Save Fee')}
-                              </Text>
-                            </Pressable>
-                            <Pressable
-                              accessibilityRole="button"
-                              disabled={busy}
-                              onPress={() =>
-                                void handleUpdateFlightSeat(flight.id, seat, !seat.is_blocked)
-                              }
-                              style={
-                                seat.is_blocked
-                                  ? adminStyles.primaryBtnSmall
-                                  : adminStyles.dangerBtnSmall
-                              }
-                            >
-                              <Text
-                                style={
-                                  seat.is_blocked
-                                    ? adminStyles.primaryBtnText
-                                    : adminStyles.dangerBtnText
-                                }
-                              >
-                                {seat.is_blocked
-                                  ? bi('Mở khóa', 'Unblock')
-                                  : bi('Khóa ghế', 'Block')}
-                              </Text>
-                            </Pressable>
-                          </View>
-                        </View>
-                      ))
-                    )}
-                    <AdminPaginationBar page={pagedSeats.page} totalPages={pagedSeats.totalPages} total={pagedSeats.total} onPageChange={setSeatPage} />
-                  </View>
+                  <FlightSeatsManager
+                    flight={flight}
+                    seats={flightSeats}
+                    seatFeeDrafts={seatFeeDrafts}
+                    setSeatFeeDrafts={setSeatFeeDrafts}
+                    busy={busy}
+                    bi={bi}
+                    onUpdateSeat={(seat, nextBlocked) =>
+                      handleUpdateFlightSeat(flight.id, seat, nextBlocked)
+                    }
+                    onReloadSeats={() => loadFlightSeats(flight.id)}
+                  />
                 )}
               </View>
             );
