@@ -1,6 +1,6 @@
 # Flyora catalogue data
 
-`catalogue-data.json` supplies additional airport/airline/destination/product records and 24 route pairs. The generator creates both directions for 30 future days (1,440 flights), starting tomorrow in Vietnam time. It uses dedicated aircraft for each pair, an outbound/return rotation with 90 minutes turnaround, compatible cabin layouts and corresponding fare/service inventories.
+`catalogue-data.json` supplies additional airport/airline/destination/product records and 36 route pairs. The generator creates both directions for 30 future days (2,160 flights), starting tomorrow in Vietnam time. It uses dedicated aircraft for each pair, an outbound/return rotation with 90 minutes turnaround, compatible cabin layouts and corresponding fare/service inventories. Existing identities are skipped, so reruns usually insert fewer rows than this maximum.
 
 Airport names and IATA codes were checked against [ACV](https://acv.vn/vi), [Vietnam Airlines airport maps](https://airportmap.vietnamairlines.com/) and [IATA Hong Kong airport information](https://www.iata.org/globalassets/cnsc/cns-focus-magazine/2025/cns-fall-winter-2024-2025-small_v2.pdf). IANA timezone names are validated against PostgreSQL. Timetables, aircraft identifiers, cabin configurations and VND prices are synthetic learning data, not live airline availability or published carrier policies.
 
@@ -25,7 +25,7 @@ Regenerate the English dictionary after editing the manifest:
 node scripts/generate-catalogue-seed.mjs --translations
 ```
 
-New destinations are active but not featured, preserving the eight existing home cards and their bundled photos. Meals are catalogue data for future UI work; the current checkout sells checked baggage. Internal legacy enum/code values (`insurance_demo`, `DEMO_STANDARD`, etc.) remain for compatibility, while customer-facing names are normalized. The F0 carrier/24-seat regional aircraft are fictional Flyora fixtures; the other carrier names and airport geography are real. Tax/fee amounts are configured test data, not statutory tax rates or actual carrier pricing. No actual insurance coverage is issued by this application.
+New destinations are active but not featured, preserving the eight existing home cards and their bundled photos. The current generator only inserts baggage products/offers; reference meals and insurance are left untouched, respecting the current database capability triggers. Older flights may retain historical meal offers; new flights receive the two baggage offers only. Internal legacy enum/code values (`insurance_demo`, `DEMO_STANDARD`, etc.) remain for compatibility, while customer-facing names are normalized. The F0 carrier/24-seat regional aircraft are fictional Flyora fixtures; the other carrier names and airport geography are real. Tax/fee amounts are configured test data, not statutory tax rates or actual carrier pricing. No actual insurance coverage is issued by this application.
 
 ## Applied to flight-dev on 04 November 2026
 
@@ -45,3 +45,13 @@ Try one adult, Economy Saver, on **06/11/2026**:
 - SGN → DPS, VJ7046, 08:45 Vietnam → 13:35 Bali; 3,450,000 VND.
 
 These totals exclude optional baggage/seat selection. International checkout needs nationality, passport number and expiry. Do not infer payment completion from catalogue validation; this task created no customer orders or payments.
+
+## Added round-trip and multi-city coverage on 05 November 2026
+
+Appended 12 pairs without reordering existing routes: PQC–CXR, CXR–DLI, DLI–HUI, HUI–DAD, HPH–HUI, SGN–DAD, HAN–DAD, SIN–BKK, BKK–KUL, KUL–SIN, HKG–TPE, ICN–NRT. Both directions run daily from **06 November to 05 December 2026**. Extended the original 24 pairs through 05 December as well.
+
+Applied inserts: 12 aircraft, 1,392 template seats, **768 flights**, 2,314 fares, 89,448 flight seats and 1,536 baggage offers. Database totals after apply: 46 aircraft, 5,136 template seats, 2,602 flights, 8,891 fares, 300,204 flight seats and 11,862 offers. Non-catalogue fingerprints matched inside the transaction; no customer, booking, payment or refund data was changed.
+
+The repeated two-day rollback probe passed. Read-only inventory checks passed after apply, including fare/cabin compatibility, baggage offers, seat geometry and aircraft turnaround. Public discovery checks (`SET LOCAL ROLE anon`, without changing grants) found all **23 legs across 7 sample itineraries** with correct chronological order. Seat inventory is verified separately with the existing privileged read-only inventory checks; discovery does not access the authenticated seat RPC tables directly.
+
+See [Vietnamese test itineraries](CHECKOUT-ITINERARY-TESTS.md) and `supabase/tests/roundtrip-multicity-catalogue.sql`. All timetables and prices remain learning fixtures, not real airline availability. No APK build was performed.

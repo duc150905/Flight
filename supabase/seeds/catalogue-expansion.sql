@@ -47,7 +47,8 @@ begin
       select pg_temp.catalogue_id('destination:'||(r->>1)),id,r->>1,r->>2,r->>4,false,100
       from public.airports where iata_code=r->>0 on conflict do nothing;
   end loop;
-  for r in select * from jsonb_array_elements(data->'products') loop
+  -- Only baggage is currently sellable. Leave reference meals/insurance untouched.
+  for r in select * from jsonb_array_elements(data->'products') where value->>3='baggage' loop
     insert into public.addon_products(id,code,name,category,weight_kg,description)
       values(pg_temp.catalogue_id('product:'||(r->>0)),r->>0,r->>1,(r->>3)::public.addon_category,(r->>4)::numeric,
         case when r->>3='baggage' then 'Hành lý ký gửi mua thêm cho từng hành khách và chặng bay.' else 'Suất ăn đặt trước cho từng hành khách và chặng bay.' end)
@@ -146,12 +147,13 @@ begin
   insert into public.flight_addon_offers(id,flight_id,product_id,unit_amount,max_quantity_per_passenger)
   select pg_temp.catalogue_id('offer:'||nf.id||':'||p.code),nf.id,p.id,(product.value->>5)::bigint,1
     from catalogue_new_flights nf cross join jsonb_array_elements(data->'products') product(value)
-    join public.addon_products p on p.code=product.value->>0 and p.is_active;
+    join public.addon_products p on p.code=product.value->>0 and p.is_active and p.category='baggage';
 
   if exists(select 1 from catalogue_new_flights nf where
     not exists(select 1 from public.flight_fares where flight_id=nf.id and fare_code='ECO_SAVER') or
     not exists(select 1 from public.flight_seats where flight_id=nf.id) or
-    (select count(*) from public.flight_addon_offers where flight_id=nf.id)<>jsonb_array_length(data->'products')) then
+    (select count(*) from public.flight_addon_offers where flight_id=nf.id)<>
+      (select count(*) from jsonb_array_elements(data->'products') where value->>3='baggage')) then
       raise exception 'Incomplete generated flight inventory'; end if;
   drop table catalogue_new_flights;
 end $$;

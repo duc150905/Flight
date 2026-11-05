@@ -40,7 +40,24 @@ test('route rotations fit within a day and keys cannot collide', () => {
     // Latest departure 08:45; two flights + 90 min turnaround + 10 min return padding.
     assert(8 * 60 + 45 + 2 * minutes + 100 < 24 * 60);
   }
-  assert.equal(pairs.size * 2 * 30, 1440);
+  assert.equal(pairs.size * 2 * 30, 2160);
+});
+
+test('catalogue supports complete domestic and international multi-city loops in both directions', () => {
+  const routes = new Set(catalogue.routePairs.flatMap(([a, b]) => [`${a}-${b}`, `${b}-${a}`]));
+  const loops = [
+    ['DAD', 'PQC', 'CXR', 'DLI', 'DAD'],
+    ['HPH', 'HUI', 'DAD', 'HPH'],
+    ['DAD', 'SIN', 'BKK', 'DAD'],
+    ['SGN', 'KUL', 'SIN', 'BKK', 'KUL', 'SGN'],
+    ['SGN', 'ICN', 'NRT', 'HAN', 'DAD', 'SGN'],
+  ];
+  for (const loop of loops) {
+    for (let i = 1; i < loop.length; i++) {
+      assert(routes.has(`${loop[i - 1]}-${loop[i]}`), `Missing outbound leg ${loop[i - 1]}-${loop[i]}`);
+      assert(routes.has(`${loop[i]}-${loop[i - 1]}`), `Missing return leg ${loop[i]}-${loop[i - 1]}`);
+    }
+  }
 });
 
 test('all new airport timezones are accepted and all public display names are clean', () => {

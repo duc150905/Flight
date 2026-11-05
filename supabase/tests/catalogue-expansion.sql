@@ -2,14 +2,15 @@
 begin isolation level repeatable read read only;
 do $$
 begin
-  if (select count(*) from public.aircraft where registration_code like 'FLY-%-%-%')<>24 then
-    raise exception 'Expected 24 dedicated aircraft'; end if;
+  if (select count(*) from public.aircraft where registration_code like 'FLY-%-%-%')<>36 then
+    raise exception 'Expected 36 dedicated aircraft'; end if;
   if exists(select 1 from public.flight_instances f join public.aircraft a on a.id=f.aircraft_id
     where a.registration_code like 'FLY-%-%-%' and (
       f.arrival_at<=f.departure_at or f.sales_close_at>f.departure_at or
       not exists(select 1 from public.flight_fares ff where ff.flight_id=f.id and ff.fare_code='ECO_SAVER') or
       not exists(select 1 from public.flight_seats fs where fs.flight_id=f.id) or
-      (select count(*) from public.flight_addon_offers o where o.flight_id=f.id)<>5)) then
+      (select count(*) from public.flight_addon_offers o join public.addon_products p on p.id=o.product_id
+        where o.flight_id=f.id and p.category='baggage' and o.is_active and p.is_active)<>2)) then
     raise exception 'Incomplete or invalid inventory'; end if;
   if exists(select 1 from public.flight_fares ff join public.flight_instances f on f.id=ff.flight_id
     join public.aircraft a on a.id=f.aircraft_id where a.registration_code like 'FLY-%-%-%'
