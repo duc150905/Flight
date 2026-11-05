@@ -1,5 +1,7 @@
 # Rà soát chức năng Admin Flyora — 05/11/2026
 
+> Bản rà bên dưới giữ lại hiện trạng trước sửa. Các phát hiện đã được xử lý trong [bản sửa Admin 05/11/2026](ADMIN-REMEDIATION-2026-11-05.md), kèm phạm vi triển khai, kiểm thử và giới hạn nghiệm thu.
+
 ## Kết luận và phạm vi
 
 Admin chưa khớp hoàn toàn với luồng khách hàng. Kiểm tra code của toàn bộ 10 màn quản trị, tìm kiếm/lọc/phân trang, RPC triển khai trên flight-dev, dữ liệu tổng hợp và kiểm thử hiện có. Nhánh được rà: `codex/fix-admin-seat-pagination`, commit `13d98bd` (đã gồm bản sửa admin tải đủ ghế `050db6b`).
