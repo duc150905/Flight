@@ -54,3 +54,4 @@ example
 /output/imagegen/
 /supabase/.temp/
 /.env.vnpay.local
+/.superpowers/
