@@ -38,7 +38,15 @@ EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 EXPO_PUBLIC_GEMINI_API_KEY=
 ```
 
-Lấy publishable key trong Supabase Dashboard của project `flight-dev` → **Project Settings → API Keys** (hoặc nút **Connect → Publishable key**). `EXPO_PUBLIC_GEMINI_API_KEY` chỉ cần khi thử tính năng AI. **Không đặt service role/secret key vào biến `EXPO_PUBLIC_`**. `.env.local` là cấu hình riêng từng máy, không commit lên Git. Sau khi sửa file này, dừng và chạy lại Expo để nạp giá trị mới.
+Lấy publishable key trong Supabase Dashboard của project `flight-dev` → **Project Settings → API Keys** (hoặc nút **Connect → Publishable key**). `EXPO_PUBLIC_GEMINI_API_KEY` chỉ cần khi thử tính năng AI; để trống thì các phần khác của app vẫn chạy nhưng Flyora AI Assistant sẽ báo thiếu key. **Không đặt service role/secret key vào biến `EXPO_PUBLIC_`**. `.env.local` là cấu hình riêng từng máy, không commit lên Git. Sau khi sửa file này, dừng và chạy lại Expo để nạp giá trị mới.
+
+### Thử Flyora AI Assistant trên máy cá nhân
+
+1. Vào [Google AI Studio → API Keys](https://aistudio.google.com/apikey), đăng nhập và chọn **Create API key** cho Google Cloud project của bạn.
+2. Tự điền key mới sau dấu `=` ở dòng `EXPO_PUBLIC_GEMINI_API_KEY=` trong `.env.local`. Không đưa key vào chat, báo cáo, ảnh chụp màn hình hoặc Git.
+3. Dừng Metro bằng `Ctrl+C`, chạy lại lệnh ở mục 4, tải lại trang web rồi gửi một tin nhắn thử. Nếu báo **API key not valid / HTTP 401**, kiểm tra hoặc tạo lại key trong AI Studio; nếu báo **429**, kiểm tra hạn mức của project.
+
+**Lưu ý:** Cấu hình hiện tại đưa biến `EXPO_PUBLIC_` vào bundle web/app, nên key có thể bị người dùng lấy ra. Chỉ dùng cách này để thử cục bộ. Trước khi chia sẻ bản web/APK cho người khác, nhóm cần chuyển lời gọi Gemini sang backend (ví dụ Supabase Edge Function) và giữ key ở biến bí mật phía server. Xem [hướng dẫn bảo mật key của Google](https://aistudio.google.com/docs/api-key) và [biến môi trường Expo](https://docs.expo.dev/guides/environment-variables/).
 
 ## 4. Chạy ứng dụng
 
@@ -94,6 +102,7 @@ Hai lệnh `build:*` xuất bundle, **không tạo APK**. Sau khi thay đổi co
 | Cổng 8081 đang được dùng | Dừng Metro cũ bằng `Ctrl+C`, rồi chạy lại lệnh ở mục 4. |
 | App vẫn hiện code/cấu hình cũ | Dừng server; chạy `npx.cmd expo start --clear --port 8081 --host lan`; tải lại app. |
 | Google login không quay lại app trong Expo Go | Thử trên APK `preview` Flyora; kiểm tra Supabase cho phép redirect `flight://account`. |
+| Flyora AI báo thiếu key hoặc HTTP 401 | Làm theo mục “Thử Flyora AI Assistant”; key Supabase không thay thế được Gemini key. |
 | Không thấy email xác nhận | Kiểm tra Inbox/Spam và trạng thái gửi trong Resend; email đã đăng nhập Google trước đó có thể đã có tài khoản, hãy dùng luồng đăng nhập phù hợp. |
 
 Tài liệu liên quan: [thiết lập Auth](AUTH.md), [database](DATABASE.md), [cache](CACHE.md), [hướng dẫn môi trường chi tiết](SETUP.md).
