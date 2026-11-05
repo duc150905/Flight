@@ -2,6 +2,10 @@
 
 Đã nạp vào Supabase **flight-dev** ngày 05/11/2026. Các cặp tuyến bổ sung có cả hai chiều hằng ngày từ **06/11 đến 05/12/2026**. Khứ hồi là hai chuyến một chiều được ghép vào một đơn; nhiều chặng cũng dùng cùng một đơn, không có bảng chuyến khứ hồi riêng.
 
+Bản mở rộng C4 bổ sung chuyến **Flyora Airways** trên 71 cặp tuyến hai chiều, có đủ Phổ thông, Phổ thông đặc biệt, Thương gia và Hạng nhất. Từ TP.HCM, Hà Nội hoặc Đà Nẵng có chuyến đến mọi sân bay đang có trong app trong cửa sổ ngày trên. Các bộ nhiều chặng bên dưới cũng có đủ bốn khoang qua chuyến Flyora. Hãng khác vẫn có thể chỉ bán một số khoang; chọn hạng không được khai thác hoặc ngày ngoài lịch đã nạp vẫn có thể không có kết quả.
+
+Ô tìm sân bay chấp nhận tên có/không dấu, viết tắt và mã IATA: `TPHCM`, `TP.HCM`, `HCM`, `Sài Gòn`, `Saigon`, `Tan Son Nhat`, `SGN` đều tìm ra Tân Sơn Nhất. Có thể gõ `danang`, `ha noi`, `noibai`, `camranh`.
+
 Trong app, mở **Tìm chuyến bay**, chọn **Khứ hồi** hoặc **Nhiều chặng**. Lần đầu thử **1 người lớn, Phổ thông**. Chọn gói **Phổ thông Linh hoạt** trên từng chặng nếu muốn thử hành lý có sẵn và chính sách hủy. Ngày bên dưới là ngày địa phương của sân bay khởi hành.
 
 ## Khứ hồi

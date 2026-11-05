@@ -29,6 +29,7 @@ create function pg_temp.populate_catalogue(data jsonb, first_day date, days inte
 declare r jsonb; origin record; destination record; carrier uuid; plane uuid;
   idx integer := 0; inserted_planes integer; reg text; wide boolean; outbound timestamptz; flight uuid; day date;
   international boolean; direction integer;
+  all_cabins boolean := coalesce(data->>'inventoryVariant','')='C4'; carrier_code text;
 begin
   if first_day <= (now() at time zone 'Asia/Ho_Chi_Minh')::date then
     raise exception 'Expansion must start on a future Vietnam date'; end if;
@@ -75,12 +76,13 @@ begin
     idx := idx+1;
     select * into strict origin from public.airports where iata_code=r->>0 and is_active;
     select * into strict destination from public.airports where iata_code=r->>1 and is_active;
-    select id into strict carrier from public.airlines where iata_code=r->>2 and is_active;
+    carrier_code := case when all_cabins then 'F0' else r->>2 end;
+    select id into strict carrier from public.airlines where iata_code=carrier_code and is_active;
     wide := (r->>3)::integer>=240;
-    reg := 'FLY-'||(r->>2)||'-'||(r->>0)||'-'||(r->>1);
+    reg := 'FLY-'||carrier_code||'-'||(r->>0)||'-'||(r->>1)||case when all_cabins then '-C4' else '' end;
     plane := pg_temp.catalogue_id('aircraft:'||reg);
     insert into public.aircraft(id,airline_id,registration_code,model_name)
-      values(plane,carrier,reg,case when wide then 'Airbus A350-900'
+      values(plane,carrier,reg,case when all_cabins then 'Flyora Four Cabin' when wide then 'Airbus A350-900'
         when r->>2 in ('SQ','MH') then 'Boeing 737-8'
         when r->>2='TG' then 'Airbus A320-200' else 'Airbus A321neo' end) on conflict do nothing;
     get diagnostics inserted_planes = row_count;
@@ -90,22 +92,24 @@ begin
     if inserted_planes=1 then
       insert into public.seats(id,aircraft_id,seat_code,row_number,column_number,cabin_class,position,is_exit_row)
       select pg_temp.catalogue_id('seat:'||reg||':'||n||chr(64+c)),plane,n||chr(64+c),n,c,
-        (case when n<=case when wide then 5 else 2 end then 'business'
+        (case when all_cabins then case when n=1 then 'first' when n<=3 then 'business' when n<=5 then 'premium_economy' else 'economy' end
+         when n<=case when wide then 5 else 2 end then 'business'
          when wide and n<=8 then 'premium_economy' else 'economy' end)::public.cabin_class,
         (case when c in (1,6) then 'window' when c in (3,4) then 'aisle' else 'middle' end)::public.seat_position,
         n=case when wide then 15 else 12 end
       from generate_series(1,case when wide then 27 else 20 end) n cross join generate_series(1,6) c
-      where n>case when wide then 5 else 2 end or c in (1,3,4,6);
+      where (all_cabins and (n>3 or c in (1,3,4,6)))
+         or (not all_cabins and (n>case when wide then 5 else 2 end or c in (1,3,4,6)));
     end if;
     international := origin.country_code<>destination.country_code;
     for day in select first_day+n from generate_series(0,days-1) n loop
       outbound := (day + time '06:30' + make_interval(mins=>(idx%4)*45)) at time zone origin.timezone;
       for direction in 0..1 loop
-        flight := pg_temp.catalogue_id('flight:'||(r->>0)||':'||(r->>1)||':'||day||':'||direction);
+        flight := pg_temp.catalogue_id('flight:'||(r->>0)||':'||(r->>1)||':'||day||':'||direction||case when all_cabins then ':C4' else '' end);
         with inserted as (
           insert into public.flight_instances(id,airline_id,aircraft_id,flight_number,departure_airport_id,arrival_airport_id,
             departure_at,arrival_at,sales_close_at,status,published_at)
-          select flight,carrier,plane,(r->>2)||(7000+idx*2+direction),
+          select flight,carrier,plane,carrier_code||(case when all_cabins then 8000 else 7000 end+idx*2+direction),
             case when direction=0 then origin.id else destination.id end,
             case when direction=0 then destination.id else origin.id end,
             t.departure,t.departure+make_interval(mins=>(r->>3)::integer+direction*10),t.departure-interval '1 hour','scheduled',now()
@@ -133,7 +137,8 @@ begin
     ('ECO_SAVER','economy','Phổ thông Tiết kiệm',1.00,0,false,0),
     ('ECO_FLEX','economy','Phổ thông Linh hoạt',1.35,23,true,350000),
     ('PREM_ECO','premium_economy','Phổ thông Đặc biệt',1.85,32,true,250000),
-    ('BIZ_FLEX','business','Thương gia Linh hoạt',2.80,32,true,150000)
+    ('BIZ_FLEX','business','Thương gia Linh hoạt',2.80,32,true,150000),
+    ('FIRST_FLEX','first','Hạng nhất Linh hoạt',4.50,40,true,100000)
   ) ft(code,cabin,name,multiplier,kg,cancel,cancel_fee)
   where exists(select 1 from public.flight_instances f join public.seats s on s.aircraft_id=f.aircraft_id
     where f.id=nf.id and s.cabin_class::text=ft.cabin and s.is_active);

@@ -2,8 +2,8 @@
 begin isolation level repeatable read read only;
 do $$
 begin
-  if (select count(*) from public.aircraft where registration_code like 'FLY-%-%-%')<>36 then
-    raise exception 'Expected 36 dedicated aircraft'; end if;
+  if (select count(*) from public.aircraft where registration_code like 'FLY-%-%-%')<36 then
+    raise exception 'Expected at least 36 dedicated aircraft'; end if;
   if exists(select 1 from public.flight_instances f join public.aircraft a on a.id=f.aircraft_id
     where a.registration_code like 'FLY-%-%-%' and (
       f.arrival_at<=f.departure_at or f.sales_close_at>f.departure_at or

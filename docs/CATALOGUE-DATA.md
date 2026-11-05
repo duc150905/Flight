@@ -1,6 +1,6 @@
 # Flyora catalogue data
 
-`catalogue-data.json` supplies additional airport/airline/destination/product records and 36 route pairs. The generator creates both directions for 30 future days (2,160 flights), starting tomorrow in Vietnam time. It uses dedicated aircraft for each pair, an outbound/return rotation with 90 minutes turnaround, compatible cabin layouts and corresponding fare/service inventories. Existing identities are skipped, so reruns usually insert fewer rows than this maximum.
+`catalogue-data.json` supplies additional airport/airline/destination/product records and 71 route pairs. The generator creates both directions for 30 future days (4,260 flights), starting tomorrow in Vietnam time. It uses dedicated aircraft for each pair, an outbound/return rotation with 90 minutes turnaround, compatible cabin layouts and corresponding fare/service inventories. Existing identities are skipped, so reruns usually insert fewer rows than this maximum.
 
 Airport names and IATA codes were checked against [ACV](https://acv.vn/vi), [Vietnam Airlines airport maps](https://airportmap.vietnamairlines.com/) and [IATA Hong Kong airport information](https://www.iata.org/globalassets/cnsc/cns-focus-magazine/2025/cns-fall-winter-2024-2025-small_v2.pdf). IANA timezone names are validated against PostgreSQL. Timetables, aircraft identifiers, cabin configurations and VND prices are synthetic learning data, not live airline availability or published carrier policies.
 
@@ -55,3 +55,22 @@ Applied inserts: 12 aircraft, 1,392 template seats, **768 flights**, 2,314 fares
 The repeated two-day rollback probe passed. Read-only inventory checks passed after apply, including fare/cabin compatibility, baggage offers, seat geometry and aircraft turnaround. Public discovery checks (`SET LOCAL ROLE anon`, without changing grants) found all **23 legs across 7 sample itineraries** with correct chronological order. Seat inventory is verified separately with the existing privileged read-only inventory checks; discovery does not access the authenticated seat RPC tables directly.
 
 See [Vietnamese test itineraries](CHECKOUT-ITINERARY-TESTS.md) and `supabase/tests/roundtrip-multicity-catalogue.sql`. All timetables and prices remain learning fixtures, not real airline availability. No APK build was performed.
+
+## Hub network and four-cabin coverage — 05 November 2026
+
+The manifest now has 71 pairs: every existing airport has both directions to SGN, HAN and DAD, plus regional and international links used by the multi-city examples. This means 142 directional routes in the expanded inventory, including 120 distinct directions touching the three hubs. It does not create every possible city pair; regional trips may still need to pass through a hub.
+
+`--all-cabins` generates a separate **C4** inventory variant operated by fictional **Flyora Airways (F0)**, rather than inventing First Class on real low-cost airlines. Aircraft have a `-C4` registration suffix and the display model `Flyora Four Cabin`; flight IDs include `:C4`, and flight numbers use F08002–F08143. All four cabin classes have actual template/flight seats, with Economy Saver, Economy Flex, Premium Economy, Business Flex and First Flex fares. Standard inventory retains its original layout and supported cabins. New C4 inventory never changes existing aircraft, seat reservations, prices or customer bookings.
+
+To reproduce the applied 30-day window (06 November–05 December 2026):
+
+```powershell
+node scripts/generate-catalogue-seed.mjs --all-cabins --start 2026-11-06 --days 2 --rollback --repeat 2 --output supabase/.temp/network-c4-probe.sql
+node scripts/generate-catalogue-seed.mjs --all-cabins --start 2026-11-06 --days 5 --output supabase/.temp/network-c4-batch.sql
+```
+
+Review and execute the rollback probe first, then apply in six five-day batches starting 06/11, 11/11, 16/11, 21/11, 26/11 and 01/12. Each batch runs its own atomic protected-data fingerprint check. Do not run the root seed or change RLS to add this data. Public search coverage can be checked with `supabase/tests/catalogue-network-coverage.sql`; geometry, seats, fares, baggage offers and rotations use `supabase/tests/catalogue-expansion.sql`.
+
+Scope: 4,260 additional flights, 21,300 fares, 505,800 flight seats, 8,520 baggage offers, 71 aircraft and 8,430 template seats. Reference schedules and prices remain learning fixtures. No mail, payment, refund or customer-order action is part of this expansion.
+
+Applied successfully to flight-dev in all six batches; protected non-catalogue fingerprints matched each time. Final totals: **6,862 flights**, 30,191 fares, 806,004 flight seats, 20,382 offers, 117 aircraft and 13,566 template seats. Public-role verification found all **17,040 network route/date/cabin combinations**, including all 14,400 hub route/date/cabin checks with zero missing. Post-apply cabin/seat geometry, baggage and rotation assertions passed. Web testing found each leg of DAD–PQC (07/11), PQC–CXR (09/11), CXR–DLI (11/11) in Economy; airport search accepted `TPHCM`. No APK was built.

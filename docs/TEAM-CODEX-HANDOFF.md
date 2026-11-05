@@ -1,3 +1,11 @@
+# Cập nhật tìm sân bay và phủ tuyến/khoang — 05/11/2026
+
+SearchFlow dùng helper `airport-search.ts`: bỏ dấu, chuẩn hóa dấu câu/khoảng trắng, hỗ trợ alias SGN/HAN/CXR, tìm nhiều từ không phụ thuộc thứ tự và ưu tiên mã IATA/tên khớp trước khi giới hạn 12 kết quả. `TPHCM`, `HCM`, `Sài Gòn`, `Tan Son Nhat` đều ra SGN; không dùng fuzzy quá rộng để đoán sai mã sân bay.
+
+Manifest catalogue mở rộng 71 cặp tuyến. Generator có `--all-cabins` tạo inventory C4 riêng của Flyora Airways F0, đủ 4 khoang với 5 gói giá, ID chuyến có hậu tố C4 và registration `-C4`; không ghi đè máy bay/chuyến đã có đơn. Phủ cả hai chiều từ SGN/HAN/DAD đến toàn bộ 22 sân bay, cùng các tuyến mẫu nhiều chặng; chưa phải mọi cặp thành phố đều có chuyến thẳng. Cửa sổ 06/11–05/12/2026. Xem [CATALOGUE-DATA.md](CATALOGUE-DATA.md) và [CHECKOUT-ITINERARY-TESTS.md](CHECKOUT-ITINERARY-TESTS.md). Không seed root, không sửa booking/payment/refund/RLS. Kiểm tra kết quả SQL và Git để biết trạng thái áp dụng/commit/push.
+
+Đã áp dụng xong cả 6 batch vào flight-dev: thêm 4.260 chuyến, tổng 6.862 chuyến. Fingerprint dữ liệu ngoài catalogue giữ nguyên trong từng batch. SQL public search đủ 17.040 tổ hợp tuyến/ngày/khoang, không thiếu; kiểm tra ghế/khoang/hành lý/vòng quay đạt. 305 Node tests và typecheck đạt; lint có 1 cảnh báo AI cũ. Web đã xác nhận gõ TPHCM ra SGN và 3 chặng mẫu có kết quả ở Phổ thông. Chưa nghiệm thu Android, không build APK.
+
 # Cập nhật email xác nhận — 05/11/2026
 
 Email xác nhận mới dùng snapshot version 2: chia Chiều đi/Chiều về hoặc Chặng 1/2…, ghi tên và ghế từng người đúng theo passenger_segment_id; hành lý cũng nằm dưới đúng người/chặng. Giờ bay dùng timezone sân bay. Migration 20261105084143_vnpay_booking_email_segment_seats đã lên flight-dev, worker đã cập nhật. Renderer cũ giữ nguyên cho outbox cũ để không đổi payload retry Resend; không gửi lại email đã nhận. Kiểm thử SQL rollback khứ hồi/3 chặng + ghế/hành lý/em bé đạt, không còn dữ liệu test. Khi deploy worker phải giữ các file query/reconcile đang chạy từ nhánh điều tra hoàn tiền: lần này tải source worker hiện tại rồi chỉ thay booking-email.ts, không merge nhánh hoàn tiền vào main. Xem [VNPAY-SANDBOX.md](VNPAY-SANDBOX.md). Chưa nghiệm thu hình thức email trên Gmail/Android; browser chặn preview HTML cục bộ. Không build APK.
