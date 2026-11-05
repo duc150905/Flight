@@ -12,6 +12,8 @@ Truy vấn **chỉ đọc** giao dịch có thật từ Node và Postman cùng n
 
 Phản hồi không có `vnp_SecureHash`. Nó không xác nhận kết quả thanh toán/hoàn tiền và không được dùng để đổi trạng thái tài chính. Node mất khoảng 234–289ms, Postman 483ms; đây là lỗi ở trao đổi API đang quan sát được, không phải chỉ do app trên điện thoại tải chậm. Chưa xác định được nguyên nhân sâu hơn của mã99: cần VNPAY xác minh kết nối merchant/API và giao dịch gốc.
 
+Kiểm tra tiếp từ database Supabase qua `pg_net` có sẵn, không tạo endpoint mới: một QueryDR chỉ đọc timeout45.007ms, trong đó DNS404ms, TCP/SSL handshake44.604ms, HTTP request/response0ms, không có HTTP status/body. Đây là bằng chứng riêng về đường kết nối cloud→sandbox bị kẹt trước HTTP, chưa chứng minh nguyên nhân là whitelist, firewall, vùng chạy hay sự cố nhà cung cấp. Không thể suy ra chữ ký/payload sai từ lần timeout này vì chưa tới lớp HTTP; cũng chưa xác nhận vùng/đường đi của Edge có hoàn toàn giống database hay không.
+
 ## Dữ liệu đọc từ flight-dev
 
 - Ba refund public vẫn `pending`, job `review`, `sync_count=20`, `completed_at=null`, `last_code=transport_or_validation`.
@@ -44,6 +46,8 @@ Có kiểm thử RED→GREEN cho unsigned99 không được tin cậy, không l�
 
 Đã triển khai phần chẩn đoán vào ba function hiện có `vnpay-refund`, `vnpay-sync`, `vnpay-worker`, giữ nguyên ranh giới xác thực. 286 Node tests đạt, typecheck app và riêng module gateway đạt; lint0 lỗi, ba cảnh báo cũ. Fingerprint trước/sau của refunds3, payments25 và bookings19 không đổi. Code điều tra được giữ riêng trên nhánh `codex/vnpay-refund-investigation` theo yêu cầu người dùng.
 
+Sau khi main nhận PR40 và PR39, nhánh điều tra đã đồng bộ từ main `fc2e9b2` và được push riêng. Tổng293 Node tests đạt, typecheck đạt; lint còn một cảnh báo có sẵn của AI greeting. GitHub được dọn còn main và nhánh điều tra; các file điều tra không nằm trong hai PR đã merge.
+
 ## Đối chiếu trên portal
 
 Vào Merchant Admin → Giao dịch hoàn trả, nhập mã giao dịch gốc15725860. Có thể thử số hóa đơn bằng merchant-ref `1c7a138e13ea4f9c9f16aec6272ec7a3`; phải đối chiếu với chi tiết giao dịch thanh toán để xác nhận tên trường của portal.
@@ -55,6 +59,8 @@ Nếu vẫn trống, mở GD Thanh toán để xác nhận giao dịch gốc1572
 ## Nội dung tra soát để người dùng gửi VNPAY
 
 Merchant của Flyora đang thanh toán PAY thành công nhưng chưa xác minh được QueryDR/refund. Giao dịch gốc15725860, merchant-ref1c7a138e13ea4f9c9f16aec6272ec7a3, tạo lúc20261104215347 (GMT+7), thanh toán1.603.000VND. Yêu cầu hoàn một phần1.253.000VND gửi lúc20261104215601, RequestId3600fa19131646c29e1594cca2d02967. QueryDR đúng endpoint nhận HTTP200, code99 Unexpected error, không có chữ ký, cả khi bổ sung TransactionNo. Nhờ xác nhận yêu cầu refund cũ đã được nhận chưa, merchant đã được bật QueryDR/refund chưa, yêu cầu IP/whitelist và nguyên nhân mã99.
+
+Thêm bằng chứng kết nối: cùng endpoint QueryDR từ Supabase Postgres/pg_net không hoàn tất TCP/TLS sau45giây, HTTP time0ms, trong khi máy người phát triển nhận JSON99 dưới một giây. Nhờ kiểm tra hạn chế kết nối từ hạ tầng cloud và hướng dẫn IP máy chủ/API caller đúng cho môi trường sandbox. Không khẳng định đây là cùng nguyên nhân với code99 trước khi nhà cung cấp đối chiếu.
 
 Không gửi HashSecret, API key, mật khẩu hoặc toàn bộ file env cho hỗ trợ. Chưa gửi nội dung tra soát này ra bên ngoài.
 
