@@ -694,32 +694,36 @@ export function AdminPermissionsScreen() {
                       { flex: isDesktop ? 1.4 : undefined, justifyContent: 'flex-end' },
                     ]}
                   >
-                    {acc.role === 'customer' ? (
-                      /* Grant Admin right in the list! */
-                      <Pressable
-                        accessibilityRole="button"
-                        disabled={saving}
-                          onPress={() => handleGrantAdmin(acc)}
-                        style={permStyles.rowGrantBtn}
-                      >
-                        <Text style={permStyles.rowGrantBtnText}>
-                          + {bi('Cấp quyền Admin', 'Grant Admin')}
-                        </Text>
-                      </Pressable>
-                    ) : isCurrentUser ? (
+                    {isCurrentUser ? (
                       <View style={permStyles.currentLoggedBox}>
                         <Text style={permStyles.currentLoggedText}>
                           {bi('Đang đăng nhập', 'Logged In')}
                         </Text>
                       </View>
                     ) : (
-                      <Pressable
-                        accessibilityRole="button"
-                        onPress={() => setEditingAccount(acc)}
-                        style={permStyles.actionDotsBtn}
-                      >
-                        <Text style={permStyles.actionDotsText}>•••</Text>
-                      </Pressable>
+                      <>
+                        {acc.role === 'customer' && (
+                          <Pressable
+                            accessibilityRole="button"
+                            disabled={saving}
+                            onPress={() => handleGrantAdmin(acc)}
+                            style={permStyles.rowGrantBtn}
+                          >
+                            <Text style={permStyles.rowGrantBtnText}>
+                              + {bi('Cấp quyền Admin', 'Grant Admin')}
+                            </Text>
+                          </Pressable>
+                        )}
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={bi(`Quản lý tài khoản ${acc.email}`, `Manage account ${acc.email}`)}
+                          disabled={saving}
+                          onPress={() => setEditingAccount(acc)}
+                          style={permStyles.actionDotsBtn}
+                        >
+                          <Text style={permStyles.actionDotsText}>{bi('Quản lý', 'Manage')}</Text>
+                        </Pressable>
+                      </>
                     )}
                   </View>
                 </View>
@@ -1152,6 +1156,7 @@ export function AdminPermissionsScreen() {
 
                   <Pressable
                     accessibilityRole="button"
+                    disabled={saving}
                     onPress={() => editingAccount && handleRevokeAdmin(editingAccount)}
                     style={permStyles.revokeRoleBtn}
                   >
@@ -1172,13 +1177,14 @@ export function AdminPermissionsScreen() {
               ) : (
                 <Pressable
                   accessibilityRole="button"
+                  disabled={saving}
                   onPress={() => editingAccount && handleGrantAdmin(editingAccount)}
                   style={permStyles.grantRoleBtn}
                 >
                   <Text style={{ fontSize: 16 }}>🛡️</Text>
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={permStyles.grantRoleTitle}>
-                      {bi('Cấp lại quyền Quản trị viên', 'Re-grant Administrator Role')}
+                      {bi('Cấp quyền Quản trị viên', 'Grant Administrator Role')}
                     </Text>
                     <Text style={permStyles.grantRoleSub}>
                       {bi('Cho phép tài khoản này truy cập lại Flyora Admin Console.', 'Allow this account to access Admin Console.')}
@@ -1630,9 +1636,13 @@ const permStyles = StyleSheet.create({
   },
   colActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     alignItems: 'center',
   },
   rowGrantBtn: {
+    minHeight: 48,
+    justifyContent: 'center',
     backgroundColor: '#ECFEFF',
     borderWidth: 1,
     borderColor: '#0891B2',
@@ -1655,6 +1665,8 @@ const permStyles = StyleSheet.create({
     color: '#94A3B8',
   },
   actionDotsBtn: {
+    minHeight: 48,
+    justifyContent: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
@@ -1664,7 +1676,6 @@ const permStyles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
     color: '#475569',
-    letterSpacing: 1,
   },
   cardFooterRow: {
     flexDirection: 'row',

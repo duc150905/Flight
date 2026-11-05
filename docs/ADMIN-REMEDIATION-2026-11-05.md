@@ -66,3 +66,5 @@ Giới hạn: chưa nghiệm thu nhìn/thao tác trên Android hoặc trình duy
 3. Trong Thanh toán → Đối soát cổng, tìm PNR/reference và đổi bộ lọc hoàn tiền. Review/unknown phải được giữ rõ, không hiện hoàn thành.
 4. Tạo máy bay thử chưa sử dụng, đổi cấu hình hàng ghế 6→4→6; chỉ ghế active trong cấu hình mới được tính. Chuyến đã có kho ghế phải bị chặn sửa template.
 5. Đăng xuất/đổi sang khách thường: dữ liệu và màn admin của người trước không được hiện lại. Chỉ thử cấp/thu hồi/khóa bằng tài khoản thử riêng.
+
+**Bổ sung từ kiểm thử của người dùng:** hàng khách hàng trước đó chỉ hiện “Cấp quyền Admin”, không mở được hộp quản lý trạng thái. Đã thêm nút “Quản lý” cho mọi tài khoản khác người đang đăng nhập; trong hộp có “Tạm dừng tài khoản này” hoặc “Kích hoạt lại tài khoản này”. Hai nút trên hàng có khoảng cách và tự xuống dòng khi thiếu chỗ.
