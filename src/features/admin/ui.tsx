@@ -19,6 +19,7 @@ import { useAuth } from '@/features/auth/auth-provider';
 import { colors } from '@/features/auth/ui';
 import { supabase } from '@/lib/supabase';
 import { LanguagePicker, useAdminI18n } from './i18n';
+import { adminQuickSearchRoute } from './admin-search';
 import type { StatusFilter } from './model';
 
 export type AdminSectionKey =
@@ -256,16 +257,7 @@ export function AdminShell({
       onQuickSearch(trimmed);
       return;
     }
-    if (!trimmed) {
-      router.push('/admin/bookings' as Href);
-      return;
-    }
-    // Smart routing: if it looks like a flight number (e.g., VN210, VJ624) and user is not on bookings
-    if (/^(VN|VJ|QH|BL|SQ)[0-9]{2,4}$/i.test(trimmed)) {
-      router.push(`/admin/flights?q=${encodeURIComponent(trimmed)}` as Href);
-      return;
-    }
-    router.push(`/admin/bookings?q=${encodeURIComponent(trimmed)}` as Href);
+    router.push(adminQuickSearchRoute(trimmed) as Href);
   };
 
   const workspaceItems = navRoutes.filter((r) => r.group === 'workspace');

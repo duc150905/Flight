@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Pressable, Text, View } from 'react-native';
@@ -25,30 +26,24 @@ import {
   adminStyles,
 } from '../ui';
 
+import { CataloguePicker } from '../catalogue-picker';
+import { isHttpsMediaPath, validateAirlineMedia, validateDestinationMedia } from '../../discovery/media-paths';
+import { loadCatalogues } from '../catalogue-data';
+
 type CatalogueTab = 'airports' | 'airlines' | 'destinations';
 
-async function loadCatalogues() {
-  if (!supabase) throw new Error('Chưa cấu hình kết nối Supabase.');
-  const [airports, airlines, destinations] = await Promise.all([
-    supabase.from('airports').select('*').order('city').order('iata_code'),
-    supabase.from('airlines').select('*').order('iata_code'),
-    supabase.from('destinations').select('*').order('sort_order').order('slug'),
-  ]);
-  if (airports.error) throw airports.error;
-  if (airlines.error) throw airlines.error;
-  if (destinations.error) throw destinations.error;
-  return {
-    airports: airports.data ?? [],
-    airlines: airlines.data ?? [],
-    destinations: destinations.data ?? [],
-  };
-}
 
 export function AdminCataloguesScreen() {
+  const params = useLocalSearchParams<{ q?: string }>();
+  const initialQuery = typeof params.q === 'string' ? params.q : '';
+  return <AdminCataloguesContent key={initialQuery} initialQuery={initialQuery} />;
+}
+
+function AdminCataloguesContent({ initialQuery }: { initialQuery: string }) {
   const { ta, bi, language } = useAdminI18n();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<CatalogueTab>('airports');
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [page, setPage] = useState(1);
   const [busy, setBusy] = useState(false);
@@ -87,7 +82,10 @@ export function AdminCataloguesScreen() {
 
   const dataQuery = useQuery({
     queryKey: ['admin-catalogues'],
-    queryFn: loadCatalogues,
+    queryFn: () => {
+      if (!supabase) throw new Error('Chưa cấu hình kết nối Supabase.');
+      return loadCatalogues(supabase);
+    },
   });
 
   const airports = dataQuery.data?.airports ?? [];
@@ -181,6 +179,9 @@ export function AdminCataloguesScreen() {
     setError('');
     setSuccess('');
     try {
+      if (!validateAirlineMedia(alLogo, editingAirline?.logo_path).valid) throw new Error(bi(
+        'Dùng URL logo HTTPS. Đường dẫn hãng cũ chỉ hiển thị chữ cái đầu; không thể thay bằng đường dẫn tương đối mới.',
+        'Use an HTTPS logo URL. Legacy airline paths show the initial only; new relative paths are unsupported.'));
       await saveAdminAirline(supabase, {
         id: editingAirline?.id ?? null,
         iataCode: alIata,
@@ -241,6 +242,9 @@ export function AdminCataloguesScreen() {
     setError('');
     setSuccess('');
     try {
+      if (!validateDestinationMedia(destImage).valid) throw new Error(bi(
+        'Dùng URL ảnh HTTPS hoặc đường dẫn ảnh có sẵn, ví dụ destinations/da-nang.jpg.',
+        'Use an HTTPS image URL or a bundled path such as destinations/da-nang.jpg.'));
       await saveAdminDestination(supabase, {
         id: editingDest?.id ?? null,
         airportId: destAirportId,
@@ -499,7 +503,8 @@ export function AdminCataloguesScreen() {
             autoCapitalize="words"
           />
           <AdminTextField
-            label={bi('Đường dẫn logo (tùy chọn)', 'Logo path (optional)')}
+            label={bi('URL logo HTTPS (tùy chọn)', 'HTTPS logo URL (optional)')}
+            helperText={bi('Để trống dùng chữ cái đầu. Đường dẫn hãng cũ chỉ dùng chữ cái đầu.', 'Leave empty for an initial. Legacy airline paths display the initial only.')}
             value={alLogo}
             onChangeText={setAlLogo}
             placeholder="airlines/vn.png"
@@ -544,24 +549,9 @@ export function AdminCataloguesScreen() {
               ? bi(`Sửa điểm đến ${editingDest.slug}`, `Edit destination ${editingDest.slug}`)
               : bi('Thêm điểm đến gợi ý mới', 'Create new destination')}
           </Text>
-          <Text style={adminStyles.label}>{bi('Chọn sân bay', 'Select airport')}</Text>
-          <View style={adminStyles.chipRow}>
-            {airports.map((ap) => {
-              const selected = destAirportId === ap.id;
-              return (
-                <Pressable
-                  key={ap.id}
-                  accessibilityRole="button"
-                  onPress={() => setDestAirportId(ap.id)}
-                  style={[adminStyles.chip, selected && adminStyles.chipSelected]}
-                >
-                  <Text style={[adminStyles.chipText, selected && adminStyles.chipTextSelected]}>
-                    {ap.city} ({ap.iata_code})
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          <CataloguePicker items={airports} value={destAirportId} label={bi('Sân bay điểm đến', 'Destination Airport')}
+            getLabel={ap => `${ap.iata_code} · ${ap.city} · ${ap.name}`} onSelect={ap => setDestAirportId(ap.id)} />
+
           <AdminTextField
             label="Slug"
             value={destSlug}
@@ -584,6 +574,7 @@ export function AdminCataloguesScreen() {
           />
           <AdminTextField
             label={bi('Đường dẫn ảnh (image_path)', 'Image path (image_path)')}
+            helperText={bi('HTTPS hoặc destinations/ha-noi.jpg, da-nang.jpg, phu-quoc.jpg, nha-trang.jpg, da-lat.jpg, hue.jpg, singapore.jpg, bangkok.jpg. Để trống dùng ảnh sân bay.', 'HTTPS or destinations/ha-noi.jpg, da-nang.jpg, phu-quoc.jpg, nha-trang.jpg, da-lat.jpg, hue.jpg, singapore.jpg, bangkok.jpg. Leave empty for the airport image.')}
             value={destImage}
             onChangeText={setDestImage}
             placeholder="destinations/da-nang.jpg"
@@ -703,7 +694,7 @@ export function AdminCataloguesScreen() {
                 </Text>
                 <AdminStatusBadge active={al.is_active} />
               </View>
-              {!!al.logo_path && <Text style={adminStyles.muted}>Logo: {al.logo_path}</Text>}
+              {!!al.logo_path && <Text style={adminStyles.muted}>Logo: {al.logo_path}{!isHttpsMediaPath(al.logo_path) ? bi(' · Đường dẫn cũ: hiển thị chữ cái đầu', ' · Legacy path: initial fallback') : ''}</Text>}
               <View style={adminStyles.rowGap}>
                 <Pressable
                   accessibilityRole="button"

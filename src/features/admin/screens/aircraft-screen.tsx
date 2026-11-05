@@ -558,8 +558,8 @@ export function AdminAircraftScreen() {
                         </Text>
                         <Text style={adminStyles.muted}>
                           {bi(
-                            'Nhập số hàng cho từng hạng khoang hoặc chọn mẫu gợi ý bên dưới. Sơ đồ mặt cắt tàu bay sẽ tự động cập nhật trực quan theo từng hàng.',
-                            'Enter row counts per cabin or pick a preset below. The aircraft cabin diagram updates visually row by row.',
+                            'Lưu sẽ thay toàn bộ cấu hình: ghế bị bỏ được ngừng dùng, ghế giữ lại giữ nguyên ID. Chỉ sửa khi tàu bay chưa có chuyến công bố hoặc kho ghế chuyến bay.',
+                            'Saving replaces the full template: omitted seats become inactive and retained seats keep their IDs. Editable only before any published flight or flight seat inventory exists.',
                           )}
                         </Text>
                       </View>

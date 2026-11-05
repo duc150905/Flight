@@ -1,5 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
+import { matchesAdminSearch } from './admin-search.ts';
+import { validateDestinationMedia, validateAirlineMedia } from '../discovery/media-paths.ts';
 import { databaseIdSchema } from '../../lib/database-id.ts';
 import type { Database } from '../../types/database.generated.ts';
 import type { SeatTemplateItemSchema } from './rpc.ts';
@@ -81,6 +83,10 @@ export const airlineInputSchema = z.object({
     .optional()
     .transform((v) => (v && v.length > 0 ? v : null)),
   isActive: z.boolean().default(true),
+}).superRefine((value,ctx)=>{
+  // Existing relative paths are accepted here for compatibility; the screen/server verify they are unchanged.
+  const result=validateAirlineMedia(value.logoPath,value.id?value.logoPath:null);
+  if(!result.valid)ctx.addIssue({code:'custom',path:['logoPath'],message:result.message});
 });
 
 export type AirlineInput = z.input<typeof airlineInputSchema>;
@@ -112,7 +118,8 @@ export const destinationInputSchema = z.object({
     .trim()
     .max(255)
     .optional()
-    .transform((v) => (v && v.length > 0 ? v : null)),
+    .transform((v) => (v && v.length > 0 ? v : null))
+    .refine(value=>validateDestinationMedia(value).valid,validateDestinationMedia('invalid').message),
   isFeatured: z.boolean().default(false),
   sortOrder: z.coerce.number().int().min(0).max(999).default(0),
   isActive: z.boolean().default(true),
@@ -133,7 +140,7 @@ export const addonProductInputSchema = z
           .regex(/^[A-Z0-9_]{2,32}$/, 'Mã dịch vụ gồm 2–32 ký tự chữ hoa, số hoặc gạch dưới.'),
       ),
     name: z.string().trim().min(2, 'Nhập tên gói dịch vụ.').max(120),
-    category: z.enum(['baggage', 'meal', 'insurance_demo']),
+    category: z.enum(['baggage', 'meal', 'insurance_demo']).refine(value=>value==='baggage','Checkout currently supports checked baggage only.'),
     description: z
       .string()
       .trim()
@@ -164,8 +171,8 @@ export const flightAddonOfferInputSchema = z.object({
     .number()
     .int()
     .min(1, 'Số lượng tối đa mỗi hành khách ít nhất là 1.')
-    .max(10, 'Số lượng tối đa mỗi hành khách không quá 10.')
-    .default(2),
+    .max(1, 'Checkout supports one baggage choice per passenger per leg; max quantity must be 1')
+    .default(1),
   isActive: z.boolean().default(true),
 });
 
@@ -190,7 +197,7 @@ export function filterAndPaginate<T>(
     getIsActive?: (item: T) => boolean;
   },
 ): PaginatedResult<T> {
-  const normalizedQuery = (options.query ?? '').trim().toLocaleLowerCase('vi-VN');
+  const normalizedQuery = (options.query ?? '').trim();
   const statusFilter = options.statusFilter ?? 'all';
   const pageSize = Math.max(1, Math.min(options.pageSize ?? 10, 100));
 
@@ -201,8 +208,7 @@ export function filterAndPaginate<T>(
       if (statusFilter === 'inactive' && active) return false;
     }
     if (!normalizedQuery) return true;
-    const text = options.getSearchText(item).toLocaleLowerCase('vi-VN');
-    return text.includes(normalizedQuery);
+    return matchesAdminSearch(options.getSearchText(item), normalizedQuery);
   });
 
   const total = filtered.length;
@@ -283,17 +289,32 @@ export function buildStandardSeatTemplate(config: StandardSeatLayoutConfig): Sea
 }
 
 export function formatAdminError(error: unknown, language: 'vi' | 'en' = 'vi'): string {
+  let issueMessage = '';
   if (error && typeof error === 'object' && 'issues' in error) {
     const issues = (error as { issues?: { message?: string }[] }).issues;
     if (Array.isArray(issues) && issues[0]?.message) {
-      return issues[0].message;
+      issueMessage = issues[0].message;
     }
   }
-  const rawMessage = error instanceof Error ? error.message : String(error ?? '');
+  const rawMessage = issueMessage || (error && typeof error === 'object' && 'message' in error
+    ? String(error.message ?? '') : String(error ?? ''));
   const code =
     error && typeof error === 'object' && 'code' in error
       ? String((error as { code?: string }).code ?? '')
       : '';
+
+  const catalogueMessages: [RegExp, string, string][] = [
+    [/Cannot unpublish.*active bookings/i, 'Không thể ngừng mở bán chuyến đang có đơn đặt vé hoặc ghế đang giữ.', 'Cannot unpublish a flight with active bookings or seat holds.'],
+    [/Cannot (unpublish|create an unpublished).*departed or arrived/i, 'Không thể ngừng mở bán chuyến đã khởi hành hoặc đã đến nơi.', 'Cannot unpublish a departed or arrived flight.'],
+    [/last unblocked seat/i, 'Hãy ngừng bán các gói vé của khoang trước khi khóa ghế cuối cùng còn sử dụng được.', 'Deactivate cabin fares before blocking its last unblocked seat.'],
+    [/unblocked seat inventory|no.*seat inventory.*cabin/i, 'Khoang của gói vé cần có ghế sử dụng được trên chuyến bay này.', 'The fare cabin must have unblocked seat inventory on this flight.'],
+    [/supports (checked )?baggage only|Meals and insurance.*read.only/i, 'Hiện chỉ có hành lý ký gửi được bán trong luồng đặt vé. Suất ăn và bảo hiểm đang ở chế độ chỉ xem.', 'Checkout currently supports checked baggage only. Meals and insurance are read-only.'],
+    [/max quantity must be 1|maximum: 1|Too big: expected number to be <=1/i, 'Mỗi hành khách chỉ chọn một gói hành lý cho từng chặng.', 'Each passenger can select one baggage package per leg.'],
+    [/Use an HTTPS (image|logo) URL/i, 'Hãy dùng URL ảnh HTTPS hoặc ảnh điểm đến có sẵn được hỗ trợ. Logo hãng mới cần URL HTTPS.', 'Use an HTTPS image URL or a supported bundled destination image. New airline logos require HTTPS.'],
+    [/duplicate seat codes/i, 'Mã ghế bị trùng trong sơ đồ. Hãy kiểm tra lại.', 'The seat template contains duplicate seat codes.'],
+  ];
+  const catalogueMessage = catalogueMessages.find(([pattern]) => pattern.test(rawMessage));
+  if (catalogueMessage) return catalogueMessage[language === 'vi' ? 1 : 2];
 
   if (code === '23P01' || /Aircraft schedule conflict/i.test(rawMessage)) {
     return language === 'vi'
@@ -448,112 +469,4 @@ export async function saveAdminFlightAddonOffer(
   return data;
 }
 
-export type BookingMetricsSummary = {
-  totalBookings: number;
-  confirmedCount: number;
-  pendingCount: number;
-  cancelledCount: number;
-  expiredCount: number;
-  confirmedGrossAmount: number;
-  completedRefundAmount: number;
-  simulatedNetAmount: number;
-  totalCustomers: number;
-  newCustomersInWindow: number;
-  succeededPaymentsCount: number;
-  failedPaymentsCount: number;
-};
-
-/**
- * Aggregates F10 booking, payment, refund, and customer metrics for a given period.
- * Per docs/FEATURES-AND-TEAM.md (F10):
- * - Only `confirmed` bookings count toward simulated gross revenue.
- * - `cancelled`, `expired`, and `pending_payment` bookings are excluded from revenue.
- * - Completed refunds are deducted to produce `simulatedNetAmount`.
- */
-export function summarizeAdminBookingsAndRevenue(input: {
-  bookings: readonly Pick<
-    BookingRow,
-    'id' | 'status' | 'total_amount' | 'created_at' | 'confirmed_at'
-  >[];
-  payments?: readonly Pick<PaymentRow, 'id' | 'status' | 'amount' | 'created_at'>[];
-  refunds?: readonly {
-    id: string;
-    status: RefundRow['status'] | 'completed';
-    amount: number;
-    created_at: string;
-  }[];
-  profiles?: readonly Pick<ProfileRow, 'id' | 'created_at'>[];
-  nowMs?: number;
-  daysWindow?: number;
-}): BookingMetricsSummary {
-  const nowMs = input.nowMs ?? Date.now();
-  const days = Math.max(1, input.daysWindow ?? 30);
-  const cutoffMs = nowMs - days * 86_400_000;
-
-  const bookingsInPeriod = input.bookings.filter((b) => {
-    const t = Date.parse(b.created_at);
-    return Number.isNaN(t) || t >= cutoffMs;
-  });
-
-  let confirmedCount = 0;
-  let pendingCount = 0;
-  let cancelledCount = 0;
-  let expiredCount = 0;
-  let confirmedGrossAmount = 0;
-
-  for (const b of bookingsInPeriod) {
-    if (b.status === 'confirmed') {
-      confirmedCount += 1;
-      confirmedGrossAmount += Math.max(0, b.total_amount || 0);
-    } else if (b.status === 'pending_payment') {
-      pendingCount += 1;
-    } else if (b.status === 'cancelled') {
-      cancelledCount += 1;
-    } else if (b.status === 'expired') {
-      expiredCount += 1;
-    }
-  }
-
-  let completedRefundAmount = 0;
-  for (const r of input.refunds ?? []) {
-    const t = Date.parse(r.created_at);
-    if (
-      (Number.isNaN(t) || t >= cutoffMs) &&
-      (r.status === 'succeeded' || r.status === 'completed')
-    ) {
-      completedRefundAmount += Math.max(0, r.amount || 0);
-    }
-  }
-
-  let succeededPaymentsCount = 0;
-  let failedPaymentsCount = 0;
-  for (const p of input.payments ?? []) {
-    const t = Date.parse(p.created_at);
-    if (Number.isNaN(t) || t >= cutoffMs) {
-      if (p.status === 'succeeded') succeededPaymentsCount += 1;
-      if (p.status === 'failed') failedPaymentsCount += 1;
-    }
-  }
-
-  const allProfiles = input.profiles ?? [];
-  const newCustomersInWindow = allProfiles.filter((pr) => {
-    const t = Date.parse(pr.created_at);
-    return !Number.isNaN(t) && t >= cutoffMs;
-  }).length;
-
-  return {
-    totalBookings: bookingsInPeriod.length,
-    confirmedCount,
-    pendingCount,
-    cancelledCount,
-    expiredCount,
-    confirmedGrossAmount,
-    completedRefundAmount,
-    simulatedNetAmount: Math.max(0, confirmedGrossAmount - completedRefundAmount),
-    totalCustomers: allProfiles.length,
-    newCustomersInWindow,
-    succeededPaymentsCount,
-    failedPaymentsCount,
-  };
-}
-
+export { summarizeAdminBookingsAndRevenue, type BookingMetricsSummary } from './financial-summary.ts';

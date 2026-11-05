@@ -15,6 +15,7 @@ import { checkoutHrefForTrip, criteriaForLeg, parseTripSearchParameter } from '.
 import { savePendingSelection } from '../booking/pending-selection-storage';
 import { saveLastSearch } from './last-search-storage';
 import { FlightButton, flightColors, Page, styles } from './ui';
+import { AirlineLogo } from './airline-logo';
 
 type Sort = 'price' | 'departure' | 'duration';
 const emptyOffers: FlightOffer[] = [];
@@ -150,7 +151,7 @@ export function ItineraryResultsScreen({ rawSearch }: { rawSearch: unknown }) {
           </View>
         </View>
         {visible.map(offer => <View key={offer.fare.id} style={styles.card}>
-          <Text style={styles.label}>{offer.airline.name} · {offer.flight.flight_number}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}><AirlineLogo name={offer.airline.name} logoPath={offer.airline.logo_path} /><Text style={styles.label}>{offer.airline.name} · {offer.flight.flight_number}</Text></View>
           <View style={styles.row}>
             <View style={{ flex: 1 }}><Text style={styles.sectionTitle}>{offer.origin.iata_code}</Text>
               <Text style={styles.muted}>{timeAt(offer.flight.departure_at, offer.origin.timezone, localeFor(language))}</Text></View>
