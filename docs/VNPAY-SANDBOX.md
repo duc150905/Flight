@@ -27,6 +27,16 @@ After a booking first becomes confirmed, a private outbox captures the saved con
 
 RESEND_API_KEY and BOOKING_EMAIL_FROM are server-only. Retry reuses a frozen sender/payload and `booking-confirmed/{bookingId}` idempotency key, has a two-minute lease, five-minute backoff, six-attempt cap and stops before Resend's 24-hour idempotency retention. An unresolvable mail outcome goes to review. Mail errors never roll back confirmed bookings. `sent` means accepted by Resend; actual inbox delivery is a separate acceptance check.
 
+### Per-flight seats and travellers — 05 November 2026
+
+New confirmation snapshots use `version: 2`, `tripType` and ordered `segments`. Each segment freezes its flight details and each passenger's confirmed seat, lap-infant seat requirement and purchased add-ons. The SQL joins on `passenger_segment_id`, not array order or traveller name. Round trips show **Chiều đi / Outbound** and **Chiều về / Return**; multi-city itineraries show numbered legs, and connecting round-trip journeys also identify their leg number. Departure/arrival times use each airport's saved timezone with a visible GMT offset, rather than raw UTC strings. All user-controlled text remains HTML-escaped.
+
+Existing outbox rows are not rewritten or resent. Their original renderer is retained byte-for-byte so a retry cannot send a changed payload under the old Resend idempotency key. Already received Gmail messages remain unchanged; create and confirm a new booking to check the new layout. No manual customer email was sent as part of this change.
+
+Migration `20261105084143_vnpay_booking_email_segment_seats.sql` and the `vnpay-worker` renderer update are deployed to flight-dev. Deployment downloaded the currently running worker and replaced only `_shared/booking-email.ts`, preserving the separate refund investigation's deployed diagnostics. Do not redeploy the worker from an older branch without retaining that code. The two older unrelated pending admin/profile migrations remain untouched; dry-run/apply used a scoped deployment directory and selected only the new email migration.
+
+Validation: legacy payload hash, HTML escaping, round-trip traveller/seat isolation, multi-city/connecting labels, local airport times, missing-seat and lap-infant rendering. SQL rollback tests exercise actual create/confirm with deliberately different outbound/return seats and per-passenger baggage, then a three-leg multi-city booking. Snapshots remain frozen after passenger edits. Synthetic users/bookings are absent after rollback; mail RPC permissions remain server-only; security advisors reported no error-level issues. Browser policy blocked local HTML preview, so real Gmail/mobile visual acceptance is still pending.
+
 ## Verification, 2026-11-04
 
 - 227 Node unit tests; TypeScript and Expo lint passed. Node WebCrypto tests replace a separate Deno runner; Edge Functions bundled/deployed successfully using the Supabase API.

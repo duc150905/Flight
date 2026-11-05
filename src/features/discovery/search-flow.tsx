@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Notice } from '@/features/auth/ui';
 import { useLanguage } from '@/features/i18n/provider';
 import { PendingBookingCard } from '@/features/booking/pending-booking-card';
+import { searchAirports } from './airport-search';
 import { RecentSearchCard } from './recent-search-card';
 import { monthAfter, monthGrid } from './search-calendar';
 import { cabinLabels, localDate, type Airport, type CabinClass } from './model';
@@ -49,9 +50,7 @@ export function SearchFlow({ airports, loading, error, onRetry, onClose, initial
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [validationError, setValidationError] = useState('');
   const airportById = useMemo(() => new Map(airports.map(airport => [airport.id, airport])), [airports]);
-  const matches = airports.filter(airport =>
-    `${airport.city} ${airport.name} ${t(airport.city)} ${t(airport.name)} ${airport.iata_code}`.toLocaleLowerCase('vi-VN')
-      .includes(airportQuery.trim().toLocaleLowerCase('vi-VN'))).slice(0, 12);
+  const matches = searchAirports(airports, airportQuery, airport => [t(airport.city), t(airport.name)]);
 
   const updateLeg = (index: number, field: keyof TripLeg, value: string) => {
     setLegs(previous => {

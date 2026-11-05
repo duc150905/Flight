@@ -12,7 +12,7 @@ export function buildCatalogueTranslations() {
   return `// Generated from supabase/seeds/catalogue-data.json; edit the manifest, then regenerate.\nexport const expandedCatalogueEnglish = ${JSON.stringify(entries, null, 2)} as const;\n`;
 }
 
-export function buildCatalogueSql({ days = 30, startDate = null, rollback = false, repeat = 1 } = {}) {
+export function buildCatalogueSql({ days = 30, startDate = null, rollback = false, repeat = 1, allCabins = false } = {}) {
   if (!Number.isInteger(days) || days < 1 || days > 60) throw new Error('days must be 1..60');
   if (![1, 2].includes(repeat)) throw new Error('repeat must be 1 or 2');
   if (repeat === 2 && !rollback) throw new Error('repeat is a rollback-only idempotence check');
@@ -23,7 +23,7 @@ export function buildCatalogueSql({ days = 30, startDate = null, rollback = fals
   const template = readFileSync(new URL('../supabase/seeds/catalogue-expansion.sql', import.meta.url), 'utf8');
   const literal = value => `'${value.replaceAll("'", "''")}'`;
   return template
-    .replace('/* CATALOGUE_JSON */', literal(JSON.stringify(catalogue)))
+    .replace('/* CATALOGUE_JSON */', literal(JSON.stringify(allCabins ? {...catalogue,inventoryVariant:'C4'} : catalogue)))
     .replace('/* START_DATE */', startDate ? `${literal(startDate)}::date` : "(now() at time zone 'Asia/Ho_Chi_Minh')::date + 1")
     .replace('/* DAYS */', String(days))
     .replace('/* REPEAT */', String(repeat))
@@ -43,6 +43,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   writeFileSync(output, buildCatalogueSql({
     days: Number(get('--days') ?? 30), startDate: get('--start') ?? null,
     rollback: args.includes('--rollback'), repeat: Number(get('--repeat') ?? 1),
+    allCabins: args.includes('--all-cabins'),
   }), 'utf8');
   console.log(`Generated catalogue SQL: ${output}`);
 }

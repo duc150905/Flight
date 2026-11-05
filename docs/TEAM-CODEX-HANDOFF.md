@@ -1,3 +1,19 @@
+# Cập nhật tìm sân bay và phủ tuyến/khoang — 05/11/2026
+
+SearchFlow dùng helper `airport-search.ts`: bỏ dấu, chuẩn hóa dấu câu/khoảng trắng, hỗ trợ alias SGN/HAN/CXR, tìm nhiều từ không phụ thuộc thứ tự và ưu tiên mã IATA/tên khớp trước khi giới hạn 12 kết quả. `TPHCM`, `HCM`, `Sài Gòn`, `Tan Son Nhat` đều ra SGN; không dùng fuzzy quá rộng để đoán sai mã sân bay.
+
+Manifest catalogue mở rộng 71 cặp tuyến. Generator có `--all-cabins` tạo inventory C4 riêng của Flyora Airways F0, đủ 4 khoang với 5 gói giá, ID chuyến có hậu tố C4 và registration `-C4`; không ghi đè máy bay/chuyến đã có đơn. Phủ cả hai chiều từ SGN/HAN/DAD đến toàn bộ 22 sân bay, cùng các tuyến mẫu nhiều chặng; chưa phải mọi cặp thành phố đều có chuyến thẳng. Cửa sổ 06/11–05/12/2026. Xem [CATALOGUE-DATA.md](CATALOGUE-DATA.md) và [CHECKOUT-ITINERARY-TESTS.md](CHECKOUT-ITINERARY-TESTS.md). Không seed root, không sửa booking/payment/refund/RLS. Kiểm tra kết quả SQL và Git để biết trạng thái áp dụng/commit/push.
+
+Đã áp dụng xong cả 6 batch vào flight-dev: thêm 4.260 chuyến, tổng 6.862 chuyến. Fingerprint dữ liệu ngoài catalogue giữ nguyên trong từng batch. SQL public search đủ 17.040 tổ hợp tuyến/ngày/khoang, không thiếu; kiểm tra ghế/khoang/hành lý/vòng quay đạt. 305 Node tests và typecheck đạt; lint có 1 cảnh báo AI cũ. Web đã xác nhận gõ TPHCM ra SGN và 3 chặng mẫu có kết quả ở Phổ thông. Chưa nghiệm thu Android, không build APK.
+
+# Cập nhật email xác nhận — 05/11/2026
+
+Email xác nhận mới dùng snapshot version 2: chia Chiều đi/Chiều về hoặc Chặng 1/2…, ghi tên và ghế từng người đúng theo passenger_segment_id; hành lý cũng nằm dưới đúng người/chặng. Giờ bay dùng timezone sân bay. Migration 20261105084143_vnpay_booking_email_segment_seats đã lên flight-dev, worker đã cập nhật. Renderer cũ giữ nguyên cho outbox cũ để không đổi payload retry Resend; không gửi lại email đã nhận. Kiểm thử SQL rollback khứ hồi/3 chặng + ghế/hành lý/em bé đạt, không còn dữ liệu test. Khi deploy worker phải giữ các file query/reconcile đang chạy từ nhánh điều tra hoàn tiền: lần này tải source worker hiện tại rồi chỉ thay booking-email.ts, không merge nhánh hoàn tiền vào main. Xem [VNPAY-SANDBOX.md](VNPAY-SANDBOX.md). Chưa nghiệm thu hình thức email trên Gmail/Android; browser chặn preview HTML cục bộ. Không build APK.
+
+# Cập nhật khứ hồi/nhiều chặng — 05/11/2026
+
+Đã nạp thêm 768 chuyến vào flight-dev bằng generator catalogue, gồm 12 cặp tuyến mới hai chiều và kéo dài lịch 24 cặp cũ đến 05/12/2026. Manifest hiện có 36 cặp/72 hướng; 12 cặp mới chạy hằng ngày 06/11–05/12/2026. Có 7 bộ test khứ hồi/nhiều chặng (23 chặng) trong [CHECKOUT-ITINERARY-TESTS.md](CHECKOUT-ITINERARY-TESTS.md). SQL discovery kiểm tra dưới role anon, khoang/ghế/hành lý kiểm tra riêng: tất cả đạt. Tổng mới: 2.602 chuyến, 8.891 gói giá, 300.204 ghế theo chuyến. Generator chỉ thêm offer hành lý để tương thích trigger capability hiện tại; không vô hiệu trigger hoặc cấp quyền đọc ghế cho anon. Fingerprint các bảng ngoài catalogue không đổi; không tạo/sửa booking, payment, refund, tài khoản. Chưa build APK hoặc nghiệm thu thao tác Android. Xem Git để biết trạng thái commit/push/merge.
+
 # Cập nhật Admin — 05/11/2026
 
 Đọc [ADMIN-REMEDIATION-2026-11-05.md](ADMIN-REMEDIATION-2026-11-05.md) trước khi sửa admin hoặc các phần giao nhau. Quyền/khóa là dữ liệu server, không dùng AsyncStorage làm nguồn quyền. Cache admin tách theo tài khoản; đọc đủ trang và báo lỗi tải thiếu. Template ghế thay thế toàn bộ với index vị trí ghế active; publish=false thực sự riêng tư, có bảo vệ chuyến đang có đơn. Checkout chỉ hỗ trợ một gói hành lý/người/chặng; meal/insurance chỉ xem. Báo cáo tiền dùng capture/refund completion theo ngày sự kiện, khác giá trị đơn confirmed. Ba migration 20261105022806/09/11 và hàm admin-account-suspension đã lên flight-dev; không chạy lại seed, không sửa history migration cũ hoặc các refund review đang chờ. Chưa nghiệm thu Android/build APK; kiểm tra Git để biết local/push/merge.

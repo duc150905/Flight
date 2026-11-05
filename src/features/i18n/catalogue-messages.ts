@@ -28,6 +28,7 @@ export const catalogueEnglish = {
   'Demo Standard': 'Standard', 'Demo Flex': 'Flex',
   'Phổ thông Tiết kiệm': 'Economy Saver', 'Phổ thông Linh hoạt': 'Economy Flex',
   'Phổ thông Đặc biệt': 'Premium Economy', 'Thương gia Linh hoạt': 'Business Flex',
+  'Hạng nhất Linh hoạt': 'First Flex',
   'Demo checked baggage 15 kg': '15 kg checked baggage',
   'Demo checked baggage 25 kg': '25 kg checked baggage',
   'Hành lý ký gửi 15 kg': '15 kg checked baggage', 'Hành lý ký gửi 25 kg': '25 kg checked baggage',

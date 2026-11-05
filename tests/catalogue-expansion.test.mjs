@@ -40,7 +40,40 @@ test('route rotations fit within a day and keys cannot collide', () => {
     // Latest departure 08:45; two flights + 90 min turnaround + 10 min return padding.
     assert(8 * 60 + 45 + 2 * minutes + 100 < 24 * 60);
   }
-  assert.equal(pairs.size * 2 * 30, 1440);
+  assert.equal(pairs.size * 2 * 30, 4260);
+});
+
+test('three hubs have a two-way route to every configured airport',()=>{
+ const all=['SGN','HAN','DAD','PQC','CXR','DLI','HUI','HPH','SIN','BKK','ICN','NRT',...catalogue.airports.map(a=>a[0])];
+ const pairs=new Set(catalogue.routePairs.map(([a,b])=>[a,b].sort().join('-')));
+ for(const hub of ['SGN','HAN','DAD'])for(const airport of all){
+  if(hub!==airport)assert(pairs.has([hub,airport].sort().join('-')),`Missing hub route ${hub}-${airport}`);
+ }
+});
+
+test('four-cabin inventory is a separate reproducible variant, preserving existing IDs and flights',()=>{
+ const old=buildCatalogueSql({days:1,startDate:'2026-11-06'});
+ const full=buildCatalogueSql({days:1,startDate:'2026-11-06',allCabins:true});
+ assert.notEqual(full,old);
+ assert.match(full,/"inventoryVariant":"C4"/);
+ assert.doesNotMatch(old,/"inventoryVariant":"C4"/);
+});
+
+test('catalogue supports complete domestic and international multi-city loops in both directions', () => {
+  const routes = new Set(catalogue.routePairs.flatMap(([a, b]) => [`${a}-${b}`, `${b}-${a}`]));
+  const loops = [
+    ['DAD', 'PQC', 'CXR', 'DLI', 'DAD'],
+    ['HPH', 'HUI', 'DAD', 'HPH'],
+    ['DAD', 'SIN', 'BKK', 'DAD'],
+    ['SGN', 'KUL', 'SIN', 'BKK', 'KUL', 'SGN'],
+    ['SGN', 'ICN', 'NRT', 'HAN', 'DAD', 'SGN'],
+  ];
+  for (const loop of loops) {
+    for (let i = 1; i < loop.length; i++) {
+      assert(routes.has(`${loop[i - 1]}-${loop[i]}`), `Missing outbound leg ${loop[i - 1]}-${loop[i]}`);
+      assert(routes.has(`${loop[i]}-${loop[i - 1]}`), `Missing return leg ${loop[i]}-${loop[i - 1]}`);
+    }
+  }
 });
 
 test('all new airport timezones are accepted and all public display names are clean', () => {
@@ -60,6 +93,7 @@ test('all new airport timezones are accepted and all public display names are cl
 });
 
 test('new airport, destination and service names display in the selected language', () => {
+  assert.equal(translate('en', 'Hạng nhất Linh hoạt'), 'First Flex');
   const pairs = [
     ...catalogue.airports.flatMap(a => [[a[1], a[2]], [a[3], a[4]]]),
     ...catalogue.destinations.flatMap(d => [[d[2], d[3]], [d[4], d[5]]]),
