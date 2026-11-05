@@ -154,7 +154,7 @@ export function CheckoutPhoneField<T extends FieldValues>({
                     ? `${currentCountry.flag} ${currentCountry.dialCode} ▾`
                     : parts.code
                     ? `${parts.code} ▾`
-                    : '🌐 Mã vùng ▾'}
+                    : `🌐 ${t('Calling code')} ▾`}
                 </Text>
               </Pressable>
               <TextInput
