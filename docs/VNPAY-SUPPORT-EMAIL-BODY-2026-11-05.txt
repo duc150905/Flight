@@ -1,0 +1,29 @@
+Chào bộ phận kỹ thuật VNPAY,
+
+Merchant Flyora, TmnCode AMYSDLKQ, thanh toán PAY sandbox thành công nhưng chưa xác minh được hoàn tiền. Nhờ anh/chị kiểm tra:
+
+- Giao dịch gốc: 15726344.
+- Merchant reference/TxnRef: 2b69c7ed3b2f49daa98941ba6d4816a9.
+- CreateDate giao dịch gốc: 20261105110728, PayDate: 20261105110802, GMT+7.
+- Thanh toán: 1.468.000 VND.
+- Hoàn một phần (vnp_TransactionType=03): 1.118.000 VND.
+- Refund RequestId: fbc476d95d1c4fd69e578e115aa0112d.
+- Thời điểm gửi yêu cầu hoàn: 05/11/2026 lúc 11:09:00 GMT+7; ứng dụng hết hạn chờ sau 15 giây.
+
+Endpoint sử dụng theo tài liệu:
+https://sandbox.vnpayment.vn/merchant_webapi/api/transaction — POST JSON, version 2.1.0.
+
+Các phép kiểm tra chỉ đọc:
+
+1. Từ máy phát triển, QueryDR cho giao dịch có thật nhận HTTP 200 với {"vnp_ResponseCode":"99","vnp_Message":"Unexpected error"}, không có vnp_SecureHash.
+2. Từ Supabase Postgres/pg_net, QueryDR timeout 45 giây trong pha TCP/SSL, HTTP request/response time 0 ms.
+3. GET trang công khai của sandbox từ cùng database cũng timeout 20 giây trước HTTP; một HTTPS đối chứng đến supabase.com trả 200.
+
+Nhờ anh/chị xác nhận:
+
+- Yêu cầu refund mang RequestId trên đã tới VNPAY và có kết quả gì chưa?
+- Merchant đã có quyền QueryDR/refund đầy đủ trên sandbox chưa?
+- Sandbox có giới hạn IP/vùng cloud hoặc yêu cầu whitelist máy chủ gọi API không? Cần cấu hình IP như thế nào cho Supabase Edge Functions?
+- Nguyên nhân code 99 ở QueryDR và hướng xử lý kết nối nêu trên.
+
+Chúng tôi chưa gửi lại refund và chưa tự đánh dấu hoàn thành để tránh hoàn trùng. Cảm ơn anh/chị.

@@ -14,6 +14,14 @@ Phản hồi không có `vnp_SecureHash`. Nó không xác nhận kết quả tha
 
 Kiểm tra tiếp từ database Supabase qua `pg_net` có sẵn, không tạo endpoint mới: một QueryDR chỉ đọc timeout45.007ms, trong đó DNS404ms, TCP/SSL handshake44.604ms, HTTP request/response0ms, không có HTTP status/body. Đây là bằng chứng riêng về đường kết nối cloud→sandbox bị kẹt trước HTTP, chưa chứng minh nguyên nhân là whitelist, firewall, vùng chạy hay sự cố nhà cung cấp. Không thể suy ra chữ ký/payload sai từ lần timeout này vì chưa tới lớp HTTP; cũng chưa xác nhận vùng/đường đi của Edge có hoàn toàn giống database hay không.
 
+Phép thử đối chứng tiếp theo: GET trang công khai `https://sandbox.vnpayment.vn/` và HTTP public root đều timeout20giây ở pha kết nối, không có HTTP response. GET `https://supabase.com/` từ cùng database trả HTTP200. Không có thông tin thanh toán, hash hay API key trong các GET này. Như vậy lỗi kết nối tới host sandbox từ database có thể tái hiện ngay cả khi không gửi payload/chữ ký; kết nối HTTPS ra Internet nói chung vẫn hoạt động. Chưa đủ căn cứ xác định đơn vị chặn hay khẳng định mọi Edge region đều giống đường đi database.
+
+## Lần test mới của người dùng
+
+Đơn `FY89D5A33A53AC4DDD84A1602A8E740E`: payment thành công1.468.000VND, gồm50.000VND chọn ghế6C. Hủy đơn đã giải phóng ghế; chính sách snapshot giữ350.000VND, refund dự kiến1.118.000VND. Giao dịch gốc15726344, TxnRef `2b69c7ed3b2f49daa98941ba6d4816a9`, RequestId hoàn `fbc476d95d1c4fd69e578e115aa0112d`. Yêu cầu gửi lúc11:09:00 ngày05/11/2026 GMT+7; sau khoảng15giây ghi `gateway_timeout`, refund vẫn pending/unknown, chưa có completed_at. Đây là lần đầu mã lỗi mới xác nhận rõ timeout thay vì mã tổng hợp của ba đơn cũ.
+
+Ảnh portal của người dùng chưa có bản ghi hoàn khớp. Việc tạo intent trong DB, đánh dấu gửi trước HTTP và hủy đơn nội bộ không chứng minh cổng đã nhận hoặc chấp nhận yêu cầu. Chưa gửi lại refund của đơn này.
+
 ## Dữ liệu đọc từ flight-dev
 
 - Ba refund public vẫn `pending`, job `review`, `sync_count=20`, `completed_at=null`, `last_code=transport_or_validation`.
