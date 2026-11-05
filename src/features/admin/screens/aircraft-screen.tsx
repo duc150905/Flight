@@ -5,6 +5,7 @@ import { ActionButton, Notice, colors } from '@/features/auth/ui';
 import { cabinLabels } from '@/features/discovery/model';
 import { supabase } from '@/lib/supabase';
 import { useAdminI18n } from '../i18n';
+import { loadAircraftAndSeats } from '../aircraft-data';
 import {
   buildStandardSeatTemplate,
   filterAndPaginate,
@@ -157,23 +158,6 @@ function groupSeatsIntoRows(seats: VisualSeatItem[]) {
   return Array.from(rowMap.values()).sort((a, b) => a.rowNumber - b.rowNumber);
 }
 
-async function loadAircraftAndSeats() {
-  if (!supabase) throw new Error('Chưa cấu hình kết nối Supabase.');
-  const [airlines, aircraft, seats] = await Promise.all([
-    supabase.from('airlines').select('*').order('iata_code'),
-    supabase.from('aircraft').select('*').order('registration_code'),
-    supabase.from('seats').select('*').order('row_number').order('column_number'),
-  ]);
-  if (airlines.error) throw airlines.error;
-  if (aircraft.error) throw aircraft.error;
-  if (seats.error) throw seats.error;
-  return {
-    airlines: airlines.data ?? [],
-    aircraft: aircraft.data ?? [],
-    seats: seats.data ?? [],
-  };
-}
-
 export function AdminAircraftScreen() {
   const { ta, bi, language } = useAdminI18n();
   const queryClient = useQueryClient();
@@ -204,7 +188,10 @@ export function AdminAircraftScreen() {
 
   const dataQuery = useQuery({
     queryKey: ['admin-aircraft'],
-    queryFn: loadAircraftAndSeats,
+    queryFn: () => {
+      if (!supabase) throw new Error('Chưa cấu hình kết nối Supabase.');
+      return loadAircraftAndSeats(supabase);
+    },
   });
 
   const airlines = dataQuery.data?.airlines ?? [];

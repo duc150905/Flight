@@ -1,5 +1,9 @@
 # Tích hợp Admin Console — 02/11/2026
 
+## Cập nhật 05/11/2026 — tải đủ sơ đồ ghế
+
+Màn Máy bay & Ghế trước đây còn tải toàn bộ bảng `seats` bằng một lần gọi. Khi danh mục tăng lên 3.744 ghế mẫu, giới hạn trả về của API khiến VN-A321 chỉ hiện 29/84 ghế. Loader hiện dùng `loadAllRows` theo trang 500 dòng cho ghế, máy bay và hãng, với thứ tự ổn định; lỗi ở trang sau làm cả lần tải thất bại thay vì trình bày sơ đồ thiếu. Kiểm thử tái hiện đúng trường hợp 29 → 84 và lỗi trang thứ hai. Không thay đổi ghế mẫu, kho ghế theo chuyến, booking hay chính sách chọn ghế. Các ghi chú trạng thái migration phía dưới là snapshot tại ngày 02/11.
+
 PR #16 được ghép với main chứa Flyora/TV2. Các điểm đã chỉnh để tích hợp:
 
 - Các bundle booking, hành khách, chặng, lịch sử, thanh toán, hồ sơ và danh mục
