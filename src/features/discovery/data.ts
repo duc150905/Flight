@@ -57,18 +57,29 @@ export async function searchOneWay(input: unknown): Promise<{ criteria: SearchCr
   }
   if (flights.length === 0) return { criteria, offers: [] };
 
-  const fares = [];
-  for (let index = 0; index < flights.length; index += 100) {
-    const ids = flights.slice(index, index + 100).map(flight => flight.id);
-    const { data, error } = await db.from('flight_fares').select('*').in('flight_id', ids)
+  const fareRequests = Array.from({ length: Math.ceil(flights.length / 100) }, (_, page) => {
+    const ids = flights.slice(page * 100, (page + 1) * 100).map(flight => flight.id);
+    return db.from('flight_fares').select('*').in('flight_id', ids)
       .eq('cabin_class', criteria.cabinClass).eq('is_active', true);
+  });
+  const airlineIds = [...new Set(flights.map(flight => flight.airline_id))];
+  const loadFareBatches = async () => {
+    const results = [];
+    for (let index = 0; index < fareRequests.length; index += 4) {
+      results.push(...await Promise.all(fareRequests.slice(index, index + 4)));
+    }
+    return results;
+  };
+  const [fareResults, { data: airlines, error: airlineError }] = await Promise.all([
+    loadFareBatches(),
+    db.from('airlines').select('*').in('id', airlineIds).eq('is_active', true),
+  ]);
+  if (airlineError) throw airlineError;
+  const fares = [];
+  for (const { data, error } of fareResults) {
     if (error) throw error;
     fares.push(...(data ?? []));
   }
-  const airlineIds = [...new Set(flights.map(flight => flight.airline_id))];
-  const { data: airlines, error: airlineError } = await db.from('airlines').select('*')
-    .in('id', airlineIds).eq('is_active', true);
-  if (airlineError) throw airlineError;
   const flightById = new Map(flights.map(flight => [flight.id, flight]));
   const airlineById = new Map((airlines ?? []).map(airline => [airline.id, airline]));
   const offers: FlightOffer[] = [];

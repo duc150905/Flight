@@ -1,9 +1,21 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Pressable, Text, View } from 'react-native';
+import { invalidateFlightSearch } from '@/features/cache/policy';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import { ActionButton, Notice } from '@/features/auth/ui';
 import { supabase } from '@/lib/supabase';
+import {
+  CountryOption,
+  POPULAR_COUNTRIES,
+  POPULAR_TIMEZONES,
+  TimezoneOption,
+  findCountry,
+  findTimezone,
+  getRecommendedTimezonesForCountry,
+  searchCountries,
+  searchTimezones,
+} from '../geo-data';
 import { useAdminI18n } from '../i18n';
 import {
   filterAndPaginate,
@@ -23,6 +35,7 @@ import {
   AdminShell,
   AdminStatusBadge,
   AdminTextField,
+  AdminToast,
   adminStyles,
 } from '../ui';
 
@@ -59,6 +72,34 @@ function AdminCataloguesContent({ initialQuery }: { initialQuery: string }) {
   const [apCountry, setApCountry] = useState('VN');
   const [apTimezone, setApTimezone] = useState('Asia/Ho_Chi_Minh');
   const [apActive, setApActive] = useState(true);
+  const [countrySearch, setCountrySearch] = useState('');
+  const [showAllCountries, setShowAllCountries] = useState(false);
+  const [timezoneSearch, setTimezoneSearch] = useState('');
+  const [showAllTimezones, setShowAllTimezones] = useState(false);
+
+  const selectedCountry = useMemo(() => findCountry(apCountry), [apCountry]);
+  const selectedTimezone = useMemo(() => findTimezone(apTimezone), [apTimezone]);
+  const recommendedTimezones = useMemo(
+    () => getRecommendedTimezonesForCountry(apCountry),
+    [apCountry],
+  );
+  const filteredCountries = useMemo(() => searchCountries(countrySearch), [countrySearch]);
+  const filteredTimezones = useMemo(() => searchTimezones(timezoneSearch), [timezoneSearch]);
+
+  const handleSelectCountry = (c: CountryOption) => {
+    setApCountry(c.code);
+    if (
+      !apTimezone ||
+      apTimezone === 'Asia/Ho_Chi_Minh' ||
+      (selectedCountry && apTimezone === selectedCountry.defaultTimezone)
+    ) {
+      setApTimezone(c.defaultTimezone);
+    }
+  };
+
+  const handleSelectTimezone = (t: TimezoneOption) => {
+    setApTimezone(t.tz);
+  };
 
   // Form states for Airline
   const [editingAirline, setEditingAirline] = useState<AirlineRow | null>(null);
@@ -98,6 +139,7 @@ function AdminCataloguesContent({ initialQuery }: { initialQuery: string }) {
     await queryClient.invalidateQueries({ queryKey: ['admin-f09-summary'] });
     await queryClient.invalidateQueries({ queryKey: ['airports'] });
     await queryClient.invalidateQueries({ queryKey: ['featured-destinations'] });
+    await invalidateFlightSearch(queryClient);
   };
 
   const openAirportEditor = (airport?: AirportRow) => {
@@ -110,6 +152,10 @@ function AdminCataloguesContent({ initialQuery }: { initialQuery: string }) {
     setApCountry(airport?.country_code ?? 'VN');
     setApTimezone(airport?.timezone ?? 'Asia/Ho_Chi_Minh');
     setApActive(airport?.is_active ?? true);
+    setCountrySearch('');
+    setShowAllCountries(false);
+    setTimezoneSearch('');
+    setShowAllTimezones(false);
     setShowAirportForm(true);
   };
 
@@ -387,8 +433,8 @@ function AdminCataloguesContent({ initialQuery }: { initialQuery: string }) {
         }}
       />
 
-      <Notice text={success} success />
-      <Notice text={error} />
+      <AdminToast text={success} success onClose={() => setSuccess('')} />
+      <AdminToast text={error} error onClose={() => setError('')} />
 
       {dataQuery.isPending && <AdminLoadingState />}
       {dataQuery.isError && (
@@ -431,23 +477,250 @@ function AdminCataloguesContent({ initialQuery }: { initialQuery: string }) {
             placeholder="TP. Hồ Chí Minh"
             autoCapitalize="words"
           />
-          <AdminTextField
-            label={bi('Mã quốc gia ISO-2', 'ISO-2 Country Code')}
-            value={apCountry}
-            onChangeText={setApCountry}
-            placeholder="VN"
-            autoCapitalize="characters"
-          />
-          <AdminTextField
-            label={bi('Múi giờ IANA', 'IANA Timezone')}
-            value={apTimezone}
-            onChangeText={setApTimezone}
-            placeholder="Asia/Ho_Chi_Minh"
-            helperText={bi(
-              'Ví dụ: Asia/Ho_Chi_Minh, Asia/Singapore, Asia/Bangkok, Asia/Tokyo',
-              'Examples: Asia/Ho_Chi_Minh, Asia/Singapore, Asia/Bangkok, Asia/Tokyo',
+          {/* MÃ QUỐC GIA ISO-2 */}
+          <View style={adminStyles.fieldGroup}>
+            <View style={adminStyles.rowBetween}>
+              <Text style={adminStyles.label}>{bi('Mã quốc gia ISO-2', 'ISO-2 Country Code')}</Text>
+              {selectedCountry ? (
+                <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F766E' }}>
+                  {selectedCountry.flag} {bi(selectedCountry.nameVi, selectedCountry.nameEn)} ({selectedCountry.code})
+                </Text>
+              ) : apCountry.trim().length === 2 ? (
+                <Text style={{ fontSize: 12, color: '#64748B' }}>
+                  {bi('Mã:', 'Code:')} {apCountry.toUpperCase()}
+                </Text>
+              ) : null}
+            </View>
+            <TextInput
+              value={apCountry}
+              onChangeText={(val) => setApCountry(val.toUpperCase())}
+              placeholder="VN"
+              autoCapitalize="characters"
+              maxLength={2}
+              style={adminStyles.input}
+            />
+            <View style={{ gap: 6, marginTop: 2 }}>
+              <Text style={{ fontSize: 12, color: '#64748B', fontWeight: '600' }}>
+                💡 {bi('Chọn nhanh quốc gia (Bấm để chọn & gợi ý múi giờ):', 'Quick select country (Tap to apply & suggest timezone):')}
+              </Text>
+              <View style={adminStyles.chipRow}>
+                {POPULAR_COUNTRIES.slice(0, 8).map((c) => {
+                  const isSelected = apCountry.toUpperCase() === c.code;
+                  return (
+                    <Pressable
+                      key={c.code}
+                      accessibilityRole="button"
+                      onPress={() => handleSelectCountry(c)}
+                      style={[adminStyles.chip, isSelected && adminStyles.chipSelected]}
+                    >
+                      <Text style={[adminStyles.chipText, isSelected && adminStyles.chipTextSelected]}>
+                        {c.flag} {c.code} · {bi(c.nameVi, c.nameEn)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setShowAllCountries((v) => !v)}
+                  style={[adminStyles.chip, showAllCountries && adminStyles.chipSelected]}
+                >
+                  <Text style={[adminStyles.chipText, showAllCountries && adminStyles.chipTextSelected]}>
+                    {showAllCountries
+                      ? bi('▲ Thu gọn danh sách', '▲ Collapse list')
+                      : bi('🌐 Chọn quốc gia khác...', '🌐 More countries...')}
+                  </Text>
+                </Pressable>
+              </View>
+
+              {showAllCountries && (
+                <View
+                  style={{
+                    backgroundColor: '#F8FAFC',
+                    borderColor: '#CBD5E1',
+                    borderWidth: 1,
+                    borderRadius: 10,
+                    padding: 10,
+                    gap: 8,
+                    marginTop: 4,
+                  }}
+                >
+                  <TextInput
+                    value={countrySearch}
+                    onChangeText={setCountrySearch}
+                    placeholder={bi(
+                      '🔍 Tìm theo tên hoặc mã (VD: Nhật Bản, Japan, JP, Mỹ, Pháp, Úc)...',
+                      '🔍 Search by name or code (e.g. Japan, JP, US, France)...',
+                    )}
+                    style={[adminStyles.input, { backgroundColor: '#FFFFFF' }]}
+                  />
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, maxHeight: 180 }}>
+                    {filteredCountries.map((c) => {
+                      const isSelected = apCountry.toUpperCase() === c.code;
+                      return (
+                        <Pressable
+                          key={c.code}
+                          accessibilityRole="button"
+                          onPress={() => {
+                            handleSelectCountry(c);
+                            setShowAllCountries(false);
+                          }}
+                          style={[adminStyles.chip, isSelected && adminStyles.chipSelected]}
+                        >
+                          <Text style={[adminStyles.chipText, isSelected && adminStyles.chipTextSelected]}>
+                            {c.flag} {c.code} · {bi(c.nameVi, c.nameEn)}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                    {filteredCountries.length === 0 && (
+                      <Text style={{ fontSize: 13, color: '#94A3B8', padding: 8 }}>
+                        {bi('Không tìm thấy quốc gia phù hợp.', 'No matching country found.')}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* MÚI GIỜ IANA */}
+          <View style={adminStyles.fieldGroup}>
+            <View style={adminStyles.rowBetween}>
+              <Text style={adminStyles.label}>{bi('Múi giờ IANA', 'IANA Timezone')}</Text>
+              {selectedTimezone ? (
+                <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F766E' }}>
+                  🕒 {selectedTimezone.offset} · {bi(selectedTimezone.labelVi, selectedTimezone.labelEn)}
+                </Text>
+              ) : null}
+            </View>
+            <TextInput
+              value={apTimezone}
+              onChangeText={setApTimezone}
+              placeholder="Asia/Ho_Chi_Minh"
+              autoCapitalize="none"
+              style={adminStyles.input}
+            />
+
+            {/* Gợi ý múi giờ theo quốc gia đã chọn */}
+            {recommendedTimezones.length > 0 && (
+              <View style={{ gap: 4, marginTop: 2 }}>
+                <Text style={{ fontSize: 12, color: '#0F766E', fontWeight: '700' }}>
+                  ⚡{' '}
+                  {bi(
+                    `Gợi ý múi giờ cho ${selectedCountry?.flag ?? ''} ${
+                      selectedCountry ? bi(selectedCountry.nameVi, selectedCountry.nameEn) : apCountry
+                    }:`,
+                    `Suggested timezone for ${apCountry}:`,
+                  )}
+                </Text>
+                <View style={adminStyles.chipRow}>
+                  {recommendedTimezones.map((tzOpt) => {
+                    const isSelected = apTimezone === tzOpt.tz;
+                    return (
+                      <Pressable
+                        key={tzOpt.tz}
+                        accessibilityRole="button"
+                        onPress={() => handleSelectTimezone(tzOpt)}
+                        style={[
+                          adminStyles.chip,
+                          isSelected && adminStyles.chipSelected,
+                          { borderColor: '#0D9488' },
+                        ]}
+                      >
+                        <Text style={[adminStyles.chipText, isSelected && adminStyles.chipTextSelected]}>
+                          ⭐ {tzOpt.tz} ({tzOpt.offset} · {bi(tzOpt.labelVi, tzOpt.labelEn)})
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
             )}
-          />
+
+            {/* Các múi giờ phổ biến khác */}
+            <View style={{ gap: 6, marginTop: 4 }}>
+              <Text style={{ fontSize: 12, color: '#64748B', fontWeight: '600' }}>
+                💡 {bi('Các múi giờ phổ biến khác (Bấm để chọn):', 'Other popular timezones (Tap to apply):')}
+              </Text>
+              <View style={adminStyles.chipRow}>
+                {POPULAR_TIMEZONES.slice(0, 8).map((tzOpt) => {
+                  const isSelected = apTimezone === tzOpt.tz;
+                  return (
+                    <Pressable
+                      key={tzOpt.tz}
+                      accessibilityRole="button"
+                      onPress={() => handleSelectTimezone(tzOpt)}
+                      style={[adminStyles.chip, isSelected && adminStyles.chipSelected]}
+                    >
+                      <Text style={[adminStyles.chipText, isSelected && adminStyles.chipTextSelected]}>
+                        {tzOpt.tz} ({tzOpt.offset})
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setShowAllTimezones((v) => !v)}
+                  style={[adminStyles.chip, showAllTimezones && adminStyles.chipSelected]}
+                >
+                  <Text style={[adminStyles.chipText, showAllTimezones && adminStyles.chipTextSelected]}>
+                    {showAllTimezones
+                      ? bi('▲ Thu gọn danh sách', '▲ Collapse list')
+                      : bi('🕒 Chọn múi giờ khác...', '🕒 More timezones...')}
+                  </Text>
+                </Pressable>
+              </View>
+
+              {showAllTimezones && (
+                <View
+                  style={{
+                    backgroundColor: '#F8FAFC',
+                    borderColor: '#CBD5E1',
+                    borderWidth: 1,
+                    borderRadius: 10,
+                    padding: 10,
+                    gap: 8,
+                    marginTop: 4,
+                  }}
+                >
+                  <TextInput
+                    value={timezoneSearch}
+                    onChangeText={setTimezoneSearch}
+                    placeholder={bi(
+                      '🔍 Tìm múi giờ (VD: Tokyo, Bangkok, Paris, New York, GMT+8)...',
+                      '🔍 Search timezone (e.g. Tokyo, Bangkok, Paris, GMT+8)...',
+                    )}
+                    style={[adminStyles.input, { backgroundColor: '#FFFFFF' }]}
+                  />
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, maxHeight: 180 }}>
+                    {filteredTimezones.map((tzOpt) => {
+                      const isSelected = apTimezone === tzOpt.tz;
+                      return (
+                        <Pressable
+                          key={tzOpt.tz}
+                          accessibilityRole="button"
+                          onPress={() => {
+                            handleSelectTimezone(tzOpt);
+                            setShowAllTimezones(false);
+                          }}
+                          style={[adminStyles.chip, isSelected && adminStyles.chipSelected]}
+                        >
+                          <Text style={[adminStyles.chipText, isSelected && adminStyles.chipTextSelected]}>
+                            {tzOpt.tz} ({tzOpt.offset} · {bi(tzOpt.labelVi, tzOpt.labelEn)})
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                    {filteredTimezones.length === 0 && (
+                      <Text style={{ fontSize: 13, color: '#94A3B8', padding: 8 }}>
+                        {bi('Không tìm thấy múi giờ phù hợp.', 'No matching timezone found.')}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              )}
+            </View>
+          </View>
           <View style={adminStyles.rowGap}>
             <Pressable
               accessibilityRole="button"

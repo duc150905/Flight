@@ -68,6 +68,9 @@ export function QuoteScreen() {
     {query.isFetching && <><ActivityIndicator accessibilityLabel={t('Updating your quote…')} /><CheckoutText muted message="Updating your quote…" /></>}
     {query.isError && <CheckoutError message={query.error.message} />}
     {expired && !query.isFetching && <CheckoutError message="quote.expired" />}
+    {expired && !query.isFetching && (
+      <CheckoutButton title="Refresh quote" secondary disabled={query.isFetching || creation.busy} onPress={() => { void query.refetch(); }} />
+    )}
     {query.isError && <CheckoutButton title="Retry" variant="text" disabled={query.isFetching || creation.busy} onPress={() => { void query.refetch(); }} />}
     {usable && <>
       {changed && <CheckoutError message="quote.changed" />}
@@ -95,7 +98,9 @@ export function QuoteScreen() {
           <MoneyText amount={line.base + line.tax + line.fee + line.baggage + line.seat} />
         </CheckoutCard>;
       })}</CheckoutCard>
-      {changed && <CheckoutButton title={acknowledged === signature ? 'Price reviewed' : 'I have reviewed this price'} disabled={acknowledged === signature} onPress={() => acknowledge(signature)} />}
+      {changed && (
+        <CheckoutButton title={acknowledged === signature ? 'Price reviewed' : 'I have reviewed this price'} disabled={acknowledged === signature} onPress={() => acknowledge(signature)} />
+      )}
       <CheckoutText muted message="Seats are held for up to 15 minutes after creating your booking. Automatic seat assignment is free; seats together are not guaranteed." />
       <CheckoutButton title="Create booking and hold seats" disabled={creation.busy || (changed && acknowledged !== signature)} onPress={() => { void creation.submit(quote); }} />
     </>}

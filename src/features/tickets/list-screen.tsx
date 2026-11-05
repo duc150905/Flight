@@ -1,62 +1,32 @@
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/features/auth/auth-provider';
 import { ActionButton, colors, Notice } from '@/features/auth/ui';
+import { cacheKeys, cacheTimes } from '@/features/cache/policy';
 import { useLanguage } from '@/features/i18n/provider';
 import { supabase } from '@/lib/supabase';
-import { createTicketService, ticketErrorMessage, TICKET_PAGE_SIZE, type BookingSummary } from './model';
+import { createTicketService, ticketErrorMessage, TICKET_PAGE_SIZE } from './model';
 import { bookingStatusLabel, formatDateTime, formatMoney, tripTypeLabel } from './presentation';
 import { TicketBack, TicketState, ticketStyles } from './ui';
 
-type ListState = { ownerId: string; status: 'loading' | 'ready' | 'error'; bookings: BookingSummary[];
-  nextPage: number; hasMore: boolean; loadingMore: boolean; error: string; moreError: string };
 const service = supabase ? createTicketService(supabase) : null;
 
 export function TicketsListScreen() {
   const { t, language } = useLanguage();
   const { session, status, error: authError, retry: retryAuth } = useAuth();
   const userId = session?.user.id ?? '';
-  const [attempt, setAttempt] = useState(0);
-  const [state, setState] = useState<ListState>({ ownerId: '', status: 'loading', bookings: [],
-    nextPage: 0, hasMore: false, loadingMore: false, error: '', moreError: '' });
-  useEffect(() => {
-    let active = true;
-    if (!service || !userId || status !== 'ready') return;
-    service.list(userId).then(bookings => {
-      if (active) setState({ ownerId: userId, status: 'ready', bookings, nextPage: 1,
-        hasMore: bookings.length === TICKET_PAGE_SIZE, loadingMore: false, error: '', moreError: '' });
-    }).catch(error => {
-      if (active) setState({ ownerId: userId, status: 'error', bookings: [], nextPage: 0,
-        hasMore: false, loadingMore: false, error: ticketErrorMessage(error), moreError: '' });
-    });
-    return () => { active = false; };
-  }, [userId, status, attempt]);
-
-  const refresh = () => {
-    setState({ ownerId: userId, status: 'loading', bookings: [], nextPage: 0,
-      hasMore: false, loadingMore: false, error: '', moreError: '' });
-    setAttempt(value => value + 1);
-  };
-  const current = state.ownerId === userId ? state : { ...state, status: 'loading' as const, bookings: [] };
-  const loadMore = async () => {
-    if (!service || current.loadingMore || !current.hasMore || current.status !== 'ready') return;
-    const page = current.nextPage;
-    setState(previous => ({ ...previous, loadingMore: true, moreError: '' }));
-    try {
-      const bookings = await service.list(userId, page);
-      setState(previous => previous.ownerId !== userId || previous.nextPage !== page ? previous : {
-        ...previous, bookings: [...previous.bookings, ...bookings], nextPage: page + 1,
-        hasMore: bookings.length === TICKET_PAGE_SIZE, loadingMore: false,
-      });
-    } catch (error) {
-      setState(previous => previous.ownerId !== userId ? previous : {
-        ...previous, loadingMore: false, moreError: ticketErrorMessage(error),
-      });
-    }
-  };
+  const query = useInfiniteQuery({
+    queryKey: cacheKeys.tickets(userId),
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) => service!.list(userId, pageParam),
+    getNextPageParam: (lastPage, pages) => lastPage.length === TICKET_PAGE_SIZE ? pages.length : undefined,
+    enabled: !!service && !!userId && status === 'ready',
+    staleTime: cacheTimes.ticket,
+  });
+  const bookings = query.data?.pages.flat() ?? [];
 
   if (status === 'loading') return <TicketState title={t('Vé của tôi')} description={t('Đang kiểm tra phiên đăng nhập…')} loading />;
   if (status === 'error') return <TicketState title={t('Vé của tôi')} description={t(authError ?? 'Không thể khôi phục phiên.')}
@@ -65,18 +35,18 @@ export function TicketsListScreen() {
     action={t('Về đăng nhập')} onAction={() => router.replace('/account')} />;
   if (!service) return <TicketState title={t('Vé của tôi')} description={t('Chưa cấu hình kết nối Supabase.')}
     action={t('Về trang chủ')} onAction={() => router.replace('/')} />;
-  if (current.status === 'loading') return <TicketState title={t('Vé của tôi')} description={t('Đang tải danh sách đơn vé…')} loading />;
-  if (current.status === 'error') return <TicketState title={t('Vé của tôi')} description={t(current.error)}
-    action={t('Thử lại')} onAction={refresh} />;
+  if (query.isPending) return <TicketState title={t('Vé của tôi')} description={t('Đang tải danh sách đơn vé…')} loading />;
+  if (query.isError && !query.data) return <TicketState title={t('Vé của tôi')} description={t(ticketErrorMessage(query.error))}
+    action={t('Thử lại')} onAction={() => void query.refetch()} />;
 
   return <SafeAreaView style={ticketStyles.safe} edges={['top', 'left', 'right']}>
-    <FlatList data={current.bookings} keyExtractor={item => item.id}
+    <FlatList data={bookings} keyExtractor={item => item.id}
       contentContainerStyle={ticketStyles.content}
       ListHeaderComponent={<View style={{ gap: 6 }}>
         <TicketBack label={t('Trang chủ')} onPress={() => router.replace('/')} />
         <Text accessibilityRole="header" style={ticketStyles.title}>{t('Vé của tôi')}</Text>
         <Text style={ticketStyles.subtitle}>{t('Theo dõi các đơn đặt vé của bạn.')}</Text>
-        <ActionButton title={t('Làm mới')} secondary onPress={refresh} />
+        <ActionButton title={t('Làm mới')} secondary onPress={() => void query.refetch()} />
       </View>}
       ListEmptyComponent={<View style={ticketStyles.card}>
         <Text style={ticketStyles.cardTitle}>{t('Chưa có đơn vé')}</Text>
@@ -102,9 +72,10 @@ export function TicketsListScreen() {
         </Text>}
         <Text style={ticketStyles.backText}>{t('Xem chi tiết')} ›</Text>
       </Pressable>}
-      ListFooterComponent={current.hasMore || current.moreError ? <View style={{ gap: 8 }}>
-        <Notice text={t(current.moreError)} />
-        <ActionButton title={t('Xem thêm')} busy={current.loadingMore} onPress={() => void loadMore()} />
+      ListFooterComponent={query.hasNextPage || query.isFetchNextPageError ? <View style={{ gap: 8 }}>
+        <Notice text={query.isFetchNextPageError ? t(ticketErrorMessage(query.error)) : ''} />
+        <ActionButton title={t('Xem thêm')} busy={query.isFetchingNextPage}
+          onPress={() => void query.fetchNextPage()} />
       </View> : undefined}
     />
   </SafeAreaView>;

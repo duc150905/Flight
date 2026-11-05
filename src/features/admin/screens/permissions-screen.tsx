@@ -24,6 +24,7 @@ import {
   AdminLoadingState,
   AdminPaginationBar,
   AdminShell,
+  AdminToast,
   adminStyles,
 } from '../ui';
 
@@ -342,7 +343,7 @@ export function AdminPermissionsScreen() {
         <Text style={permStyles.subTagText}>SYSTEM / ACCESS CONTROL</Text>
       </View>
 
-      {!!formSuccess && <Notice text={formSuccess} success />}
+      <AdminToast text={formSuccess} success onClose={() => setFormSuccess('')} />
       {!!formError && <Notice text={formError} />}
       {!!queryBundle.error && <Notice text={queryBundle.error.message} />}
       {!!auditQuery.error && <Notice text={auditQuery.error.message} />}

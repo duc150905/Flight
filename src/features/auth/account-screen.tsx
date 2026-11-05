@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, Text } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLanguage } from '@/features/i18n/provider';
 import { PendingBookingCard } from '@/features/booking/pending-booking-card';
@@ -97,13 +97,6 @@ export function AccountScreen() {
       <ActionButton title="Vé của tôi" secondary disabled={busy} onPress={() => router.push('/tickets')} />
       <ActionButton title="Đổi mật khẩu" secondary disabled={busy} onPress={() => { setMessage(''); setMode('password'); }} />
       <ActionButton title="Đăng xuất" busy={busy} secondary onPress={() => void logout()} />
-      {router.canGoBack() && (
-        <ActionButton
-          title={t('Quay lại trang trước')}
-          disabled={busy}
-          onPress={() => router.back()}
-        />
-      )}
       <ActionButton title="Về trang chủ" secondary disabled={busy} onPress={() => router.replace('/')} />
     </>}
   </AuthShell>;
@@ -123,7 +116,7 @@ function ProfileForm({ userId, profile, onSaved, onBack }: {
     setError('');
     try {
       const updated = await profileService!.save(userId, values);
-      void queryClient.invalidateQueries();
+      void queryClient.invalidateQueries({ queryKey: ['admin-customers-bundle'] });
       onSaved(updated);
     }
     catch (error) { setError(profileErrorMessage(error)); }

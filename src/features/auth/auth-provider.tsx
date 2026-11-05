@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useContext, useEffect, useRef, useState, type PropsWithChildren } from 'react';
 import { AppState, Platform } from 'react-native';
 
+import { clearPrivateQueries, isPublicQueryKey } from '@/features/cache/policy';
 import { supabase } from '@/lib/supabase';
 import { createAuthService } from './model';
 import { watchSession } from './session';
@@ -22,8 +23,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const clearOwnerCache = (nextOwner: string | null) => {
       if (cacheOwner.current === nextOwner) return;
       cacheOwner.current = nextOwner;
-      void queryClient.cancelQueries();
-      queryClient.clear();
+      void queryClient.cancelQueries({ predicate: query => !isPublicQueryKey(query.queryKey) });
+      clearPrivateQueries(queryClient);
     };
     const dispose = watchSession(client.auth,
       session => { clearOwnerCache(session?.user.id ?? null); setState({ session, status: 'ready' }); },

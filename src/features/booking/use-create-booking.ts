@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import { router, useFocusEffect } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useRef, useState } from 'react';
+import { invalidateOwnerTickets } from '@/features/cache/policy';
 import { useAuth } from '../auth/auth-provider';
 import { useCheckout } from './checkout-provider';
 import { bookingError, bookingPayload, createBooking, type BookingReceipt } from './create-booking';
@@ -13,6 +15,7 @@ import { createOwnerRpcClient } from './owner-rpc';
 
 const journal = createBookingRequestJournal(AsyncStorage, Crypto.randomUUID);
 export function useCreateBooking() {
+  const queryClient = useQueryClient();
   const draft = useCheckout(); const { session } = useAuth();
   const focused = useRef(false); const lock = useRef(false);
   const [busy, setBusy] = useState(false); const [error, setError] = useState('');
@@ -29,6 +32,7 @@ export function useCreateBooking() {
       const saved = await action();
       if (!focused.current) return;
       if (saved) {
+        if (session) void invalidateOwnerTickets(queryClient, session.user.id);
         draft.finish();
         void clearPendingSelection();
         router.replace({ pathname: '/pending/[id]', params: { id: saved.id } });

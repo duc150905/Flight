@@ -21,6 +21,7 @@ import {
   AdminShell,
   AdminStatusBadge,
   AdminTextField,
+  AdminToast,
   adminStyles,
 } from '../ui';
 
@@ -86,6 +87,7 @@ function AdminAddonsContent({ initialQuery }: { initialQuery: string }) {
   const refreshAll = async () => {
     await queryClient.invalidateQueries({ queryKey: ['admin-addons-bundle'] });
     await queryClient.invalidateQueries({ queryKey: ['admin-f09-summary'] });
+    await queryClient.invalidateQueries({ queryKey: ['checkout-baggage'] });
   };
 
   const switchTab = (next: AddonTab) => {
@@ -279,8 +281,6 @@ function AdminAddonsContent({ initialQuery }: { initialQuery: string }) {
     getIsActive: (item) => item.is_active,
   });
 
-  const displayError =
-    error || (addonsQuery.isError ? formatAdminError(addonsQuery.error, language) : null);
 
   return (
     <AdminShell
@@ -318,9 +318,12 @@ function AdminAddonsContent({ initialQuery }: { initialQuery: string }) {
         </Pressable>
       </View>
 
-      {!!displayError && (
+      <AdminToast text={info} success onClose={() => setInfo(null)} />
+      <AdminToast text={error} error onClose={() => setError(null)} />
+
+      {addonsQuery.isError && !error && (
         <View style={adminStyles.card}>
-          <Notice text={displayError} />
+          <Notice text={formatAdminError(addonsQuery.error, language)} />
           <Pressable
             accessibilityRole="button"
             onPress={() => void addonsQuery.refetch()}
@@ -330,7 +333,6 @@ function AdminAddonsContent({ initialQuery }: { initialQuery: string }) {
           </Pressable>
         </View>
       )}
-      {!!info && <Notice text={info} success />}
 
       <AdminSearchFilterBar
         query={query}
