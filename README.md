@@ -9,7 +9,8 @@ npm.cmd ci
 npm.cmd start
 ```
 
-Xem [hướng dẫn môi trường](docs/SETUP.md) để chạy Android, web, cấu hình Supabase và build APK.
+Xem [hướng dẫn chạy source](docs/HUONG_DAN_CHAY_SOURCE_FLYORA.md) để lấy code mới nhất, cấu hình Supabase và chạy trên web/điện thoại.
+Xem [hướng dẫn môi trường chi tiết](docs/SETUP.md) để build APK và kiểm tra project.
 Xem [chính sách cache](docs/CACHE.md) để biết dữ liệu nào được lưu trên thiết bị, cách làm mới và cách kiểm thử.
 
 ## Công nghệ
