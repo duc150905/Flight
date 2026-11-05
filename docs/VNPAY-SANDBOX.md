@@ -1,5 +1,7 @@
 # VNPAY Sandbox
 
+**Refund investigation, 05 November 2026:** see [VNPAY-REFUND-INVESTIGATION-2026-11-05.md](VNPAY-REFUND-INVESTIGATION-2026-11-05.md). Three existing refunds reached review after20 reads; current known-transaction QueryDR returns unsigned99. Diagnostic logging now distinguishes timeout/network/HTTP/JSON/unverified responses. This does not establish refund completion; do not blindly resubmit the existing review jobs.
+
 Sandbox only. No real card/CVV entry in Flyora. Pay in hosted VNPAY checkout with merchant-provided test credentials. All saved amounts are integer VND; display USD remains indicative.
 
 Server secrets: VNPAY_TMN_CODE, VNPAY_HASH_SECRET, VNPAY_RETURN_URL. Fill gitignored `.env.vnpay.local`, then set project secrets with the Supabase CLI; never commit the file. The gateway secret is never an EXPO_PUBLIC variable.
