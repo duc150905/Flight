@@ -48,7 +48,19 @@ function formatPaymentProvider(provider: string, bi: (vi: string, en: string) =>
   return provider.toUpperCase();
 }
 
-function getPaymentStatusMeta(status: PaymentRow['status'], bi: (vi: string, en: string) => string) {
+function getPaymentStatusMeta(
+  status: PaymentRow['status'],
+  bi: (vi: string, en: string) => string,
+  bookingStatus?: string,
+) {
+  if (status === 'pending' && (bookingStatus === 'cancelled' || bookingStatus === 'expired')) {
+    return {
+      label: bi('Đã hủy (Hết hạn giữ chỗ)', 'Cancelled (Hold Expired)'),
+      bg: '#F1F5F9',
+      border: '#CBD5E1',
+      text: '#475569',
+    };
+  }
   switch (status) {
     case 'succeeded':
       return {
@@ -163,9 +175,23 @@ function AdminPaymentsContent({ initialQuery, paymentId, initialTab }: { initial
     bookingById.set(b.id, b);
   }
 
-  const filteredPayments = payments.filter((p) =>
-    (!paymentId || p.id === paymentId) && (statusFilter === 'all' || p.status === statusFilter),
-  );
+  const isPaymentCancelledByBooking = (p: PaymentRow) => {
+    const bk = bookingById.get(p.booking_id);
+    return p.status === 'pending' && (bk?.status === 'cancelled' || bk?.status === 'expired');
+  };
+
+  const filteredPayments = payments.filter((p) => {
+    if (paymentId && p.id !== paymentId) return false;
+    if (statusFilter === 'all') return true;
+    const isCancelled = isPaymentCancelledByBooking(p);
+    if (statusFilter === 'cancelled') {
+      return p.status === 'cancelled' || isCancelled;
+    }
+    if (statusFilter === 'pending') {
+      return p.status === 'pending' && !isCancelled;
+    }
+    return p.status === statusFilter;
+  });
 
   const sortedPayments = [...filteredPayments].sort((a, b) => {
     if (sort === 'oldest') {
@@ -275,7 +301,14 @@ function AdminPaymentsContent({ initialQuery, paymentId, initialTab }: { initial
               const scopedRows = rows.filter((row) => !paymentId || ('payment_id' in row ? row.payment_id === paymentId : row.id === paymentId));
               const count = opt.key === 'all'
                 ? scopedRows.length
-                : scopedRows.filter((row) => row.status === opt.key).length;
+                : scopedRows.filter((row) => {
+                    if (tab === 'payments' && 'booking_id' in row) {
+                      const isCancelled = isPaymentCancelledByBooking(row as PaymentRow);
+                      if (opt.key === 'cancelled') return row.status === 'cancelled' || isCancelled;
+                      if (opt.key === 'pending') return row.status === 'pending' && !isCancelled;
+                    }
+                    return row.status === opt.key;
+                  }).length;
               return (
                 <Pressable
                   key={opt.key}
@@ -343,7 +376,7 @@ function AdminPaymentsContent({ initialQuery, paymentId, initialTab }: { initial
           <>
             {pagedPayments.items.map((p) => {
               const bk = bookingById.get(p.booking_id);
-              const statusMeta = getPaymentStatusMeta(p.status, bi);
+              const statusMeta = getPaymentStatusMeta(p.status, bi, bk?.status);
               return (
                 <View key={p.id} style={[adminStyles.itemCard, { gap: 10 }]}>
                   {/* Top row: Số tiền, Cổng thanh toán, Huy hiệu trạng thái */}
@@ -431,6 +464,25 @@ function AdminPaymentsContent({ initialQuery, paymentId, initialTab }: { initial
                         </Text>
                       )}
                     </View>
+
+                    {bk && (bk.status === 'cancelled' || bk.status === 'expired') && p.status === 'pending' && (
+                      <View style={{
+                        backgroundColor: '#FEF2F2',
+                        borderColor: '#FECACA',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        paddingHorizontal: 8,
+                        paddingVertical: 5,
+                        marginTop: 2,
+                      }}>
+                        <Text style={{ fontSize: 12, color: '#B91C1C', fontWeight: '600' }}>
+                          ⚠️ {bi(
+                            'Đơn đặt vé này đã bị hủy do hết hạn giữ chỗ (15 phút). Giao dịch cổng này không còn hiệu lực.',
+                            'This booking was cancelled because the 15-minute seat hold expired. Gateway attempt is no longer valid.',
+                          )}
+                        </Text>
+                      </View>
+                    )}
                   </View>
 
                   {/* Thông báo lỗi thanh toán nếu có */}

@@ -188,7 +188,14 @@ function AdminCustomersContent({ initialQuery }: { initialQuery: string }) {
                   </View>
 
                   <Text style={adminStyles.muted}>
-                    📞 {pr.phone ?? bi('Chưa cập nhật SĐT', 'No phone')} · 📧 {accountEmail}
+                    📞 {pr.phone?.trim() ? (
+                      pr.phone
+                    ) : (
+                      <Text style={{ fontStyle: 'italic', color: '#94A3B8' }}>
+                        {bi('Chưa cập nhật SĐT', 'No phone')}
+                      </Text>
+                    )}{' '}
+                    · 📧 {accountEmail}
                   </Text>
 
                   <Text style={adminStyles.muted}>
