@@ -1,5 +1,6 @@
 import type { Session } from '@supabase/supabase-js';
-import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { createContext, useContext, useEffect, useRef, useState, type PropsWithChildren } from 'react';
 import { AppState, Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
@@ -11,14 +12,22 @@ type AuthState = { session: Session | null; status: 'loading' | 'ready' | 'error
 const AuthContext = createContext<(AuthState & { actions: typeof actions; retry: () => void }) | null>(null);
 
 export function AuthProvider({ children }: PropsWithChildren) {
+  const queryClient = useQueryClient();
+  const cacheOwner = useRef<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<AuthState>({ session: null, status: 'loading' });
   useEffect(() => {
     const client = supabase;
     if (!client) return;
+    const clearOwnerCache = (nextOwner: string | null) => {
+      if (cacheOwner.current === nextOwner) return;
+      cacheOwner.current = nextOwner;
+      void queryClient.cancelQueries();
+      queryClient.clear();
+    };
     const dispose = watchSession(client.auth,
-      session => setState({ session, status: 'ready' }),
-      () => setState({ session: null, status: 'error', error: 'Không thể khôi phục phiên đăng nhập. Hãy kiểm tra kết nối và thử lại.' }));
+      session => { clearOwnerCache(session?.user.id ?? null); setState({ session, status: 'ready' }); },
+      () => { clearOwnerCache(null); setState({ session: null, status: 'error', error: 'Không thể khôi phục phiên đăng nhập. Hãy kiểm tra kết nối và thử lại.' }); });
     if (Platform.OS === 'web') return dispose;
     const syncRefresh = (next: string | null | undefined) => {
       if (next === 'active') client.auth.startAutoRefresh();
@@ -27,7 +36,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     syncRefresh(AppState.currentState);
     const listener = AppState.addEventListener('change', syncRefresh);
     return () => { dispose(); listener.remove(); client.auth.stopAutoRefresh(); };
-  }, [attempt]);
+  }, [attempt, queryClient]);
   const value = !supabase
     ? { session: null, status: 'error' as const, error: 'Chưa cấu hình Supabase. Hãy kiểm tra .env.local rồi khởi động lại ứng dụng.' }
     : state;

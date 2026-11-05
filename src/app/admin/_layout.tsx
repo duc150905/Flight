@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Text } from 'react-native';
 import { AdminGuard } from '@/features/auth/admin-guard';
+import { AdminQueryProvider } from '@/features/admin/admin-query-provider';
 import { useAuth } from '@/features/auth/auth-provider';
 import { AuthScreen } from '@/features/auth/auth-screen';
 import { ActionButton, AuthShell, Notice, colors, styles } from '@/features/auth/ui';
@@ -34,8 +35,10 @@ export default function AdminLayout() {
   }
 
   return (
-    <AdminGuard>
-      <Stack screenOptions={{ headerShown: false }} />
+    <AdminGuard key={session.user.id}>
+      <AdminQueryProvider key={session.user.id}>
+        <Stack screenOptions={{ headerShown: false }} />
+      </AdminQueryProvider>
     </AdminGuard>
   );
 }

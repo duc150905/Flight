@@ -45,3 +45,8 @@ test('checkIsAdmin catches unexpected network rejection and returns false safely
   };
   assert.equal(await checkIsAdmin(mockClient), false);
 });
+
+test('malformed truthy RPC data never grants administrator access',async()=>{
+ assert.equal(await checkIsAdmin({rpc:async()=>({data:{role:'admin'},error:null})}),false);
+ assert.equal(await checkIsAdmin({rpc:async()=>({data:'false',error:null})}),false);
+});

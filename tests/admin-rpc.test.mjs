@@ -242,6 +242,10 @@ test('admin RPC wrappers invoke matching Supabase RPC names and parameters', asy
   const logs = await adminListAuditLogs(mockClient, { entityType: 'flight_instances', limit: 20 });
 
   assert.equal(logs.length, 1);
+  assert.equal('p_aircraft_id' in JSON.parse(JSON.stringify(calls[0].args)), false);
+  assert.equal('p_flight_id' in JSON.parse(JSON.stringify(calls[2].args)), false);
+  assert.equal('p_sales_close_at' in JSON.parse(JSON.stringify(calls[2].args)), false);
+  assert.equal('p_fare_id' in JSON.parse(JSON.stringify(calls[5].args)), false);
   assert.deepEqual(
     calls.map((c) => c.fn),
     [

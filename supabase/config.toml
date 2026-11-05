@@ -426,3 +426,6 @@ verify_jwt = false # handler verifies the user JWT with Auth API
 verify_jwt = false # handler verifies the user JWT with Auth API
 [functions.vnpay-worker]
 verify_jwt = false # dedicated server-only worker secret
+
+[functions.admin-account-suspension]
+verify_jwt = false # handler verifies Auth JWT and current database admin authority

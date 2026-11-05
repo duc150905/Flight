@@ -13,7 +13,7 @@ export async function checkIsAdmin(client: RpcClient | null | undefined): Promis
     if (error) {
       return false;
     }
-    return Boolean(data);
+    return data === true;
   } catch {
     return false;
   }

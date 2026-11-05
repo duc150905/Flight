@@ -204,7 +204,7 @@ export async function adminUpsertAircraft(
   const db = requireClient(client);
   const parsed = upsertAircraftSchema.parse(input);
   const { data, error } = await db.rpc('admin_upsert_aircraft', {
-    p_aircraft_id: parsed.aircraftId ?? null,
+    p_aircraft_id: parsed.aircraftId ?? undefined,
     p_airline_id: parsed.airlineId,
     p_registration_code: parsed.registrationCode,
     p_model_name: parsed.modelName,
@@ -239,7 +239,7 @@ export async function adminSaveFlightInstance(
   const db = requireClient(client);
   const parsed = saveFlightInstanceSchema.parse(input);
   const { data, error } = await db.rpc('admin_save_flight_instance', {
-    p_flight_id: parsed.flightId ?? null,
+    p_flight_id: parsed.flightId ?? undefined,
     p_airline_id: parsed.airlineId,
     p_aircraft_id: parsed.aircraftId,
     p_flight_number: parsed.flightNumber,
@@ -247,7 +247,7 @@ export async function adminSaveFlightInstance(
     p_arrival_airport_id: parsed.arrivalAirportId,
     p_departure_at: parsed.departureAt,
     p_arrival_at: parsed.arrivalAt,
-    p_sales_close_at: parsed.salesCloseAt ?? null,
+    p_sales_close_at: parsed.salesCloseAt ?? undefined,
     p_status: parsed.status,
     p_publish: parsed.publish,
   });
@@ -266,7 +266,7 @@ export async function adminSetFlightSales(
   const { data, error } = await db.rpc('admin_set_flight_sales', {
     p_flight_id: parsed.flightId,
     p_open_sales: parsed.openSales,
-    p_sales_close_at: parsed.salesCloseAt ?? null,
+    p_sales_close_at: parsed.salesCloseAt ?? undefined,
   });
   if (error || !data) {
     throw new Error(error?.message ?? 'Không thể cập nhật trạng thái mở bán chuyến bay.');
@@ -282,8 +282,8 @@ export async function adminUpdateFlightSeat(
   const parsed = updateFlightSeatSchema.parse(input);
   const { data, error } = await db.rpc('admin_update_flight_seat', {
     p_flight_seat_id: parsed.flightSeatId,
-    p_is_blocked: parsed.isBlocked ?? null,
-    p_selection_fee_amount: parsed.selectionFeeAmount ?? null,
+    p_is_blocked: parsed.isBlocked ?? undefined,
+    p_selection_fee_amount: parsed.selectionFeeAmount ?? undefined,
   });
   if (error || !data) {
     throw new Error(error?.message ?? 'Không thể cập nhật kho ghế chuyến bay.');
@@ -298,7 +298,7 @@ export async function adminSaveFlightFare(
   const db = requireClient(client);
   const parsed = saveFlightFareSchema.parse(input);
   const { data, error } = await db.rpc('admin_save_flight_fare', {
-    p_fare_id: parsed.fareId ?? null,
+    p_fare_id: parsed.fareId ?? undefined,
     p_flight_id: parsed.flightId,
     p_fare_code: parsed.fareCode,
     p_cabin_class: parsed.cabinClass,
@@ -331,8 +331,8 @@ export async function adminListAuditLogs(
   const db = requireClient(client);
   const parsed = listAuditLogsSchema.parse(input);
   const { data, error } = await db.rpc('admin_list_audit_logs', {
-    p_entity_type: parsed.entityType ?? null,
-    p_entity_id: parsed.entityId ?? null,
+    p_entity_type: parsed.entityType ?? undefined,
+    p_entity_id: parsed.entityId ?? undefined,
     p_limit: parsed.limit,
     p_offset: parsed.offset,
   });
