@@ -8,7 +8,9 @@ type Passenger = Database['public']['Tables']['booking_passengers']['Row'];
 
 export const TICKET_PAGE_SIZE = 20;
 export type BookingSummary = Pick<Booking,
-  'id' | 'booking_code' | 'status' | 'trip_type' | 'total_amount' | 'currency' | 'created_at' | 'expires_at'>;
+  'id' | 'booking_code' | 'status' | 'trip_type' | 'total_amount' | 'currency' | 'created_at' | 'expires_at'> & {
+  booking_segments?: { id?: string; flight_snapshot: Segment['flight_snapshot'] }[];
+};
 export type BookingDetails = Pick<Booking,
   'id' | 'user_id' | 'booking_code' | 'status' | 'trip_type' | 'total_amount' | 'base_amount' |
   'tax_amount' | 'fee_amount' | 'seat_amount' | 'addon_amount' | 'currency' | 'created_at' |
@@ -18,7 +20,7 @@ export type TicketSegment = Pick<Segment,
 export type TicketPassenger = Pick<Passenger, 'id' | 'booking_id' | 'ordinal' | 'given_names' | 'family_name'>;
 export type TicketDetails = { booking: BookingDetails; segments: TicketSegment[]; passengers: TicketPassenger[] };
 
-const summaryColumns = 'id,booking_code,status,trip_type,total_amount,currency,created_at,expires_at';
+const summaryColumns = 'id,booking_code,status,trip_type,total_amount,currency,created_at,expires_at,booking_segments(id,flight_snapshot)';
 const detailColumns = 'id,user_id,booking_code,status,trip_type,total_amount,base_amount,tax_amount,fee_amount,seat_amount,addon_amount,currency,created_at,expires_at,confirmed_at,cancelled_at,contact_name,contact_email,contact_phone';
 const segmentColumns = 'id,booking_id,journey_number,leg_number,flight_snapshot,fare_code_snapshot,cabin_class';
 const passengerColumns = 'id,booking_id,ordinal,given_names,family_name';
@@ -38,7 +40,7 @@ export function createTicketService(client: Pick<SupabaseClient<Database>, 'from
         .order('created_at', { ascending: false }).order('id', { ascending: false })
         .range(start, start + TICKET_PAGE_SIZE - 1);
       if (error) throw error;
-      return data ?? [];
+      return (data as unknown as BookingSummary[]) ?? [];
     },
     async details(userId: string, bookingId: string): Promise<TicketDetails> {
       if (!userId || !uuidPattern.test(bookingId)) throw new TicketNotFoundError();
