@@ -41,7 +41,7 @@ export function useVnpayCheckout(bookingId:string,enabled:boolean,changed:()=>vo
  },[enabled,ownerId,bookingId,receiptStatus]);
  useFocusEffect(useCallback(()=>{focused.current=true;setVisible(true);setWatchUntil(Date.now()+120_000);if(enabled&&ownerId)void refetch();return()=>{focused.current=false;setVisible(false);guard.cancel();};},[enabled,ownerId,refetch,guard]));
  useEffect(()=>{if(!enabled)return;const sub=AppState.addEventListener('change',s=>{
-  setVisible(s==='active'&&focused.current);if(s==='active'&&focused.current){setWatchUntil(Date.now()+120_000);void refetch();}
+  setVisible(s==='active'&&focused.current);if(s==='active'&&focused.current){void WebBrowser.dismissBrowser();setWatchUntil(Date.now()+120_000);void refetch();}
  });return()=>sub.remove();},[enabled,refetch]);
  async function run(action?:(c:ReturnType<typeof client>,current:()=>boolean)=>Promise<void>){
   if(lock.current||!enabled||!session)return;lock.current=true;setBusy(true);setError('');const ticket=guard.begin(),current=()=>focused.current&&guard.isCurrent(ticket);
@@ -61,6 +61,7 @@ export function useVnpayCheckout(bookingId:string,enabled:boolean,changed:()=>vo
    const data=await invoke(c,'vnpay-create',{bookingId,requestId,locale:language==='en'?'en':'vn'});const url=safeCheckoutUrl(data.paymentUrl).toString();
    if(current()){
     await WebBrowser.openAuthSessionAsync(url,'flight://payment-return');
+    void WebBrowser.dismissBrowser();
     if(current())await invoke(c,'vnpay-sync',{bookingId});
    }
   }),
